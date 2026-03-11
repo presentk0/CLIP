@@ -23,7 +23,7 @@ git checkout [본인 브랜치명]
 git pull origin develop
 ```
 
-**2) 작업 전 최신화**
+**2) 작업  완료 및 업로드**
 - 코드 작성을 마친 뒤, 내 브랜치에 안전하게 저장하고 올리는 용도
 ```bash
 git add .
@@ -46,7 +46,12 @@ git push origin [본인-브랜치-명]
 
 - ❌ main, develop 브랜치에 직접 push 금지!
 - ✅ 충돌 발생 시 팀원과 상의
-
+- 🔒 API Key 관리 안내
+```
+보안을 위해 모든 API Key는 .env 파일에서 관리합니다.
+.env 파일은 절대 GitHub에 push하지 마세요. (이미 .gitignore에 등록됨)
+필요한 API Key 목록은 [우리 팀 노션 페이지]에서 확인 후 로컬에 복사해서 사용해 주세요.
+```
 ---
 
 ## 5. 커밋 메시지 규칙
