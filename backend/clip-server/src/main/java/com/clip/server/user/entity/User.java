@@ -23,20 +23,12 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // TODO: Google OAuth 로그인 구현 시 추가 예정
-    /*  @Enumerated(EnumType.STRING)
-        @Column(name = "oauth_provider", nullable = false, length = 20)
-        private OAuthProvider oauthProvider;
-
-        @Column(name = "oauth_id", nullable = false, length = 100)
-        private String oauthId;
-    */
     @Column(nullable = false, length = 255)
     private String email;
     @Column(nullable = false, length = 20)
     private String name;
 
-    @Column(name = "profile_image_url" length = 500)
+    @Column(name = "profile_image_url",  length = 500)
     private String profileImageUrl;
 
     private Integer level = 1;

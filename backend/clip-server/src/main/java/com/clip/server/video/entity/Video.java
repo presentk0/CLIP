@@ -2,6 +2,7 @@ package com.clip.server.video.entity;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
@@ -37,4 +38,12 @@ public class Video {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
+    @Builder
+    public Video(String videoId, String title, String url, Integer duration, String channelName) {
+        this.videoId = videoId;
+        this.title = title;
+        this.url = url;
+        this.duration = duration;
+        this.channelName = channelName;
+    }
 }
