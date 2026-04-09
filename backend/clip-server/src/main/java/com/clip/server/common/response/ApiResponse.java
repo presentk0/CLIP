@@ -40,7 +40,7 @@ public class ApiResponse<T> {
 
     @Getter
     @AllArgsConstructor
-    public static class ErrorInfo() {
+    public static class ErrorInfo {
         private String code;
         private String message;
     }
