@@ -13,6 +13,8 @@ public class CollectedWordRequest {
 
     // 수집하려는 단어의 영상 Id
     private String videoId;
+    // 수집하려는 영상 제목
+    private String title;
     // 수집하려는 단어
     private String word;
     // 수집하려는 단어가 포함된 문장

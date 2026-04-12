@@ -17,5 +17,5 @@ public class CollectedWordResponse {
     // 단어 수집 시간
     private LocalDateTime collectedAt;
     // 총 수집 단어
-    private int totalCollectedWords;
+    private Long totalCollectedWords;
 }
