@@ -26,7 +26,7 @@ public class WordService {
     private final UserRepository userRepository;
 
     @Transactional
-    public CollectedWordResponse collectWord(CollectedWordRequest collectedWordRequest) {
+    public CollectedWordResponse save(CollectedWordRequest collectedWordRequest) {
         // 1. 유저 정보 확인
         User user = userRepository.findById(1L).orElseThrow(()-> new BusinessException(USER_NOT_FOUND));
 

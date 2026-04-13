@@ -60,7 +60,7 @@ public class WordServiceTest {
         given(videoRepository.findById("v1")).willReturn(Optional.of(fakeVideo));
 
         // 2. When 서비스 로직 호출
-        CollectedWordResponse response = wordService.collectWord(request);
+        CollectedWordResponse response = wordService.save(request);
 
         // 3. Then
         assertThat(response.getTotalCollectedWords()).isNotNull();
@@ -87,7 +87,7 @@ public class WordServiceTest {
         given(collectedWordRepository.existsByUserAndWord(any(), anyString())).willReturn(true);
 
         // 2. When & Then
-        assertThatThrownBy(() -> wordService.collectWord(request))
+        assertThatThrownBy(() -> wordService.save(request))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("이미 수집한 단어");
 
@@ -101,7 +101,7 @@ public class WordServiceTest {
         given(userRepository.findById(1L)).willReturn(Optional.empty());
 
         // 2. When & 3. Then
-        assertThatThrownBy(() -> wordService.collectWord(request))
+        assertThatThrownBy(() -> wordService.save(request))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("사용자를 찾을 수 없습니다"); // ErrorCode에 설정한 메시지
     }
