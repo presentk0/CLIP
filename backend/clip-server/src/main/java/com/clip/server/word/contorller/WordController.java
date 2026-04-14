@@ -27,7 +27,8 @@ public class WordController {
     @PostMapping("/words/collect")
     public ResponseEntity<ApiResponse<CollectedWordResponse>> collectWord(
             @Valid @RequestBody CollectedWordRequest collectedWordRequest) {
-            CollectedWordResponse collectedWordResponse = wordService.save(collectedWordRequest);
+            Long tempUserId = 1L; // TODO: 나중에 시큐리티 적용 시 토큰에서 추출
+            CollectedWordResponse collectedWordResponse = wordService.save(tempUserId, collectedWordRequest);
             return ResponseEntity.status(HttpStatus.CREATED)
                             .body(ApiResponse.success(collectedWordResponse,"단어가 성공적으로 수집되었습니다."));
     }
