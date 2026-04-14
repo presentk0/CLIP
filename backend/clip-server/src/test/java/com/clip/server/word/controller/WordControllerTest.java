@@ -19,6 +19,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import java.time.LocalDateTime;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -29,21 +30,26 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class WordControllerTest {
 
     @Autowired
-    private MockMvc mockMvc; // MockMvc: 가짜 요청을 보낼 도구 주입
+    private MockMvc mockMvc;
 
     @MockitoBean
-    private WordService wordService; // 가짜 서비스 객체
+    private WordService wordService;
 
-    private final ObjectMapper objectMapper = new ObjectMapper(); // DTO를 JSON으로 바꿀 도구
+    // DTO를 JSON으로 바꿀 도구
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
-    @DisplayName("단어 수집 요청 시 성공하면 200 OK를 반환한다")
+    @DisplayName("단어 수집 요청 시 성공하면 201 Created를 반환한다")
     void collectWord_success() throws Exception {
-        CollectedWordRequest request = new CollectedWordRequest("v1", "Title", "apple", "I eat an apple", "0:01", "사과");
-
         // 1. Given
-        CollectedWordResponse mockResponse = new CollectedWordResponse(1L, LocalDateTime.now(), 5L);
-        given(wordService.save(any(CollectedWordRequest.class))).willReturn(mockResponse);
+        CollectedWordRequest request = new CollectedWordRequest("v1", "Title", "apple", "I eat an apple", "0:01", "사과");
+        CollectedWordResponse mockResponse = CollectedWordResponse.builder()
+                .wordId(1L)
+                .collectedAt(LocalDateTime.now())
+                .totalCollectedWords(5L)
+                .build();
+        given(wordService.save(eq(1L), any(CollectedWordRequest.class)))
+                .willReturn(mockResponse);
 
         // 2. When
         ResultActions result = mockMvc.perform(post("/api/words/collect")
@@ -52,16 +58,16 @@ public class WordControllerTest {
                 .andDo(print());
 
         // 3. Then
-        result.andExpect(status().isCreated())
+        result.andExpect(status().isCreated()) // 201 Created 확인
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.wordId").value(1))
                 .andExpect(jsonPath("$.message").value("단어가 성공적으로 수집되었습니다."));
     }
 
     @Test
-    @DisplayName("필수값 누락시 400을 반환한다.")
+    @DisplayName("필수값 누락시 400 Bad Request를 반환한다.")
     void collectWord_fail_validation() throws Exception {
-        // Given - word가 빈 값
+        // Given - word가 빈 값인 경우
         CollectedWordRequest request = new CollectedWordRequest(
                 "v1", "Title", "", "I eat an apple", "0:01", "사과"
         );
