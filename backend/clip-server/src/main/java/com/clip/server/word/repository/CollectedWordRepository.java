@@ -14,6 +14,6 @@ public interface CollectedWordRepository extends JpaRepository<CollectedWord, Lo
     boolean existsByUserAndWord(User user, String word);
     int countByUser(User user);
     Page<CollectedWord> findAll(Pageable pageable);
-    Page findAllByUserIdAndVideoId(Long userId, String videoId, Pageable pageable);
+    Page findAllByUserIdAndVideo_VideoId(Long userId, String videoId, Pageable pageable);
     Page findAllByUserId(Long userId, Pageable pageable);
 }
