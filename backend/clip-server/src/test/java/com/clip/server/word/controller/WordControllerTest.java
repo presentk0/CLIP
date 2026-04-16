@@ -1,9 +1,11 @@
 package com.clip.server.word.controller;
 
-import com.clip.server.common.response.ApiResponse;
+import com.clip.server.common.response.PaginationResponse;
 import com.clip.server.word.contorller.WordController;
 import com.clip.server.word.dto.request.CollectedWordRequest;
 import com.clip.server.word.dto.response.CollectedWordResponse;
+import com.clip.server.word.dto.response.WordListResponse;
+import com.clip.server.word.dto.response.WordResponse;
 import com.clip.server.word.service.WordService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
@@ -17,11 +19,12 @@ import org.springframework.test.web.servlet.ResultActions;
 
 
 import java.time.LocalDateTime;
+import java.util.List;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -78,5 +81,58 @@ public class WordControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andDo(print());
+    }
+
+    @Test
+    @DisplayName("수집된 단어를 목록 요청을 성공하면 200을 반환한다.")
+    void get_collectWord_success() throws Exception {
+        // 1. Given
+        WordResponse words = WordResponse.builder()
+                .id(1L)
+                .word("apple")
+                .collectedAt(LocalDateTime.now())
+                .timestamp("1:20")
+                .translation("사과")
+                .videoTitle("title1")
+                .build();
+
+        PaginationResponse paginationResponse = PaginationResponse.builder()
+                .totalPage(1)
+                .totalCount(1L)
+                .currentPage(0)
+                .pageSize(5)
+                .build();
+
+        WordListResponse wordListResponse = WordListResponse.builder()
+                .words(List.of(words))
+                .pagination(paginationResponse)
+                .build();
+
+        given(wordService.getWords(anyLong(), anyInt(), anyInt(), any()))
+                .willReturn(wordListResponse);
+
+        // When & Then
+        mockMvc.perform(get("/api/words/my-collection")
+                        .param("page", "0")
+                        .param("size", "10")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.words[0].word").value("apple"))
+                .andExpect(jsonPath("$.data.pagination.totalCount").value(1));
+    }
+
+    @Test
+    @DisplayName("페이지 번호가 음수일 경우 400 에러를 반환한다")
+    void get_collectWord_fail_invalidPage() throws Exception {
+        // When & Then
+        mockMvc.perform(get("/api/words/my-collection")
+                .param("page", "-1")
+                .param("size", "10"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.message").value("페이지 번호는 0 이상이어야 합니다. (입력값: -1)"))
+                .andExpect(jsonPath("$.error.code").value("INVALID_INPUT_VALUE"));
+
     }
 }

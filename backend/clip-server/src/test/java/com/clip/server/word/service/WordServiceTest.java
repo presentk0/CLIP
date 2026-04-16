@@ -144,9 +144,8 @@ public class WordServiceTest {
         assertThat(response.getWords().get(0).getWord()).isEqualTo("apple");
         assertThat(response.getPagination().getTotalCount()).isEqualTo(1);
 
-        // 정확한 레포지토리 메서드가 호출되었는지 검증
         verify(collectedWordRepository, times(1)).findAllByUserId(eq(userId), any(Pageable.class));
-        verify(collectedWordRepository, never()).findAllByUserIdAndVideoId(anyLong(), anyString(), any());
+        verify(collectedWordRepository, never()).findAllByUserIdAndVideo_VideoId(anyLong(), anyString(), any());
     }
 
     @Test
@@ -159,14 +158,14 @@ public class WordServiceTest {
 
         Page<CollectedWord> wordPage = new PageImpl<>(List.of(), pageRequest, 0);
 
-        given(collectedWordRepository.findAllByUserIdAndVideoId(eq(userId), eq(videoId), any(Pageable.class)))
+        given(collectedWordRepository.findAllByUserIdAndVideo_VideoId(eq(userId), eq(videoId), any(Pageable.class)))
                 .willReturn(wordPage);
 
         // 2. When
         wordService.getWords(userId, 0, 10, videoId);
 
         // 3. Then
-        verify(collectedWordRepository, times(1)).findAllByUserIdAndVideoId(eq(userId), eq(videoId), any(Pageable.class));
+        verify(collectedWordRepository, times(1)).findAllByUserIdAndVideo_VideoId(eq(userId), eq(videoId), any(Pageable.class));
         verify(collectedWordRepository, never()).findAllByUserId(anyLong(), any());
     }
 }

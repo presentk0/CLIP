@@ -74,12 +74,12 @@ public class WordService {
     // 사용자의 전체 수집 단어 조회 메서드
     public WordListResponse getWords(Long userId, int page, int size, String videoId) {
 
-        PageRequest pageRequest = PageRequest.of(page,size, Sort.by("createdAt").descending());
+        PageRequest pageRequest = PageRequest.of(page,size, Sort.by("collectedAt").descending());
         Page<CollectedWord> wordPage;
 
         // 1. Video 정보 확인
         if (videoId != null && !videoId.isBlank()) {
-            wordPage = collectedWordRepository.findAllByUserIdAndVideoId(userId, videoId, pageRequest);
+            wordPage = collectedWordRepository.findAllByUserIdAndVideo_VideoId(userId, videoId, pageRequest);
         } else {
             wordPage = collectedWordRepository.findAllByUserId(userId, pageRequest);
         }

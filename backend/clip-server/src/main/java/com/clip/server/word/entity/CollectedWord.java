@@ -28,10 +28,10 @@ public class CollectedWord {
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "video_id", nullable = false)
+    @JoinColumn(name = "video_id", nullable = false, columnDefinition = "VARCHAR(20)")
     private Video video;
 
-    // 사용자가 호버한 단어
+    // 사용자가 수집한 단어
     @Column(nullable = false, length = 100)
     private String word;
 
