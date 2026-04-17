@@ -1,6 +1,7 @@
 package com.clip.server.common.exception;
 
 import com.clip.server.common.response.ApiResponse;
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -47,6 +48,24 @@ public class GlobalExceptionHandler {
                 .getAllErrors()
                 .get(0)
                 .getDefaultMessage();
+
+        return ResponseEntity
+                .status(errorCode.getStatus())
+                .body(ApiResponse.error(errorCode, errorMessage));
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleConstraintViolationException(
+            ConstraintViolationException e
+    ) {
+        log.error("ConstraintViolationException: {}", e.getMessage());
+
+        ErrorCode errorCode = ErrorCode.INVALID_INPUT_VALUE;
+
+        String errorMessage = e.getConstraintViolations()
+                .iterator()
+                .next()
+                .getMessage();
 
         return ResponseEntity
                 .status(errorCode.getStatus())

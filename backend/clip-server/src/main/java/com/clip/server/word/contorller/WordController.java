@@ -3,32 +3,46 @@ package com.clip.server.word.contorller;
 import com.clip.server.common.response.ApiResponse;
 import com.clip.server.word.dto.request.CollectedWordRequest;
 import com.clip.server.word.dto.response.CollectedWordResponse;
+import com.clip.server.word.dto.response.WordListResponse;
 import com.clip.server.word.service.WordService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api")
+@RequestMapping("/api/words")
 @Tag(name = "단어 API", description = "단어 수집 기능 관련 API입니다.")
+@Validated
 public class WordController {
 
     private final WordService wordService;
 
     @Operation(summary = "단어 수집")
-    @PostMapping("/words/collect")
+    @PostMapping("/collect")
     public ResponseEntity<ApiResponse<CollectedWordResponse>> collectWord(
             @Valid @RequestBody CollectedWordRequest collectedWordRequest) {
-            CollectedWordResponse collectedWordResponse = wordService.save(collectedWordRequest);
+            Long tempUserId = 1L; // TODO: 나중에 시큐리티 적용 시 토큰에서 추출
+            CollectedWordResponse collectedWordResponse = wordService.save(tempUserId, collectedWordRequest);
             return ResponseEntity.status(HttpStatus.CREATED)
                             .body(ApiResponse.success(collectedWordResponse,"단어가 성공적으로 수집되었습니다."));
+    }
+
+    @Operation(summary = "수집된 단어 조회")
+    @GetMapping("/my-collection")
+    public ApiResponse<WordListResponse> getMyCollection(
+            @RequestParam(defaultValue = "0") @Min(value = 0, message = "페이지 번호는 0 이상이어야 합니다. (입력값: ${validatedValue})")int page,
+            @RequestParam(defaultValue = "10") @Min(1)int size,
+            @RequestParam(required = false) String videoId
+    ) {
+        Long tempUserId = 1L;
+        WordListResponse wordListResponse = wordService.getWords(tempUserId, page,size,videoId);
+        return ApiResponse.success(wordListResponse,"단어장이 성공적으로 조회됐습니다.");
     }
 }
