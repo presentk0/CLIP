@@ -45,9 +45,11 @@ src/test/resources/application-test.yaml
 Thumbs.db
 
 ### 환경 변수 및 비밀 설정 파일 ###
-*.env
-*.env.*
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+
+.env
+application.yml
+application-*.yml
