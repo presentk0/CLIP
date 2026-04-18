@@ -2,7 +2,6 @@ package com.clip.server.word.service;
 
 import com.clip.server.common.exception.BusinessException;
 import com.clip.server.common.exception.ErrorCode;
-import com.clip.server.common.response.ApiResponse;
 import com.clip.server.common.response.PaginationResponse;
 import com.clip.server.user.entity.User;
 import com.clip.server.user.repository.UserRepository;
@@ -14,7 +13,7 @@ import com.clip.server.word.dto.response.WordListResponse;
 import com.clip.server.word.dto.response.WordResponse;
 import com.clip.server.word.entity.CollectedWord;
 import com.clip.server.word.repository.CollectedWordRepository;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -27,6 +26,7 @@ import static com.clip.server.common.exception.ErrorCode.USER_NOT_FOUND;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class WordService {
 
     private final VideoRepository videoRepository;
