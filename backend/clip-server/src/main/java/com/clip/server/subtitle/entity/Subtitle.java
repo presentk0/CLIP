@@ -34,10 +34,10 @@ public class Subtitle {
     private String translation; // 자막 번역
 
     @Column(name = "start_time", nullable = false,  precision = 10, scale = 3)
-    private BigDecimal startTime;
+    private BigDecimal startTime; // 영상 시작 시각
 
     @Column(name = "end_time", nullable = false, precision = 10, scale = 3)
-    private BigDecimal endTime;
+    private BigDecimal endTime; // 영상 종료 시각
 
     @CreatedDate
     @Column(name = "created_at", nullable = false)
