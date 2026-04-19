@@ -55,7 +55,7 @@ public class SubtitleServiceTest {
         ReflectionTestUtils.setField(user, "id", userId);
 
         video = Video.builder().videoId(videoId).title("테스트 영상").build();
-        request = new SubtitleRequest("titleEx","Hello", "안녕",
+        request = new SubtitleRequest("title1","Hello", "안녕",
                 BigDecimal.valueOf(0.0),
                 BigDecimal.valueOf(1.5));
     }
@@ -118,6 +118,22 @@ public class SubtitleServiceTest {
         assertThat(subtitleResponse.getText()).isEqualTo("이미 있는 자막");
 
         verify(subtitleRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("비디오가 DB에 없으면 해당 비디오 정보와 자막을 저장한다.")
+    void saveSubtitle_withNewVideo() {
+        // given
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+        given(videoRepository.findById(videoId)).willReturn(Optional.empty());
+        given(videoRepository.save(any(Video.class))).willReturn(video);
+
+        // when
+        subtitleService.saveSubtitle(userId, videoId, request);
+
+        // then
+        verify(videoRepository, times(1)).save(any(Video.class));
+        verify(subtitleRepository, times(1)).save(any(Subtitle.class));
     }
 
     @Test
