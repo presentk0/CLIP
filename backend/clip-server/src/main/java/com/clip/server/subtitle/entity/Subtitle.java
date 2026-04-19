@@ -24,7 +24,7 @@ public class Subtitle {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "video_id", nullable = false)
+    @JoinColumn(name = "video_id", nullable = false, columnDefinition = "VARCHAR(20)")
     private Video video;
 
     @Column(nullable = false)
