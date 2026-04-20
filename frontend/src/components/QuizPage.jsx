@@ -4,8 +4,7 @@ import { useState, useEffect } from 'react';
 import frog from '../imgs/image_710.png';
 import frog1 from '../imgs/image_712.png';
 import { apiFetch } from '../utils/api';
-// 힌트 전구용 복원하기
-// import bulb from '../imgs/image_62.png';
+import bulb from '../imgs/image_62.png';
 
 function QuizPage({ videoId, onSettlementPage, onExitPage }) {
   // 현재 문제 번호 (0부터 시작)
@@ -356,6 +355,72 @@ function QuizPage({ videoId, onSettlementPage, onExitPage }) {
   // 현재 문제 정보
   const currentQuiz = quizzes[currentIndex];
   const isCorrect = tempChoice === currentQuiz?.correctAnswer;
+
+
+  // 정답 오답 선택 미선택에 따른 border 색상 변화
+  const borderColor = (choice) => {
+    if (!isConfirmed) {
+      // 확정 전: 선택한 것 : 선택안한 것 표시
+      return tempChoice === choice ? '1px solid #9B87E8' : 'none';
+    }
+
+    // 확정 후: 정답이면
+    if (choice === currentQuiz?.correctAnswer) {
+      return '1px solid #C1C0FC';
+    }
+
+    // 확정 후: 내가 선택한 답이 오답이면
+    if (choice === tempChoice && tempChoice !== currentQuiz?.correctAnswer) {
+      return '1px solid #FFB484';
+    }
+
+    // 확정 후: 미선택이면
+    return 'none';
+  };
+
+
+  // 정답 오답 선택 미선택에 따른 background 색상 변화
+  const backgroundColor = (choice) => {
+    if (!isConfirmed) {
+      // 확정 전: 선택한 것 : 선택안한 것 표시
+      return tempChoice === choice ? '#F0F3FF' : '#F7F7F7';
+    }
+
+    // 확정 후: 정답이면
+    if (choice === currentQuiz?.correctAnswer) {
+      return '#F0F3FF';
+    }
+
+    // 확정 후: 내가 선택한 답이 오답이면
+    if (choice === tempChoice && tempChoice !== currentQuiz?.correctAnswer) {
+      return '#FFF4EE';
+    }
+
+    // 확정 후: 미선택이면
+    return '#F7F7F7';
+  };
+
+
+  // 정답 오답 선택 미선택에 따른 color 색상 변화
+  const textColor = (choice) => {
+    if (!isConfirmed) {
+      // 확정 전: 선택한 것 : 선택안한 것 표시
+      return tempChoice === choice ? '#5559D9' : '#4D525C';
+    }
+
+    // 확정 후: 정답이면
+    if (choice === currentQuiz?.correctAnswer) {
+      return '#5559D9';
+    }
+
+    // 확정 후: 내가 선택한 답이 오답이면
+    if (choice === tempChoice && tempChoice !== currentQuiz?.correctAnswer) {
+      return '#F7731E';
+    }
+
+    // 확정 후: 미선택이면
+    return '#4D525C';
+  };
 
 
   // 퀴즈 초기화 및 이전 진행 상황 복원
@@ -1015,6 +1080,60 @@ function QuizPage({ videoId, onSettlementPage, onExitPage }) {
                 </div>
               </div>
 
+
+
+              {/* 힌트 박스 */}
+              <div style={{
+                display: 'flex',
+                width: '370px',
+                height: '68px',
+                padding: '16px 24px 16px 16px',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                gap: '10px',
+                flexShrink: '0',
+                borderRadius: '12px',
+                background: '#CCC',
+              }}>
+
+                {/* 힌트 박스 gap */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}>
+
+                  {/* 힌트 전구 */}
+                  <div style={{
+                    width: '32px',
+                    height: '32px',
+                    aspectRatio: '1/1',
+                    // lightgray 대신 transparent 사용해서 투명처리
+                    background: `url(${bulb}) transparent 50% / cover no-repeat`,
+                    // 비율 유지 + 전체 보이기
+                    backgroundSize: 'contain',
+                    // 가운데 정렬
+                    backgroundPosition: 'center',
+                  }}>
+                  </div>
+
+                  {/* 힌트 박스 글 */}
+                  <p style={{
+                    width: '290px',
+                    color: '#FFF',
+                    fontFamily: 'Pretendard',
+                    fontSize: '12px',
+                    fontStyle: 'normal',
+                    fontWeight: '700',
+                    lineHeight: '18px', /* 150% */
+                  }}>
+                    travel이 정답인 이유!<br></br>travel은 긴 여행을 뜻하기 때문에 travel이 맞아!
+                  </p>
+                </div>
+              </div>
+
+
+
               {/* 전체 퀴즈 박스 */}
               <div style={{
                 display: 'flex',
@@ -1142,10 +1261,13 @@ function QuizPage({ videoId, onSettlementPage, onExitPage }) {
                       alignItems: 'center',
                       gap: '10px',
                       borderRadius: '10px',
-                      border: tempChoice === choice ? '2px solid #EEE' : '1px solid #E7E6EB',
-                      background: tempChoice === choice ? '#F8F8FA' : '#FFF',
+                      border: borderColor(choice),
+                      // border: tempChoice === choice ? '2px solid #EEE' : '1px solid #E7E6EB',
+                      background: backgroundColor(choice),
+                      // background: tempChoice === choice ? '#F8F8FA' : '#FFF',
                       boxShadow: '0 4px 4px 0 rgba(206, 210, 223, 0.16)',
-                      color: '#4D525C',
+                      color: textColor(choice),
+                      // color: '#4D525C',
                       textAlign: 'center',
                       fontFamily: 'Pretendard',
                       fontSize: '14px',
@@ -1158,10 +1280,139 @@ function QuizPage({ videoId, onSettlementPage, onExitPage }) {
                   ))}
                 </div>
               </div>
+
+
+
+              {/* 럭키 미스테이크 전체 배경 박스 */}
+              {isConfirmed && !feedback?.isCorrect && (
+                <div style={{ 
+                  display: 'flex',
+                  width: '370px',
+                  height: '220px',
+                  padding: '24px',
+                  flexDirection: 'column',
+                  alignItems: 'flex-start',
+                  gap: '10px',
+                  borderRadius: '24px',
+                  background: '#CCC',
+                }}>
+
+                  {/* 럭키 미스테이크 전체 내용 박스 */}
+                  <div style={{ 
+                    display: 'flex',
+                    width: '322px',
+                    flexDirection: 'column',
+                    alignItems: 'flex-start',
+                    gap: '16px',
+                  }}>
+
+                    {/* 럭키 미스테이크 안내글 박스 */}
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'flex-start',
+                      gap: '8px',
+                      alignSelf: 'stretch',
+                    }}>
+
+                      {/* 럭키 미스테이크 */}
+                      <p style={{
+                        alignSelf: 'stretch',
+                        color: '#FFF',
+                        fontFamily: 'Pretendard',
+                        fontSize: '14px',
+                        fontStyle: 'normal',
+                        fontWeight: '500',
+                        lineHeight: '15px', /* 107.143% */
+                      }}>
+                        럭키 미스테이크
+                      </p>
+
+                      {/* 틀린 단어 보상 안내 */}
+                      <p style={{
+                        alignSelf: 'stretch',
+                        color: '#FFF',
+                        fontFamily: 'Pretendard',
+                        fontSize: '18px',
+                        fontStyle: 'normal',
+                        fontWeight: '700',
+                        lineHeight: '28px', /* 155.556% */
+                      }}>
+                        틀린 단어는 다음에 다시 나와요!<br></br>그때 맞히면 보상이 더 커요
+                      </p>
+                    </div>
+
+                    {/* 계속하기 버튼 + 경험치 안내 박스 */}
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '16px',
+                      alignSelf: 'stretch',
+                    }}>
+
+                      {/* 계속하기 버튼 */}
+                      <button
+                      onClick={handleNext}
+                      style={{
+                        display: 'flex',
+                        height: '44px',
+                        padding: '14px 123px 13px 117px',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        gap: '10px',
+                        alignSelf: 'stretch',
+                        borderRadius: '14.133px',
+                        background: '#ABABAB',
+                      }}>
+
+                        {/* 퀴즈 계속하기 */}
+                        <p style={{
+                          color: '#FFF',
+                          textAlign: 'center',
+                          fontFamily: 'Pretendard',
+                          fontSize: '14.133px',
+                          fontStyle: 'normal',
+                          fontWeight: '700',
+                          lineHeight: 'normal',
+                          letterSpacing: '-0.028px'
+                        }}>
+                          퀴즈 계속 하기
+                        </p>
+                      </button>
+
+                      {/* 경험치 안내 박스 */}
+                      <div style={{ 
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                      }}>
+
+                        {/* 경험치 안내 글 */}
+                        <div style={{
+                          color: '#F4F4F4',
+                          fontFamily: 'Pretendard',
+                          fontSize: '14px',
+                          fontStyle: 'normal',
+                          fontWeight: '500',
+                          lineHeight: 'normal'
+                        }}>
+                          다음 {currentQuiz?.word} 퀴즈 정답 시 × 1.5 EXP
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                )}
+
+
+
             </div>
           </div>
         </div>
       </div>
+
+
 
       {/* 하단 고정 바 */}
       <div style={{

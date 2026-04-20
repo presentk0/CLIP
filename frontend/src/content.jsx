@@ -201,6 +201,7 @@ function observeSubtitles() {
 }
 
 
+// 중간 광고 시 자막 감지 함수가 멈추는 오류 확인
 // 자막 감지 함수
 function startObserver() {
   // 사이드 패널 열려야 실행
