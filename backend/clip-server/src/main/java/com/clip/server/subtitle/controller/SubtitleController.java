@@ -2,6 +2,7 @@ package com.clip.server.subtitle.controller;
 
 import com.clip.server.common.response.ApiResponse;
 import com.clip.server.subtitle.dto.request.SubtitleRequest;
+import com.clip.server.subtitle.dto.respnse.SubtitleListResponse;
 import com.clip.server.subtitle.dto.respnse.SubtitleResponse;
 import com.clip.server.subtitle.service.SubtitleService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -32,6 +33,14 @@ public class SubtitleController {
                 .body(ApiResponse.success(subtitleResponse,"자막이 성공적으로 저장되었습니다."));
     }
 
-
+    @Operation(summary = "해당 영상의 전체 자막 조회 API")
+    @GetMapping
+    ApiResponse<SubtitleListResponse> getVideoSubtitles(
+            @PathVariable String videoId
+    ) {
+        Long tempUserId = 1L;
+        SubtitleListResponse subtitleListResponse = subtitleService.getSubtitles(videoId, tempUserId);
+        return ApiResponse.success(subtitleListResponse, "해당 영상의 자막이 성공적으로 조회되었습니다.");
+    }
 
 }
