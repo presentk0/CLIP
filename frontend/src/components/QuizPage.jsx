@@ -1083,54 +1083,111 @@ function QuizPage({ videoId, onSettlementPage, onExitPage }) {
 
 
               {/* 힌트 박스 */}
-              <div style={{
-                display: 'flex',
-                width: '370px',
-                height: '68px',
-                padding: '16px 24px 16px 16px',
-                flexDirection: 'column',
-                alignItems: 'flex-start',
-                gap: '10px',
-                flexShrink: '0',
-                borderRadius: '12px',
-                background: '#CCC',
-              }}>
-
-                {/* 힌트 박스 gap */}
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                }}>
-
-                  {/* 힌트 전구 */}
+              {/* 선택했을 때 */}
+              {isConfirmed && (
+                // 정답인 경우
+                isCorrect ? (
                   <div style={{
-                    width: '32px',
-                    height: '32px',
-                    aspectRatio: '1/1',
-                    // lightgray 대신 transparent 사용해서 투명처리
-                    background: `url(${bulb}) transparent 50% / cover no-repeat`,
-                    // 비율 유지 + 전체 보이기
-                    backgroundSize: 'contain',
-                    // 가운데 정렬
-                    backgroundPosition: 'center',
+                    display: 'flex',
+                    width: '370px',
+                    height: '68px',
+                    padding: '16px 24px 16px 16px',
+                    flexDirection: 'column',
+                    alignItems: 'flex-start',
+                    gap: '10px',
+                    flexShrink: '0',
+                    borderRadius: '12px',
+                    background: '#CCC',
                   }}>
-                  </div>
 
-                  {/* 힌트 박스 글 */}
-                  <p style={{
-                    width: '290px',
-                    color: '#FFF',
-                    fontFamily: 'Pretendard',
-                    fontSize: '12px',
-                    fontStyle: 'normal',
-                    fontWeight: '700',
-                    lineHeight: '18px', /* 150% */
+                    {/* 힌트 박스 gap */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                    }}>
+
+                      {/* 힌트 전구 */}
+                      <div style={{
+                        width: '32px',
+                        height: '32px',
+                        aspectRatio: '1/1',
+                        // lightgray 대신 transparent 사용해서 투명처리
+                        background: `url(${bulb}) transparent 50% / cover no-repeat`,
+                        // 비율 유지 + 전체 보이기
+                        backgroundSize: 'contain',
+                        // 가운데 정렬
+                        backgroundPosition: 'center',
+                      }}>
+                      </div>
+
+                      {/* 힌트 박스 글 */}
+                      <div style={{
+                        width: '290px',
+                        color: '#FFF',
+                        fontFamily: 'Pretendard',
+                        fontSize: '12px',
+                        fontStyle: 'normal',
+                        fontWeight: '700',
+                        lineHeight: '18px', /* 150% */
+                      }}>
+                        {currentQuiz?.correctAnswer}이 정답인 이유!<br></br>
+                        {currentQuiz?.correctAnswer}은 정답번역을(를) 뜻하기 때문에 {currentQuiz?.correctAnswer}이 맞아!
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  // 오답인 경우
+                  <div style={{
+                    display: 'flex',
+                    width: '370px',
+                    height: '68px',
+                    padding: '16px 24px 16px 16px',
+                    flexDirection: 'column',
+                    alignItems: 'flex-start',
+                    gap: '10px',
+                    flexShrink: '0',
+                    borderRadius: '12px',
+                    background: '#CCC',
                   }}>
-                    travel이 정답인 이유!<br></br>travel은 긴 여행을 뜻하기 때문에 travel이 맞아!
-                  </p>
-                </div>
-              </div>
+
+                    {/* 힌트 박스 gap */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                    }}>
+
+                      {/* 힌트 전구 */}
+                      <div style={{
+                        width: '32px',
+                        height: '32px',
+                        aspectRatio: '1/1',
+                        // lightgray 대신 transparent 사용해서 투명처리
+                        background: `url(${bulb}) transparent 50% / cover no-repeat`,
+                        // 비율 유지 + 전체 보이기
+                        backgroundSize: 'contain',
+                        // 가운데 정렬
+                        backgroundPosition: 'center',
+                      }}>
+                      </div>
+
+                      <div style={{
+                        width: '290px',
+                        color: '#FFF',
+                        fontFamily: 'Pretendard',
+                        fontSize: '12px',
+                        fontStyle: 'normal',
+                        fontWeight: '700',
+                        lineHeight: '18px', /* 150% */
+                      }}>
+                        {currentQuiz?.correctAnswer}이 정답인 이유! {tempChoice}은(는) 오답번역을(를) 말하고,<br></br>
+                        {currentQuiz?.correctAnswer}은(는) 정답번역을(를) 뜻하기 때문에 {currentQuiz?.correctAnswer}이(가) 맞아!
+                      </div>
+                    </div>
+                  </div>
+                )
+              )}
 
 
 
