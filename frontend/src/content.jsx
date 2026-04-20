@@ -67,9 +67,17 @@ chrome.runtime.onMessage.addListener((message) => {
   // 패널 닫힘
   if (message.type === 'PANEL_CLOSED') {
     isPanelOpen = false;
-    // 저장한 자막 삭제
-    localStorage.removeItem('subtitles');
+    // 저장한 자막 삭제(미사용)
+    // localStorage.removeItem('subtitles');
+    // 자막 감시를 종료
     stopObserver();
+    // 썸네일 옵저버 리셋
+    if (thumbnailObserver) {
+      thumbnailObserver.disconnect();
+      thumbnailObserver = null;
+    }
+    // 붙인 뱃지 제거
+    removeBadges();
     // 추천 영상 다시 보여주기
     showRecommendations();
     const video = document.querySelector('video');
@@ -117,9 +125,9 @@ window.addEventListener('yt-navigate-finish', () => {
   // URL 바뀌면 실행
   if (location.href !== lastUrl) {
     lastUrl = location.href;
-    // 기존 감시 종료 (메모리 누수 방지)
+    // 기존 자막 감시 종료
     stopObserver();
-    // 썸네일 옵저버 리셋
+    // 썸네일 배지 감시 중지
     if (thumbnailObserver) {
       thumbnailObserver.disconnect();
       thumbnailObserver = null;
@@ -149,7 +157,7 @@ window.addEventListener('yt-navigate-finish', () => {
 });
 
 
-// 영상 시청 페이지 전용 자막 감지 (패널 열렸을 때만)
+// 영상 시청 페이지면 자막 감지 함수 실행하고 아니면 자막 감지 중지 함수 실행
 function observeSubtitles() {
   // 사이드 패널 열려야 실행
   if (!isPanelOpen) return;
@@ -193,7 +201,7 @@ function observeSubtitles() {
 }
 
 
-
+// 자막 감지 함수
 function startObserver() {
   // 사이드 패널 열려야 실행
   if (!isPanelOpen) return;
@@ -203,12 +211,15 @@ function startObserver() {
     return;
   }
 
-  // watch 페이지에서만 실행
+  // 영상 페이지가 아니면
   if (!window.location.href.includes('/watch')) {
+    // 추천 영상 보이기
     showRecommendations();
+    // 자막 감지 함수 종료
     return;
   }
 
+  // 이미 자막을 감시중이면 자막 감지 함수 종료
   if (isObserving) {return;}
   
   const container = document.querySelector('.ytp-caption-window-container') || document.body;
@@ -303,12 +314,15 @@ function startObserver() {
 
 
 function stopObserver() {
-  // 해당 클래스에서 자막 감시
+  //  자막 감시 중지
   // if 없어도 작동하지만 로딩 고려해서 값이 있을 때만 실행하는 안전장치
   if (observer) {
     // MutationObserver 감시 중지
-    observer.disconnect();  
+    observer.disconnect();
+    // 감시 종료한 상태
     isObserving = false;
+    // 메모리 삭제
+    observer = null;
   }
 }
 
@@ -637,24 +651,45 @@ function observeThumbnails() {
 }
 
 
+// 뱃지 제거 함수
+function removeBadges() {
+  const badges = document.querySelectorAll('.clip-test-badge');
+  badges.forEach(badge => badge.remove());
+
+  // 만약 숨겨야 한다면
+  // const badges = document.querySelectorAll('.clip-test-badge');
+  // badges.forEach(badge => badge.style.display = 'none');
+
+  // 숨겼을 때 다시 보여야 한다면
+  // const badges = document.querySelectorAll('.clip-test-badge');
+  // badges.forEach(badge => badge.style.display = 'block');
+}
+
 
 // 초기화
 // 페이지 로드 대기 후 실행
 // init()에서 페이지 종류에 따라 분기
 function init() {
+  // 재시도 횟수 초기화
   retryCount = 0;
+  // play, pause 같은 영상 이벤트 리스너 미실행으로 설정
   listenersAdded = false;
   // 자막 배열 리셋
   collectedSubtitles = [];
   // 퀴즈 요청 상태 리셋
   quizRequested = false;
 
-  // 페이지 종류에 따라 분기
+  // 영상 페이지일 경우
   if (window.location.href.includes('/watch')) {
+    // 추천 영상 숨기기
     setTimeout(hideRecommendations, 500);
+    // 현재 영상이 재생중이면 자막 감시하고 아니면 자막 감시 중지
     setTimeout(observeSubtitles, 3000);
+  // 영상 페이지가 아닐 경우
   } else {
+    // 추천 영상 보이기
     showRecommendations();
+    // 뱃지 붙이기
     setTimeout(observeThumbnails, 3000);
   }
 }
