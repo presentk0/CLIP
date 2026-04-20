@@ -12,6 +12,7 @@ import com.clip.server.word.dto.response.CollectedWordResponse;
 import com.clip.server.word.dto.response.WordListResponse;
 import com.clip.server.word.dto.response.WordResponse;
 import com.clip.server.word.entity.CollectedWord;
+import com.clip.server.word.entity.WordType;
 import com.clip.server.word.repository.CollectedWordRepository;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 import static com.clip.server.common.exception.ErrorCode.USER_NOT_FOUND;
 
@@ -39,9 +41,20 @@ public class WordService {
         // 1. 유저 정보 확인
         User user = userRepository.findById(userId).orElseThrow(()-> new BusinessException(USER_NOT_FOUND));
 
-        // 2. 단어 중복 확인
-        if(collectedWordRepository.existsByUserAndWord(user, collectedWordRequest.getWord())) {
-           throw new BusinessException(ErrorCode.WORD_ALREADY_COLLECTED);
+        Optional<CollectedWord> existingWord = collectedWordRepository.findByUserIdAndVideo_VideoIdAndWord(
+                userId,
+                collectedWordRequest.getVideoId(),
+                collectedWordRequest.getWord()
+        );
+
+        if(existingWord.isPresent()) {
+            CollectedWord word = existingWord.get();
+            // 기존에 호버한 단어를 수집하려고 하는 경우
+            if(word.getWordType()==WordType.POPUP && collectedWordRequest.getWordType()==WordType.COLLECT) {
+                word.updateToCollect(collectedWordRequest.getSentence(), collectedWordRequest.getTranslation());
+                return mapToCollectedWordResponse(word, collectedWordRepository.countByUser(user));
+            }
+            throw new BusinessException(ErrorCode.WORD_ALREADY_COLLECTED);
         }
 
         // 3. 비디오 정보 가져오기(없으면 생성)
@@ -59,6 +72,7 @@ public class WordService {
         CollectedWord collectedWord = CollectedWord.builder()
                 .user(user)
                 .video(video)
+                .wordType(collectedWordRequest.getWordType())
                 .word(collectedWordRequest.getWord())
                 .sentence(collectedWordRequest.getSentence())
                 .timestamp(collectedWordRequest.getTimestamp())
@@ -79,9 +93,9 @@ public class WordService {
 
         // 1. Video 정보 확인
         if (videoId != null && !videoId.isBlank()) {
-            wordPage = collectedWordRepository.findAllByUserIdAndVideo_VideoId(userId, videoId, pageRequest);
+            wordPage = collectedWordRepository.findAllByUserIdAndVideo_VideoIdAndWordType(userId, videoId, WordType.COLLECT, pageRequest);
         } else {
-            wordPage = collectedWordRepository.findAllByUserId(userId, pageRequest);
+            wordPage = collectedWordRepository.findAllByUserIdAndWordType(userId, WordType.COLLECT, pageRequest);
         }
 
         // Page-> WordResponse DTO 변환
@@ -116,8 +130,8 @@ public class WordService {
         return WordResponse.builder()
                 .id(collectedWord.getId())
                 .videoId(collectedWord.getVideo().getVideoId())
+                .wordType(collectedWord.getWordType())
                 .word(collectedWord.getWord())
-                .timestamp(collectedWord.getTimestamp())
                 .translation(collectedWord.getTranslation())
                 .timestamp(collectedWord.getTimestamp())
                 .collectedAt(collectedWord.getCollectedAt())

@@ -1,5 +1,6 @@
 package com.clip.server.word.dto.request;
 
+import com.clip.server.word.entity.WordType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
@@ -22,5 +23,7 @@ public class CollectedWordRequest {
     private String timestamp; // 수집하려는 단어의 영상 타임스탬프
     @NotBlank(message = "문장 번역은 필수입니다.")
     private String translation; // 수집하려는 단어가 포함된 문장 번역
+    @NotNull(message = "수집 타입은 필수입니다.")
+    private WordType wordType; // COLLECT 또는 POPUP
 
 }
