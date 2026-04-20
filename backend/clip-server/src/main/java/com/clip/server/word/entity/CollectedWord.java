@@ -43,6 +43,9 @@ public class CollectedWord {
     @Column(nullable = false, length = 10)
     private String timestamp;
 
+    @Column(nullable = false, length = 10)
+    private WordType wordType; // 호버 단어 or 수집 단어 여부 판별
+
     // 자막 번역
     @Column(nullable = false, length = 200)
     private String translation;
@@ -53,12 +56,25 @@ public class CollectedWord {
     private LocalDateTime collectedAt;
 
     @Builder
-    public CollectedWord(User user, Video video, String word, String sentence, String timestamp, String translation) {
+    public CollectedWord(User user, Video video, String word, String sentence, String timestamp, String translation, WordType wordType) {
         this.user = user;
         this.video = video;
         this.word = word;
         this.sentence = sentence;
         this.timestamp = timestamp;
         this.translation = translation;
+        this.wordType = wordType;
+    }
+
+    // POPUP 상태 단어를 COLLECT로 업그레이드
+    public void updateToCollect(String sentence, String translation) {
+        if(this.wordType == WordType.COLLECT) {
+            return;
+        }
+
+        this.wordType = WordType.COLLECT;
+        this.sentence = sentence;
+        this.translation = translation;
+        this.collectedAt = LocalDateTime.now();
     }
 }
