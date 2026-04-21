@@ -211,6 +211,9 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
       // return;
     }
 
+    console.log('원본:', word);
+    console.log('코드:', [...word].map(c => c.charCodeAt(0)));
+
     // 클릭 시점의 자막 정보 저장 (단어 수집용)
     // set은 다음 렌더링에 반영되기에 즉시 사용해야 하는 api는 savedSubtitle로 사용
     const savedSubtitle = { ...currentSubtitle };
@@ -251,27 +254,35 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
       const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
       console.log('사전api');
       
-      // 에러날 경우
+      // 에러날 경우 팝업 닫고 종료
       if (!response.ok) {
-        setDictionaryData({
-          word: word,
-          phonetic: '',
-          translation: ''
-        });
-        console.log('여기서에러');
-        // 팝업 열기
-        setIsPinned(true);
+        setIsPinned(false);
+        setDictionaryData(null);
+        setClickedSubtitle(null);
         return;
       }
 
       const data = await response.json();
 
+      // API 응답이 있고, 데이터가 있으면 실행
       if (data && data[0]) {
+        // 해당 단어의 첫 번째 품사에 대한 정보만 가져오기
         const meaning = data[0].meanings[0];
+
+        // 품사 없으면 팝업 닫고 종료
+        if (!meaning?.partOfSpeech) {
+          setIsPinned(false);
+          setDictionaryData(null);
+          setClickedSubtitle(null);
+          console.log('품사 없음');
+          return;
+        }
+
+        // 해당 품사의 첫 번째 뜻 목록 가져오기
         const def = meaning.definitions[0];
         const result = {
           word: word,
-          // 발음 기호
+          // 발음 기호(품사는 있어도 발음이 없는 경우가 있음)
           phonetic: data[0].phonetic || '',
           // 발음 음성
           audio: data[0].phonetics?.find(p => p.audio)?.audio || '',
@@ -289,7 +300,7 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
         };
 
         // 한글 번역 추가
-        const translationWord = await fetchTranslation(word);
+        const translationWord = await fetchTranslation(result.definition);
         result.translation = translationWord;
 
         // 캐시에 저장
@@ -298,7 +309,6 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
         setIsPinned(true);
 
         // 팝업 열 때 서버에 타입 POPUP으로 보내기
-        // 
         await apiFetch('/api/words/collect', {
           method: 'POST',
           body: JSON.stringify({
@@ -314,38 +324,13 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
           })
         }).catch(() => {});
         console.log('서버에팝업1');
-      } else {
-        setDictionaryData({
-          word: word,
-          phonetic: '',
-          translation: ''
-        });
-        setIsPinned(true);
-
-        // 팝업 열 때 서버에 타입 POPUP으로 보내기
-        await apiFetch('/api/words/collect', {
-          method: 'POST',
-          body: JSON.stringify({
-            wordType: 'POPUP',
-            videoId: videoId,
-            word: word,
-            sentence: savedSubtitle.text,
-            timestamp: formatTime(savedSubtitle.startTime),
-            translation: '',
-            title: videoTitle
-          })
-        }).catch(() => {});
-        console.log('서버에팝업2');
       }
     } catch (error) {
       console.log('사전 조회 실패:', error);
-      setDictionaryData({
-        word: word,
-        phonetic: '',
-        translation: ''
-      });
-      // 팝업 열기
-      setIsPinned(true);
+      setIsPinned(false);
+      setDictionaryData(null);
+      setClickedSubtitle(null);
+      return;
     }
   };
 
@@ -389,6 +374,15 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
     } catch (error) {
       console.log('단어 수집 실패:', error);
     }
+  };
+
+
+  // 해당하는 품사를 한글로 변환
+  const partOfSpeechKo = {
+    verb: '동사',
+    noun: '명사',
+    adjective: '형용사',
+    adverb: '부사'
   };
 
 
@@ -1000,8 +994,10 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
                             }}>
                               {/* 자막 문장을 공백으로 나눠서 단어별로 처리 */}
                               {currentSubtitle.text.split(' ').map((word, index) => {
+                                // 해당 종류를 일반 따옴표로 변환(백틱, 오른쪽 작은따옴표, 왼쪽 작은따옴표, 수정 문자 아포스트로피)
+                                const normalized = word.replace(/[`''ʼ]/g, "'");
                                 // 특수문자만 제거
-                                const cleaned = word.replace(/[^a-zA-Z']/g, '');
+                                const cleaned = normalized.replace(/[^a-zA-Z']/g, '');
 
                                 // 해당 단어를 영문자만 소문자로 바꾸고 불용어 아니면 true, 불용어면 false
                                 // map이 모든 단어 순회하면서 isHoverable 여러 번 찍힘
@@ -1014,7 +1010,7 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
                                   // 클릭 시 불용어 아니면 팝업 고정
                                   onClick={(e) => isHoverable && togglePin(e, cleaned)}>
                                     {/* 원본 단어 그대로 표시 + 공백 추가 */}
-                                    {word}{' '} 
+                                    {word}{' '}
                                   </span>
                                 );
                               })}
@@ -1728,7 +1724,7 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
               </svg>
             </button>
 
-            {/* 명사 */}
+            {/* 해당하는 품사 반환 */}
             <p style={{
               position: 'absolute',
               top: '71.75px',
@@ -1743,7 +1739,7 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
               fontWeight: '400',
               lineHeight: 'normal'
             }}>
-              명사
+              {partOfSpeechKo[dictionaryData.partOfSpeech] || ''}
             </p>
 
             {/* 단어 */}
