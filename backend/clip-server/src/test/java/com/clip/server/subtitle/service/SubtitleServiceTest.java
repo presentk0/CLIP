@@ -2,6 +2,7 @@ package com.clip.server.subtitle.service;
 
 import com.clip.server.common.exception.BusinessException;
 import com.clip.server.subtitle.dto.request.SubtitleRequest;
+import com.clip.server.subtitle.dto.respnse.SubtitleListResponse;
 import com.clip.server.subtitle.dto.respnse.SubtitleResponse;
 import com.clip.server.subtitle.entity.Subtitle;
 import com.clip.server.subtitle.repository.SubtitleRepository;
@@ -19,12 +20,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
 
@@ -89,7 +91,6 @@ public class SubtitleServiceTest {
         assertThat(subtitleResponse.getText()).isEqualTo("Hello");
 
         verify(subtitleRepository, times(1)).save(any());
-
     }
 
     @Test
@@ -139,10 +140,10 @@ public class SubtitleServiceTest {
     @Test
     @DisplayName("존재하지 않는 유저 ID로 저장 시도 시 예외가 발생한다.")
     void saveSubtitle_userNotFound() {
-        // Given
+        // given
         given(userRepository.findById(userId)).willReturn(Optional.empty());
 
-        // When & Then 예외가 발생하는지 검증
+        // when & then 예외가 발생하는지 검증
         assertThatThrownBy(() -> subtitleService.saveSubtitle(userId, videoId, request))
                 .isInstanceOf(BusinessException.class);
 
@@ -150,4 +151,43 @@ public class SubtitleServiceTest {
         verify(subtitleRepository, never()).save(any());
     }
 
+    @Test
+    @DisplayName("영상의 자막 정보를 성공적으로 조회한다.")
+    void getSubtitles_success() {
+        // given
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+        given(videoRepository.existsById(videoId)).willReturn(true);
+
+        Subtitle subtitle = Subtitle.builder()
+                .video(video)
+                .text("I'm happy")
+                .translation("나는 행복해")
+                .startTime(BigDecimal.valueOf(1.01))
+                .endTime(BigDecimal.valueOf(1.02))
+                .build();
+
+        given(subtitleRepository.findByVideo_VideoIdOrderByStartTimeAsc(videoId))
+                .willReturn(List.of(subtitle));
+
+        // when
+        SubtitleListResponse subtitleListResponse = subtitleService.getSubtitles(videoId, userId);
+
+        // then
+        assertThat(subtitleListResponse.getVideoId()).isEqualTo(videoId);
+        assertThat(subtitleListResponse.getSubtitles().get(0).getText()).isEqualTo("I'm happy");
+        assertThat(subtitleListResponse.getSubtitles()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 비디오 ID로 조회하면 404 에러를 반환한다.")
+    void getSubtitles_videoNotFound() {
+        // given
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+        given(videoRepository.existsById(videoId)).willReturn(false);
+
+        // when & then: 예외가 발생하는지 검증
+        assertThatThrownBy(()->subtitleService.getSubtitles(videoId,userId)).
+                isInstanceOf(BusinessException.class)
+                .hasMessageContaining("영상을 찾을 수 없습니다.");
+    }
 }

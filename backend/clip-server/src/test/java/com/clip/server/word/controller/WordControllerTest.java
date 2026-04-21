@@ -6,6 +6,7 @@ import com.clip.server.word.dto.request.CollectedWordRequest;
 import com.clip.server.word.dto.response.CollectedWordResponse;
 import com.clip.server.word.dto.response.WordListResponse;
 import com.clip.server.word.dto.response.WordResponse;
+import com.clip.server.word.entity.WordType;
 import com.clip.server.word.service.WordService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
@@ -45,7 +46,7 @@ public class WordControllerTest {
     @DisplayName("단어 수집 요청 시 성공하면 201 Created를 반환한다")
     void collectWord_success() throws Exception {
         // 1. Given
-        CollectedWordRequest request = new CollectedWordRequest("v1", "Title", "apple", "I eat an apple", "0:01", "사과");
+        CollectedWordRequest request = new CollectedWordRequest("v1", "Title", "apple", "I eat an apple", "0:01", "사과", WordType.COLLECT);
         CollectedWordResponse mockResponse = CollectedWordResponse.builder()
                 .wordId(1L)
                 .collectedAt(LocalDateTime.now())
@@ -72,7 +73,7 @@ public class WordControllerTest {
     void collectWord_fail_validation() throws Exception {
         // Given - word가 빈 값인 경우
         CollectedWordRequest request = new CollectedWordRequest(
-                "v1", "Title", "", "I eat an apple", "0:01", "사과"
+                "v1", "Title", "", "I eat an apple", "0:01", "사과", WordType.COLLECT
         );
 
         // When & Then
