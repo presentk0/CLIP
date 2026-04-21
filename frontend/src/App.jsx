@@ -13,6 +13,8 @@ function App() {
   const [settlementData, setSettlementData] = useState(null);
   // 현재 영상에 퀴즈 중간 저장 데이터가 있는지 확인용
   const [videoId, setVideoId] = useState(null);
+  // 단어 수집으로 보낼 영상제목
+  const [videoTitle, setVideoTitle] = useState('');
 
 
   // 사이드패널 열림 감지 및 연결
@@ -49,6 +51,7 @@ function App() {
     const listener = (message) => {
       if (message.type === 'GO_TO_QUIZ') {
         setVideoId(message.videoId);
+        setVideoTitle(message.videoTitle);
         setMove(1);
       }
     };
@@ -87,6 +90,7 @@ function App() {
       {move === 1 && (
         <QuizPage
           videoId={videoId}
+          videoTitle={videoTitle}
           onExitPage={handleExit}
           onSettlementPage={handleSettlement}
         />

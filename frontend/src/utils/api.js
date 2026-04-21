@@ -203,6 +203,34 @@ export const apiFetch = async (endpoint, options = {}) => {
     }
 
 
+    // 단어 목록 조회 (미사용)
+    if (endpoint === '/api/words/my-collection') {
+      return {
+        success: true,
+        data: {
+          word: [
+            {
+              id: Date.now(),
+              word: "travel",
+              sentence: "I love to travel to new places every year.",
+              timestamp: "00:01:23",
+              translation: "여행하다",
+              videoId: "dQw4w9WgXcQ",
+              videoTitle: "Amazing Travel Video",
+              collectedAt: "2024-01-15T10:30:00Z"
+            }
+          ],
+          pagination: {
+            totalCount: 247,
+            currentPage: 0,
+            totalPages: 13,
+            pageSize: 20
+          }
+        }
+      };
+    }
+
+
     // 기본 응답
     return { success: true };
   }

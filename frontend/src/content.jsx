@@ -233,20 +233,21 @@ function startObserver() {
   const videoTitle = document.querySelector('#title h1')?.textContent?.trim() || '';
   if (!videoTitle) {return;}
 
-  // 영상 페이지 진입 시 퀴즈페이지로 이동 및 영상 아이디 보내기
+  // 영상 페이지 진입 시 퀴즈페이지로 이동 및 영상 제목과 아이디 보내기
   chrome.runtime.sendMessage({ 
     type: 'GO_TO_QUIZ',
-    videoId: videoId
+    videoId: videoId,
+    videoTitle: videoTitle
   }).catch(() => {});
 
-  setTimeout(() => {
-    chrome.runtime.sendMessage({
-      type: 'SUBTITLES_DATA',
-      videoId: videoId,
-      videoTitle: videoTitle
-    }).catch(() => {});
-    // 나중에 퀴즈 페이지 이동이 느려서 오류나면 코드 고치기
-  }, 100);
+  // setTimeout(() => {
+  //   chrome.runtime.sendMessage({
+  //     type: 'SUBTITLES_DATA',
+  //     videoId: videoId,
+  //     videoTitle: videoTitle
+  //   }).catch(() => {});
+  //   // 나중에 퀴즈 페이지 이동이 느려서 오류나면 코드 고치기
+  // }, 100);
 
   // HTML 요소(DOM)에 변화가 생기는지 감시하는 브라우저 내장 기능, 자막이 바뀔 때만 브라우저가 알아서 알림을 줌
   // 단어가 나올때마다 감지하지만 중복체크로 완성된 문장만 가져옴
@@ -277,7 +278,7 @@ function startObserver() {
     if (texts.length === 0 && lastSubtitle.length > 0) {
       // 각 문장 따로 큐에 넣기
       for (const text of lastSubtitle) {
-        addToQueue(text, startTime, currentTime, videoId);
+        addToQueue(text, startTime, currentTime, videoId, videoTitle);
       }
       // 번역 기다리기 전 미리 초기화
       lastSubtitle = [];
@@ -330,13 +331,13 @@ function stopObserver() {
 
 
 // 큐에 자막 넣기
-function addToQueue(text, startTime, endTime, videoId) {
+function addToQueue(text, startTime, endTime, videoId, videoTitle) {
   // 번역이 너무 느려서 대기중인 자막이 10개 이상이면 오래된 자막부터 버리기
   if (textQueue.length - head >= MAX_QUEUE) {
     // 맨 앞 버리기
     head++;
   }
-  textQueue.push({ text, startTime, endTime, videoId });
+  textQueue.push({ text, startTime, endTime, videoId, videoTitle });
   // 처리 시도
   processQueue();
 }
@@ -360,6 +361,8 @@ async function processQueue() {
       await apiFetch(`/api/videos/${item.videoId}/subtitles`, {
         method: 'POST',
         body: JSON.stringify({
+          videoid: item.videoId,
+          title: item.videoTitle,
           text: item.text,
           translation: translation,
           startTime: item.startTime,
@@ -584,6 +587,7 @@ async function addTestBadge() {
     
       // API 호출(수정 예정)
       const response = await apiFetch(`/api/badges/video/${videoId}`);
+      // 뱃지가 어떻게 오는지에 따라 수정예정(아마 결과에 맞는 뱃지 이미지를 붙일 듯)
       const badge = response.data.currentBadge;
 
       // 뱃지 표시(수정 예정)

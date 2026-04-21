@@ -6,7 +6,7 @@ import frog1 from '../imgs/image_712.png';
 import { apiFetch } from '../utils/api';
 import bulb from '../imgs/image_62.png';
 
-function QuizPage({ videoId, onSettlementPage, onExitPage }) {
+function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
   // 현재 문제 번호 (0부터 시작)
   const [currentIndex, setCurrentIndex] = useState(0);
   // 유저가 선택한 보기 (아직 제출 안 함)
@@ -49,8 +49,6 @@ function QuizPage({ videoId, onSettlementPage, onExitPage }) {
     translation: '',
     id: null
   });
-  // 영상 제목
-  const [videoTitle, setVideoTitle] = useState('');
 
 
   // 현재 구간 반복 중인지 여부
@@ -69,19 +67,17 @@ function QuizPage({ videoId, onSettlementPage, onExitPage }) {
   const [clickedSubtitle, setClickedSubtitle] = useState(null);
 
 
-  // content.jsx에서 자막 수신
+  // videoId 바뀌면 자막 조회
   useEffect(() => {
-    const listener = async (message) => {
-
-      // 영상 아이디와 제목 가져오기
-      if (message.type === 'SUBTITLES_DATA') {
-        setVideoTitle(message.videoTitle);
-
+    // videoId가 다르면 미실행
+    if (!videoId) return;
+    const fetchSubtitles = async () => {
+      try {
         // 서버에서 자막 조회
-        const response = await apiFetch(`/api/videos/${message.videoId}/subtitles`, {
+        const response = await apiFetch(`/api/videos/${videoId}/subtitles`, {
           method: 'GET'
         });
-
+        console.log('서버 자막 조회');
         // 자막이 있으면 시간순 정렬 후 저장
         if (response.success && response.data.subtitles.length > 0) {
           const sorted = response.data.subtitles.sort((a, b) => a.startTime - b.startTime);
@@ -89,7 +85,17 @@ function QuizPage({ videoId, onSettlementPage, onExitPage }) {
           setSubtitleIndex(sorted.length - 1);
           setCurrentSubtitle(sorted[sorted.length - 1]);
         }
+      } catch (error) {
+        console.log('자막 조회 실패:', error);
       }
+    };
+    fetchSubtitles();
+  }, [videoId])
+
+
+  // content.jsx에서 자막 수신
+  useEffect(() => {
+    const listener = async (message) => {
 
       // 새 자막 도착
       if (message.type === 'SUBTITLE_UPDATE') {
@@ -182,6 +188,7 @@ function QuizPage({ videoId, onSettlementPage, onExitPage }) {
         text: word,
         source: 'sidepanel'
       });
+      console.log('번역api');
       return response?.translatedText || '';
     } catch (error) {
       console.log('번역 실패', error);
@@ -200,11 +207,14 @@ function QuizPage({ videoId, onSettlementPage, onExitPage }) {
       setIsPinned(false);
       setDictionaryData(null);
       setClickedSubtitle(null);
-      return;
+      // return 없으면 다른 단어 클릭 시 즉시 이동
+      // return;
     }
 
     // 클릭 시점의 자막 정보 저장 (단어 수집용)
-    setClickedSubtitle({ ...currentSubtitle });
+    // set은 다음 렌더링에 반영되기에 즉시 사용해야 하는 api는 savedSubtitle로 사용
+    const savedSubtitle = { ...currentSubtitle };
+    setClickedSubtitle({ ...savedSubtitle });
 
     // 클릭한 단어 위치 계산
     const rect = e.target.getBoundingClientRect();
@@ -239,13 +249,18 @@ function QuizPage({ videoId, onSettlementPage, onExitPage }) {
     // 사전 API 호출
     try {
       const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
+      console.log('사전api');
       
+      // 에러날 경우
       if (!response.ok) {
         setDictionaryData({
           word: word,
           phonetic: '',
           translation: ''
         });
+        console.log('여기서에러');
+        // 팝업 열기
+        setIsPinned(true);
         return;
       }
 
@@ -281,12 +296,46 @@ function QuizPage({ videoId, onSettlementPage, onExitPage }) {
         setCache(prev => ({ ...prev, [word]: result }));
         setDictionaryData(result);
         setIsPinned(true);
+
+        // 팝업 열 때 서버에 타입 POPUP으로 보내기
+        // 
+        await apiFetch('/api/words/collect', {
+          method: 'POST',
+          body: JSON.stringify({
+            wordType: 'POPUP',
+            videoId: videoId,
+            word: word,
+            sentence: savedSubtitle.text,
+            timestamp: formatTime(savedSubtitle.startTime),
+            // set은 다음 렌더링에 반영되기에 즉시 사용해야 하는 api는 dictionaryData.translation 대신 result.translation 사용
+            // 또한 dictionaryData가 null이면 에러나기에 result로 ''처리
+            translation: result.translation,
+            title: videoTitle
+          })
+        }).catch(() => {});
+        console.log('서버에팝업1');
       } else {
         setDictionaryData({
           word: word,
           phonetic: '',
           translation: ''
         });
+        setIsPinned(true);
+
+        // 팝업 열 때 서버에 타입 POPUP으로 보내기
+        await apiFetch('/api/words/collect', {
+          method: 'POST',
+          body: JSON.stringify({
+            wordType: 'POPUP',
+            videoId: videoId,
+            word: word,
+            sentence: savedSubtitle.text,
+            timestamp: formatTime(savedSubtitle.startTime),
+            translation: '',
+            title: videoTitle
+          })
+        }).catch(() => {});
+        console.log('서버에팝업2');
       }
     } catch (error) {
       console.log('사전 조회 실패:', error);
@@ -295,6 +344,8 @@ function QuizPage({ videoId, onSettlementPage, onExitPage }) {
         phonetic: '',
         translation: ''
       });
+      // 팝업 열기
+      setIsPinned(true);
     }
   };
 
@@ -315,12 +366,13 @@ function QuizPage({ videoId, onSettlementPage, onExitPage }) {
   };
 
 
-  // 단어 수집
+  // 단어 수집 버튼
   const collectWord = async (word) => {
     try {
       await apiFetch('/api/words/collect', {
         method: 'POST',
         body: JSON.stringify({
+          wordType: 'COLLECT',
           videoId: videoId,
           word: word,
           // 단어가 포함된 문장
@@ -333,6 +385,7 @@ function QuizPage({ videoId, onSettlementPage, onExitPage }) {
           title: videoTitle
         })
       });
+      console.log('단어수집C');
     } catch (error) {
       console.log('단어 수집 실패:', error);
     }
@@ -514,7 +567,7 @@ function QuizPage({ videoId, onSettlementPage, onExitPage }) {
           userAnswer: tempChoice
         })
       });
-
+      console.log('정답제출');
       setFeedback(result.data);
       setIsConfirmed(true);
 
@@ -552,6 +605,7 @@ function QuizPage({ videoId, onSettlementPage, onExitPage }) {
         const finalResult = await apiFetch(`/api/quiz/sessions/${sessionId}/complete`, {
           method: 'POST'
         });
+        console.log('정산완료');
         // 저장된 진행 상황 삭제
         chrome.storage.local.remove('quizState');
         // 정산 페이지로 이동
