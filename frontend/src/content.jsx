@@ -35,7 +35,8 @@ let isObserving = false;
 let loopStart = null;
 // 구간 반복 종료 시간(구간 반복 고치치)
 let loopEnd = null;
-
+// 영상 끝 감지 리스너 활성화 여부 체크
+let isEndListenerSet = false;
 
 // 재시도 횟수 카운트용
 let retryCount = 0;
@@ -137,6 +138,7 @@ window.addEventListener('yt-navigate-finish', () => {
     lastVideoId = '';
     collectedSubtitles = [];
     quizRequested = false;
+    isEndListenerSet = false;
 
     // 영상 바뀔 때 큐 비우기
     resetQueue();
@@ -261,6 +263,9 @@ function startObserver() {
     const subtitleElement = document.querySelectorAll('.ytp-caption-segment');
     if (!video) {return;}
 
+    // 영상 전체 길이 가져오기
+    const duration = video.duration;
+
     // 단일 요소는 배열 안 됨
     const texts = Array.from(subtitleElement)
     .map(el => el.textContent.trim())
@@ -278,7 +283,7 @@ function startObserver() {
     if (texts.length === 0 && lastSubtitle.length > 0) {
       // 각 문장 따로 큐에 넣기
       for (const text of lastSubtitle) {
-        addToQueue(text, startTime, currentTime, videoId, videoTitle);
+        addToQueue(text, startTime, currentTime, videoId, videoTitle, duration);
       }
       // 번역 기다리기 전 미리 초기화
       lastSubtitle = [];
@@ -331,13 +336,13 @@ function stopObserver() {
 
 
 // 큐에 자막 넣기
-function addToQueue(text, startTime, endTime, videoId, videoTitle) {
+function addToQueue(text, startTime, endTime, videoId, videoTitle, duration) {
   // 번역이 너무 느려서 대기중인 자막이 10개 이상이면 오래된 자막부터 버리기
   if (textQueue.length - head >= MAX_QUEUE) {
     // 맨 앞 버리기
     head++;
   }
-  textQueue.push({ text, startTime, endTime, videoId, videoTitle });
+  textQueue.push({ text, startTime, endTime, videoId, videoTitle, duration });
   // 처리 시도
   processQueue();
 }
@@ -353,6 +358,7 @@ async function processQueue() {
   while (head < textQueue.length) {
     // 맨 앞 꺼내기
     const item = textQueue[head];
+    // 에러 발생해도 큐가 멈추지 않게 먼저 증가시키기
     head++;
     try {
       // DeepL 번역 요청 (백그라운드)
@@ -361,6 +367,7 @@ async function processQueue() {
       await apiFetch(`/api/videos/${item.videoId}/subtitles`, {
         method: 'POST',
         body: JSON.stringify({
+          duration: item.duration,
           videoid: item.videoId,
           title: item.videoTitle,
           text: item.text,
@@ -384,9 +391,19 @@ async function processQueue() {
         text: item.text,
       });
 
-      // 자막이 10개 쌓였고 퀴즈를 요청한 적이 없다면 퀴즈 생성 요청 (수정 예정)
-      if (collectedSubtitles.length >= 10 && !quizRequested) {
-        startQuizSession();
+      // // 자막이 10개 쌓였고 퀴즈를 요청한 적이 없다면 퀴즈 생성 요청 (수정 예정)
+      // if (collectedSubtitles.length >= 10 && !quizRequested) {
+      //   startQuizSession();
+      // }
+
+      // 영상이 끝난 경우 퀴즈 요청(영상 당 최대 1번)
+      if (!isEndListenerSet) {
+        item.video.addEventListener('ended', () => {
+          startQuizSession();
+        });
+        // 1번 요청함으로 변경
+        // 이벤트 리스너 등록할 때마다 쌓이는거 방지
+        isEndListenerSet = true;
       }
     } catch (error) {
       console.log('처리 실패:', error);
@@ -683,6 +700,8 @@ function init() {
   collectedSubtitles = [];
   // 퀴즈 요청 상태 리셋
   quizRequested = false;
+  // 영상 끝 감지 횟수 초기화
+  isEndListenerSet = false;
 
   // 영상 페이지일 경우
   if (window.location.href.includes('/watch')) {
