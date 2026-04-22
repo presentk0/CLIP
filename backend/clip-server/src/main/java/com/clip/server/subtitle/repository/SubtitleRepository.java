@@ -9,6 +9,6 @@ import java.util.List;
 import java.util.Optional;
 
 public interface SubtitleRepository extends JpaRepository<Subtitle, Long> {
-    Optional<Subtitle> findByVideoAndStartTime(Video video, BigDecimal startTime);
+    Optional<Subtitle> findByVideoAndStartTimeAndText(Video video, Double startTime, String text);
     List<Subtitle> findByVideo_VideoIdOrderByStartTimeAsc(String videoId);
 }

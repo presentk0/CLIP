@@ -3,14 +3,13 @@ package com.clip.server.subtitle.controller;
 import com.clip.server.common.exception.BusinessException;
 import com.clip.server.common.exception.ErrorCode;
 import com.clip.server.subtitle.dto.request.SubtitleRequest;
-import com.clip.server.subtitle.dto.respnse.SubtitleDetailResponse;
-import com.clip.server.subtitle.dto.respnse.SubtitleListResponse;
-import com.clip.server.subtitle.dto.respnse.SubtitleResponse;
+import com.clip.server.subtitle.dto.response.SubtitleDetailResponse;
+import com.clip.server.subtitle.dto.response.SubtitleListResponse;
+import com.clip.server.subtitle.dto.response.SubtitleResponse;
 import com.clip.server.subtitle.service.SubtitleService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentMatchers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
@@ -47,15 +46,17 @@ public class SubtitleControllerTest {
         // given
         String videoId = "video123";
         SubtitleRequest request = new SubtitleRequest("title1","I'm happy", "나는 행복해",
-                BigDecimal.valueOf(1.00), BigDecimal.valueOf(1.10));
+                6.00, 170.00, 600);
 
         SubtitleResponse response = SubtitleResponse.builder()
                 .videoId(videoId)
                 .subtitleId(1L)
                 .text("title1")
                 .translation("나는 행복해")
-                .startTime(BigDecimal.valueOf(1.00))
-                .endTime(BigDecimal.valueOf(1.10))
+                .startTime(6.00)
+                .endTime(170.00)
+                .isQuizGenerate(true)
+                .lastQuizSection(1)
                 .build();
 
         given(subtitleService.saveSubtitle(eq(1L), anyString(), any(SubtitleRequest.class)))
@@ -81,7 +82,7 @@ public class SubtitleControllerTest {
         // given
         String videoId = "video123";
         SubtitleRequest invalidRequest = new SubtitleRequest("title1","", "나는 행복해",
-                BigDecimal.valueOf(1.00), BigDecimal.valueOf(1.10));
+                1.00, 1.10, 600);
         String json = objectMapper.writeValueAsString(invalidRequest);
 
         // when & then
@@ -101,8 +102,8 @@ public class SubtitleControllerTest {
         SubtitleDetailResponse subtitleDetailResponse = SubtitleDetailResponse.builder()
                 .text("I'm happy")
                 .translation("나는 행복해")
-                .startTime(BigDecimal.valueOf(1.00))
-                .endTime(BigDecimal.valueOf(1.01))
+                .startTime(1.00)
+                .endTime(1.01)
                 .build();
 
         SubtitleListResponse subtitleListResponse = SubtitleListResponse.builder()

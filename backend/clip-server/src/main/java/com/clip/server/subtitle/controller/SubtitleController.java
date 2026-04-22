@@ -2,8 +2,8 @@ package com.clip.server.subtitle.controller;
 
 import com.clip.server.common.response.ApiResponse;
 import com.clip.server.subtitle.dto.request.SubtitleRequest;
-import com.clip.server.subtitle.dto.respnse.SubtitleListResponse;
-import com.clip.server.subtitle.dto.respnse.SubtitleResponse;
+import com.clip.server.subtitle.dto.response.SubtitleListResponse;
+import com.clip.server.subtitle.dto.response.SubtitleResponse;
 import com.clip.server.subtitle.service.SubtitleService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

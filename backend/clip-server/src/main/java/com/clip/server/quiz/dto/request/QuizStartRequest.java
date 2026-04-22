@@ -1,18 +1,18 @@
-package com.clip.server.subtitle.dto.respnse;
+package com.clip.server.quiz.dto.request;
 
+import com.clip.server.quiz.entity.SessionType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
-
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class SubtitleListResponse {
+public class QuizStartRequest {
 
+    private Long userId;
     private String videoId;
-    private List<SubtitleDetailResponse> subtitles;
+    private SessionType sessionType;
 }
