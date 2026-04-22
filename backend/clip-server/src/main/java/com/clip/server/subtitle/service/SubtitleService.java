@@ -1,10 +1,12 @@
 package com.clip.server.subtitle.service;
 
 import com.clip.server.common.exception.BusinessException;
+import com.clip.server.progress.entity.UserVideoProgress;
+import com.clip.server.progress.repository.UserVideoProgressRepository;
 import com.clip.server.subtitle.dto.request.SubtitleRequest;
-import com.clip.server.subtitle.dto.respnse.SubtitleDetailResponse;
-import com.clip.server.subtitle.dto.respnse.SubtitleListResponse;
-import com.clip.server.subtitle.dto.respnse.SubtitleResponse;
+import com.clip.server.subtitle.dto.response.SubtitleDetailResponse;
+import com.clip.server.subtitle.dto.response.SubtitleListResponse;
+import com.clip.server.subtitle.dto.response.SubtitleResponse;
 import com.clip.server.subtitle.entity.Subtitle;
 import com.clip.server.subtitle.repository.SubtitleRepository;
 import com.clip.server.user.entity.User;
@@ -27,9 +29,12 @@ import static com.clip.server.common.exception.ErrorCode.VIDEO_NOT_FOUND;
 @Transactional(readOnly = true)
 public class SubtitleService {
 
+    private static final double DENSITY_FACTOR = 0.8;
+
     private final SubtitleRepository subtitleRepository;
     private final UserRepository userRepository;
     private final VideoRepository videoRepository;
+    private final UserVideoProgressRepository userVideoProgressRepository;
 
     @Transactional
     public SubtitleResponse saveSubtitle(Long userId, String videoId, SubtitleRequest subtitleRequest) {
@@ -42,16 +47,36 @@ public class SubtitleService {
                     Video newVideo = Video.builder()
                             .videoId(videoId)
                             .title(subtitleRequest.getTitle())
+                            .duration(subtitleRequest.getDuration())
                             .build();
                     return videoRepository.save(newVideo);
                 }
         );
 
-        // 3. 자막 중복 체크(startTime 중복 여부 확인)
-        Optional<Subtitle> existingSubtitle = subtitleRepository.findByVideoAndStartTime(video, subtitleRequest.getStartTime());
+        // 3. 유저 진행도 조회 없으면 생성
+        UserVideoProgress progress = userVideoProgressRepository.findByUserAndVideo(user, video)
+                .orElseGet(()->{
+                            UserVideoProgress newProgress = UserVideoProgress.builder()
+                                    .user(user)
+                                    .video(video)
+                                    .build();
+                            return userVideoProgressRepository.save(newProgress);
+                        });
 
+        // 4. 자막 중복 체크(startTime 중복 여부 확인)
+        Optional<Subtitle> existingSubtitle = subtitleRepository.findByVideoAndStartTimeAndText(video, subtitleRequest.getStartTime(), subtitleRequest.getText());
+        // 이미 존재하는 자막이면 기존 값 반환
         if(existingSubtitle.isPresent()) {
-            return mapToSubtitleResponse(existingSubtitle.get());
+            return mapToSubtitleResponse(existingSubtitle.get(), false, progress.getLastQuizzedSection());
+        }
+
+        boolean isQuizGenerate = false;
+        // 5.
+        if (!subtitleRequest.getStartTime().equals(progress.getLastAddedStartTime())) {
+            double userWatchDuration = subtitleRequest.getEndTime() - subtitleRequest.getStartTime();
+            // 자막 시간을 사용자 학습 시간으로 저장
+            progress.addProgress(userWatchDuration, subtitleRequest.getStartTime());
+            isQuizGenerate = checkoutQuizTrigger(progress, video.getDuration());
         }
 
         Subtitle subtitle = Subtitle.builder()
@@ -63,7 +88,41 @@ public class SubtitleService {
                 .build();
         subtitleRepository.save(subtitle);
 
-        return mapToSubtitleResponse(subtitle);
+        return mapToSubtitleResponse(subtitle, isQuizGenerate, progress.getLastQuizzedSection());
+    }
+
+    private boolean checkoutQuizTrigger(UserVideoProgress progress, int totalDuration) {
+        // 영상 당 섹션 수
+        int totalSections = getTargetSectionCount(totalDuration);
+        if(totalSections==0) return false; // 1분 미만 영상은 섹션 퀴즈 미출제
+
+        // 보정 로직: 자막 밀도가 전체 영상의 80%
+        double expectedMaxLearnedTime = (double) totalDuration * DENSITY_FACTOR;
+
+        // 현재 누적 학습량이 어느 세션인지 확인
+        double progressRate = progress.getLearnedTime()/expectedMaxLearnedTime;
+        int currentSection = (int) (progressRate*totalSections);
+
+        // 영상이 끝났다면 마지막 세션으로 고정
+        if(currentSection>totalSections) currentSection =totalSections;
+
+        // 퀴즈를 낸 섹션보다 현재 섹션이 높으면 트리거
+        if(currentSection> progress.getLastQuizzedSection()) {
+            progress.updateSection(currentSection);
+            return true;
+        }
+        return false;
+    }
+
+    private int getTargetSectionCount(int totalDuration) {
+        // 초-> 분 변환
+        int minutes = totalDuration/60;
+
+        if(minutes<1) return 0; // 퀴즈 섹션 0개
+        if(minutes<5) return 1; // 1분 이상 5분 미만 영상은 섹션 1개
+        if(minutes<10) return 2; // 5분 이상 10분 미만 영상은 섹션 2개
+        if(minutes<20) return 3; // 10분 이상 20분 미만 영상은 섹션 3개
+        return 4; // 20분 이상 무조건 4개 섹션
     }
 
     public SubtitleListResponse getSubtitles(String videoId, Long userId) {
@@ -87,7 +146,9 @@ public class SubtitleService {
                .build();
     }
 
-    public SubtitleResponse mapToSubtitleResponse(Subtitle subtitle) {
+    public SubtitleResponse mapToSubtitleResponse(Subtitle subtitle, Boolean isQuizGenerate, int lastQuizSection) {
+        int totalSections = getTargetSectionCount(subtitle.getVideo().getDuration());
+
         return SubtitleResponse.builder()
                 .videoId(subtitle.getVideo().getVideoId())
                 .subtitleId(subtitle.getId())
@@ -95,6 +156,9 @@ public class SubtitleService {
                 .translation(subtitle.getTranslation())
                 .startTime(subtitle.getStartTime())
                 .endTime(subtitle.getEndTime())
+                .isQuizGenerate(isQuizGenerate)
+                .section(lastQuizSection)
+                .totalSections(totalSections)
                 .build();
     }
 
