@@ -280,6 +280,8 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
 
         // 해당 품사의 첫 번째 뜻 목록 가져오기
         const def = meaning.definitions[0];
+        console.log('원본:', def.definition);
+        console.log('정제:', def.definition.replace(/\([^)]*\)/g, '').trim());
         const result = {
           word: word,
           // 발음 기호(품사는 있어도 발음이 없는 경우가 있음)
@@ -296,12 +298,19 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
           synonyms: meaning.synonyms?.slice(0, 5) || [],
           // 반의어
           antonyms: meaning.antonyms?.slice(0, 5) || [],
-          translation: ''
+          // 단어 번역
+          meaningTranslation: '',
+          // 예문 번역
+          exampleTranslation: ''
         };
 
-        // 한글 번역 추가
-        const translationWord = await fetchTranslation(result.definition);
-        result.translation = translationWord;
+        // 뜻 번역
+        result.meaningTranslation = await fetchTranslation(result.definition) || '';
+
+        // 예문 있을 때만 번역
+        if (result.example) {
+          result.exampleTranslation = await fetchTranslation(result.example) || '';
+        }
 
         // 캐시에 저장
         setCache(prev => ({ ...prev, [word]: result }));
@@ -315,15 +324,18 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
             wordType: 'POPUP',
             videoId: videoId,
             word: word,
+            meaning: result.meaningTranslation,
+            example: result.exampleTranslation,
             sentence: savedSubtitle.text,
             timestamp: formatTime(savedSubtitle.startTime),
-            // set은 다음 렌더링에 반영되기에 즉시 사용해야 하는 api는 dictionaryData.translation 대신 result.translation 사용
+            // set은 다음 렌더링에 반영되기에 즉시 사용해야 하는 api는 dictionaryData.translation 대신 savedSubtitle.translation 사용
             // 또한 dictionaryData가 null이면 에러나기에 result로 ''처리
-            translation: result.translation,
+            translation: savedSubtitle.translation,
+            // translation: result.translation,
             title: videoTitle
           })
         }).catch(() => {});
-        console.log('서버에팝업1');
+        console.log('서버에팝업1:', videoId, word, result.meaningTranslation, result.exampleTranslation, savedSubtitle.text, formatTime(savedSubtitle.startTime), savedSubtitle.translation, videoTitle);
       }
     } catch (error) {
       console.log('사전 조회 실패:', error);
@@ -352,25 +364,28 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
 
 
   // 단어 수집 버튼
-  const collectWord = async (word) => {
+  const collectWord = async () => {
     try {
       await apiFetch('/api/words/collect', {
         method: 'POST',
         body: JSON.stringify({
           wordType: 'COLLECT',
           videoId: videoId,
-          word: word,
+          word: dictionaryData.word,
+          meaning: dictionaryData.meaningTranslation,
+          example: dictionaryData.exampleTranslation,
           // 단어가 포함된 문장
           sentence: clickedSubtitle.text,
           // 영상 시간
           timestamp: formatTime(currentSubtitle.startTime),
-          // 한글 뜻
-          translation: dictionaryData.translation,
+          // 단어가 포함된 문장 뜻
+          translation: clickedSubtitle.translation,
+          // translation: dictionaryData.translation,
           // 영상 제목
           title: videoTitle
         })
       });
-      console.log('단어수집C');
+      console.log('단어수집C:', videoId, dictionaryData.word, dictionaryData.meaningTranslation, dictionaryData.exampleTranslation, clickedSubtitle.text, formatTime(currentSubtitle.startTime), clickedSubtitle.translation, videoTitle);
     } catch (error) {
       console.log('단어 수집 실패:', error);
     }
@@ -554,10 +569,10 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
         body: JSON.stringify({
           sessionId,
           quizId: currentQuiz?.quizId,
-          word: currentQuiz?.word,
-          quizType: 'BLANK',
-          question: currentQuiz?.question,
-          correctAnswer: currentQuiz?.correctAnswer,
+          // word: currentQuiz?.word,
+          // quizType: 'BLANK',
+          // question: currentQuiz?.question,
+          // correctAnswer: currentQuiz?.correctAnswer,
           userAnswer: tempChoice
         })
       });
@@ -1541,7 +1556,9 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
         }}>
 
           {/* 건너뛰기 버튼 */}
-          <button style={{
+          <button
+          onClick={handleNext}
+          style={{
             display: 'flex',
             width: '120px',
             height: '40px',
@@ -1645,7 +1662,7 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
 
             {/* 수집 기능 넣기 */}
             <button 
-            onClick={() => collectWord(dictionaryData.word)}
+            onClick={() => collectWord()}
             style={{
               position: 'absolute',
               top: '23.65px',
@@ -1809,7 +1826,7 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
               lineHeight: 'normal',
               zIndex: '999',
             }}>
-              {dictionaryData.translation}
+              {dictionaryData.meaningTranslation}
             </p>
 
             {/* 단어 가리키는 화살표 박스 */}

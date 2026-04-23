@@ -15,7 +15,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, info, tab) => {
   // 현재 주소가 유튜브라면 사이드 패널 활성화
   if (url.origin === YOUTUBE_ORIGIN) {
     await chrome.sidePanel.setOptions({
-      tabId,
+      tabId: tab.id,
       // 사이드 패널 화면 연결
       path: 'sidepanel.html',
       // 활성화
@@ -35,11 +35,15 @@ chrome.tabs.onUpdated.addListener(async (tabId, info, tab) => {
 
 // 사이드패널 연결 감지
 chrome.runtime.onConnect.addListener((port) => {
+  console.log('패널 연결1');
   if (port.name === 'sidepanel') {
+    console.log('패널 연결2');
     // 연결 끊김 감지
     port.onDisconnect.addListener(() => {
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        console.log('패널 연결 끊김1');
         if (tabs[0]) {
+          console.log('패널 연결 끊김2');
           chrome.tabs.sendMessage(tabs[0].id, { type: 'PANEL_CLOSED' }).catch(() => {});
         }
       });

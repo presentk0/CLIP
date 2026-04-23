@@ -1,6 +1,9 @@
 import happy from '../imgs/image_703.png';
 
-function SettlementPage({ onGoHome }) {
+function SettlementPage({ data, videoId, videoTitle, channelName, duration ,onGoHome }) {
+  // 영상 전체 길이를 00:00:00 형태로 바꿔야 함(오류)
+  // 해당 영상의 썸네일 이미지
+  const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
   return (
     // 전체 박스
     <div>
@@ -135,6 +138,9 @@ function SettlementPage({ onGoHome }) {
                         background: '#CCC',
                       }}>
 
+                        {/* 실제 영상 썸네일 */}
+                        <img src={thumbnailUrl} />
+
                         {/* 영상의 길이 */}
                         <div style={{
                           display: 'flex',
@@ -147,6 +153,7 @@ function SettlementPage({ onGoHome }) {
                           borderRadius: '4px',
                           background: 'rgba(15, 15, 15, 0.50)',
                           }}>
+                            {duration}
                         </div>
                       </div>
 
@@ -174,7 +181,7 @@ function SettlementPage({ onGoHome }) {
                           lineHeight: '20px', /* 142.857% */
                           letterSpacing: '-0.5px',
                         }}>
-                          영상 제목...
+                          {videoTitle}
                         </p>
 
                         {/* 채널 이름 */}
@@ -193,7 +200,7 @@ function SettlementPage({ onGoHome }) {
                           lineHeight: '20px', /* 142.857% */
                           letterSpacing: '-0.5px',
                         }}>
-                          채널 이름
+                          {channelName}
                         </p>
                       </div>
                     </div>
@@ -208,6 +215,7 @@ function SettlementPage({ onGoHome }) {
                       left: '8px',
                       top: '8px',
                       background: '#B0B0B0',
+                      
                     }}>
                     </div>
                   </div>
@@ -304,7 +312,7 @@ function SettlementPage({ onGoHome }) {
                             lineHeight: 'normal',
                             letterSpacing: '-0.032px',
                           }}>
-                            실제 수치 8/10
+                            {data.correctCount}/{data.totalQuizCount}
                           </p>
                         </div>
                       </div>

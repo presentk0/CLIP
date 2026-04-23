@@ -38,30 +38,33 @@ let loopEnd = null;
 // 영상 끝 감지 리스너 활성화 여부 체크
 let isEndListenerSet = false;
 
-// 재시도 횟수 카운트용
+
+// 영상 페이지에서 영상 가져오기 실패 시 재시도 횟수 카운트용
 let retryCount = 0;
-// 최대 5번까지 재시도(무한 루프 방지)
-const MAX_RETRY = 5;
+// 영상 페이지에서 영상 가져오기 (실패 시 최대 15번까지 재시도)
+const MAX_RETRY = 15;
 // play, pause 같은 영상 이벤트 리스너 중복 방지용
 let listenersAdded = false;
 // 홈 & 검색 화면에서 새로운 영상 썸네일이 나타나는지 감시용 (배지 부착용)
 let thumbnailObserver = null;
 // 서버에서 받은 현재 퀴즈 세션의 고유 ID (제출 및 결과 조회용)
 let sessionId = null;
+// 영상 당 최초 1회만 영상 길이를 전송
+let isDuration = false;
+// 영상 당 최초 1회만 영상 제목과 아이디, 채널명 전송
+let isQuiz = false;
 
-
-
-
-
-
+// 유튜브 SPA 대응 URL 변경 감지
+let lastUrl = '';
 
 
 // 사이드 패널 신호 수신
 chrome.runtime.onMessage.addListener((message) => {
   // 패널 열림
   if (message.type === 'PANEL_OPENED') {
+    console.log('패널 열림1:', Date.now());
     isPanelOpen = true;
-    // 패널 열리면 모든 시스템 초기화 및 시작
+    // 패널 열리면 모든 시스템 리셋 및 시작
     init();
   }
 
@@ -118,14 +121,13 @@ chrome.runtime.onMessage.addListener((message) => {
 });
 
 
-// 유튜브 SPA 대응 URL 변경 감지
-let lastUrl = location.href;
-
-// 유튜브 전용 이벤트
+// 페이지 이동 시 실행(첫 화면과 새로고침은 미실행)
 window.addEventListener('yt-navigate-finish', () => {
+  console.log('실행여부1');
   // URL 바뀌면 실행
+  // location.href = 현재 페이지의 전체 URL
   if (location.href !== lastUrl) {
-    lastUrl = location.href;
+      console.log('실행여부2');
     // 기존 자막 감시 종료
     stopObserver();
     // 썸네일 배지 감시 중지
@@ -139,6 +141,8 @@ window.addEventListener('yt-navigate-finish', () => {
     collectedSubtitles = [];
     quizRequested = false;
     isEndListenerSet = false;
+    isDuration = false;
+    isQuiz = false;
 
     // 영상 바뀔 때 큐 비우기
     resetQueue();
@@ -148,6 +152,7 @@ window.addEventListener('yt-navigate-finish', () => {
       // 영상 페이지면 추천 영상 숨기고 자막 감지
       if (location.href.includes('/watch')) {
         setTimeout(hideRecommendations, 500);
+        console.log('페이지 이동 및 구분:', Date.now());
         setTimeout(observeSubtitles, 3000);
       } else {
         // 영상 페이지 아니면 추천 영상 보이고 페이지 감지
@@ -155,6 +160,8 @@ window.addEventListener('yt-navigate-finish', () => {
         setTimeout(observeThumbnails, 3000);
       }
     }
+    // 현재 url 저장
+    lastUrl = location.href;
   }
 });
 
@@ -175,8 +182,8 @@ function observeSubtitles() {
   if (!video) {
     if (retryCount < MAX_RETRY) {
       retryCount++;
-      // DOM이 렌더링 안 됐으면 3초 후 재시도
-      setTimeout(observeSubtitles, 3000);
+      // DOM이 렌더링 안 됐으면 1초 후 재시도
+      setTimeout(observeSubtitles, 1000);
     }
     return;
   }
@@ -186,11 +193,14 @@ function observeSubtitles() {
   // 이벤트 리스너 중복 방지
   if (!listenersAdded) {
   // 영상이 재생 중일 때만 MutationObserver를 켜서 메모리 낭비 방지
+  // 중간 광고 나오면 꼬이는 오류 확인
   video.addEventListener('play', () => {
+    console.log('play 이벤트!', document.querySelector('.ad-showing') ? '광고' : '본영상');
     startObserver();
   });
   // 영상이 멈추면 자막 감시 끄기
   video.addEventListener('pause', () => {
+    console.log('pause 이벤트!', document.querySelector('.ad-showing') ? '광고' : '본영상');
     stopObserver();
   });
     listenersAdded = true;
@@ -198,6 +208,7 @@ function observeSubtitles() {
 
   // 이미 재생 중이면 바로 시작
   if (!video.paused) {
+    console.log('콘텐츠 자막 감지 실행1:', Date.now());
     startObserver();
   }
 }
@@ -235,13 +246,20 @@ function startObserver() {
   const videoTitle = document.querySelector('#title h1')?.textContent?.trim() || '';
   if (!videoTitle) {return;}
 
-  // 영상 페이지 진입 시 퀴즈페이지로 이동 및 영상 제목과 아이디 보내기
-  chrome.runtime.sendMessage({ 
-    type: 'GO_TO_QUIZ',
-    videoId: videoId,
-    videoTitle: videoTitle
-  }).catch(() => {});
-
+  // 영상 채널명 가져오기
+  const channelName = document.querySelector('#channel-name a')?.textContent;
+  if (!channelName) {return;}
+  console.log('콘텐츠 시작1:', Date.now());
+  // 영상 페이지 진입 시 퀴즈페이지로 이동 및 영상 제목과 아이디, 채널명 보내기 (최초 1회)
+  if (!isQuiz && videoId && videoTitle && channelName) {
+    chrome.runtime.sendMessage({ 
+      type: 'GO_TO_QUIZ',
+      videoId: videoId,
+      videoTitle: videoTitle,
+      channelName: channelName
+    }).catch(() => {});
+    isQuiz = true;
+  }
   // setTimeout(() => {
   //   chrome.runtime.sendMessage({
   //     type: 'SUBTITLES_DATA',
@@ -258,13 +276,43 @@ function startObserver() {
     if (document.querySelector('.ad-showing')) {
     return;
   }
+
+    // 매번 video를 가져오기 때문에 중간광고도 대응가능
     const video = document.querySelector('video');
+    if (!video) {return;}
+
     // 자막 전체 가져오기
     const subtitleElement = document.querySelectorAll('.ytp-caption-segment');
-    if (!video) {return;}
 
     // 영상 전체 길이 가져오기
     const duration = video.duration;
+
+    // 영상 길이를 최초 1회만 App.jsx로 전송
+    // 바로 보내면 최종정산 페이지가 렌더링되어 있지 않아서 문제 생김
+    if (!isDuration && duration) {
+      chrome.runtime.sendMessage({
+        type: 'VIDEO_DURATION',
+        duration: duration
+      });
+      isDuration = true;
+    }
+
+      // 영상이 끝난 경우 퀴즈 요청(영상 당 최대 1번)
+      // 평소 미실행 중간 광고 끝나고 끝남 확인1 뜨니까 수정 필요 (오류)
+      if (!isEndListenerSet) {
+        console.log('끝남 확인1');
+        video.addEventListener('ended', () => {
+          console.log('영상 멈춤1');
+          if (video) video.pause();
+          console.log('끝남 확인2');
+          // 3초 후 이동 막아야 함 오류
+          // 이거 대신 그냥 매칭 퀴즈 api로 전환하기
+          startQuizSession();
+        });
+        // 1번 요청함으로 변경
+        // 이벤트 리스너 등록할 때마다 쌓이는거 방지
+        isEndListenerSet = true;
+      }
 
     // 단일 요소는 배열 안 됨
     const texts = Array.from(subtitleElement)
@@ -285,7 +333,7 @@ function startObserver() {
       for (const text of lastSubtitle) {
         addToQueue(text, startTime, currentTime, videoId, videoTitle, duration);
       }
-      // 번역 기다리기 전 미리 초기화
+      // 번역 기다리기 전 미리 리셋
       lastSubtitle = [];
       startTime = null;
       lastKey = '';
@@ -364,18 +412,23 @@ async function processQueue() {
       // DeepL 번역 요청 (백그라운드)
       const translation = await fetchTranslation(item.text);
       // 백엔드 DB에 자막 및 번역 데이터 저장
-      await apiFetch(`/api/videos/${item.videoId}/subtitles`, {
+      const quizResponse = await apiFetch(`/api/videos/${item.videoId}/subtitles`, {
         method: 'POST',
         body: JSON.stringify({
-          duration: item.duration,
           videoid: item.videoId,
           title: item.videoTitle,
           text: item.text,
           translation: translation,
           startTime: item.startTime,
-          endTime: item.endTime
+          endTime: item.endTime,
+          duration: item.duration
         })
       });
+
+      // 트루신호 받으면 퀴즈 요청 api
+      if (quizResponse.success) {
+        console.log('성공하면 퀴즈 요청하기');
+      };
 
       // 사이드 패널 화면에 실시간 자막 업데이트
       chrome.runtime.sendMessage({
@@ -391,20 +444,12 @@ async function processQueue() {
         text: item.text,
       });
 
-      // // 자막이 10개 쌓였고 퀴즈를 요청한 적이 없다면 퀴즈 생성 요청 (수정 예정)
-      // if (collectedSubtitles.length >= 10 && !quizRequested) {
-      //   startQuizSession();
-      // }
-
-      // 영상이 끝난 경우 퀴즈 요청(영상 당 최대 1번)
-      if (!isEndListenerSet) {
-        item.video.addEventListener('ended', () => {
-          startQuizSession();
-        });
-        // 1번 요청함으로 변경
-        // 이벤트 리스너 등록할 때마다 쌓이는거 방지
-        isEndListenerSet = true;
+      // 자막이 10개 쌓였고 퀴즈를 요청한 적이 없다면 퀴즈 생성 요청 (수정 예정)
+      if (collectedSubtitles.length >= 10 && !quizRequested) {
+        startQuizSession();
       }
+
+
     } catch (error) {
       console.log('처리 실패:', error);
     }
@@ -419,7 +464,7 @@ async function processQueue() {
 }
 
 
-// 영상 바뀔 때 리셋
+// 영상 바뀔 때 대기열 리셋
 function resetQueue() {
   textQueue = [];
   head = 0;
@@ -688,11 +733,12 @@ function removeBadges() {
 }
 
 
-// 초기화
+// 리셋
 // 페이지 로드 대기 후 실행
 // init()에서 페이지 종류에 따라 분기
 function init() {
-  // 재시도 횟수 초기화
+  console.log('콘텐츠 초기화1:', Date.now());
+  // 재시도 횟수 리셋
   retryCount = 0;
   // play, pause 같은 영상 이벤트 리스너 미실행으로 설정
   listenersAdded = false;
@@ -700,14 +746,19 @@ function init() {
   collectedSubtitles = [];
   // 퀴즈 요청 상태 리셋
   quizRequested = false;
-  // 영상 끝 감지 횟수 초기화
+  // 영상 끝 감지 횟수 리셋
   isEndListenerSet = false;
+  // 영상 전체 길이 전송 횟수 리셋
+  isDuration = false;
+  // 영상 제목과 아이디, 채널명 전송 횟수 리셋
+  isQuiz = false;
 
   // 영상 페이지일 경우
   if (window.location.href.includes('/watch')) {
     // 추천 영상 숨기기
     setTimeout(hideRecommendations, 500);
     // 현재 영상이 재생중이면 자막 감시하고 아니면 자막 감시 중지
+    console.log('초기화 후 감시 여부 확인:', Date.now());
     setTimeout(observeSubtitles, 3000);
   // 영상 페이지가 아닐 경우
   } else {
