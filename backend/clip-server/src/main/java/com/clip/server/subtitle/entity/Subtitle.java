@@ -24,7 +24,7 @@ public class Subtitle {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "video_id", nullable = false, columnDefinition = "VARCHAR(20)")
+    @JoinColumn(name = "video_id", nullable = false)
     private Video video;
 
     @Column(nullable = false)
@@ -33,18 +33,18 @@ public class Subtitle {
     @Column(nullable = false)
     private String translation; // 자막 번역
 
-    @Column(name = "start_time", nullable = false,  precision = 10, scale = 3)
-    private BigDecimal startTime; // 영상 시작 시각
+    @Column(name = "start_time", nullable = false)
+    private Double startTime; // 영상 시작 시각
 
-    @Column(name = "end_time", nullable = false, precision = 10, scale = 3)
-    private BigDecimal endTime; // 영상 종료 시각
+    @Column(name = "end_time", nullable = false)
+    private Double endTime; // 영상 종료 시각
 
     @CreatedDate
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
     @Builder
-    public Subtitle(Video video, String text, String translation, BigDecimal startTime, BigDecimal endTime) {
+    public Subtitle(Video video, String text, String translation, Double startTime, Double endTime) {
         this.video = video;
         this.text = text;
         this.translation = translation;

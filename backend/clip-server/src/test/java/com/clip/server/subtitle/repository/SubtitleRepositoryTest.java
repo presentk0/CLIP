@@ -42,8 +42,8 @@ public class SubtitleRepositoryTest {
         Subtitle subtitle = Subtitle.builder()
                 .text("I'm happy")
                 .translation("나는 행복합니다.")
-                .startTime(BigDecimal.valueOf(1.20))
-                .endTime(BigDecimal.valueOf(1.21))
+                .startTime(1.20)
+                .endTime(1.21)
                 .video(video)
                 .build();
 
