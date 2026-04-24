@@ -1,5 +1,6 @@
 package com.clip.server.quiz.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 
@@ -14,5 +15,6 @@ import org.springframework.web.bind.annotation.RestController;
 @Validated
 public class QuizSessionController {
 
+    //@Operation(summary = "퀴즈 섹션 요청(OX, 빈칸")
 
 }
