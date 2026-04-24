@@ -6,6 +6,7 @@ import com.clip.server.user.repository.UserRepository;
 import com.clip.server.video.entity.Video;
 import com.clip.server.video.repository.VideoRepository;
 import com.clip.server.word.entity.CollectedWord;
+import com.clip.server.word.entity.WordType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,9 +54,11 @@ public class CollectedWordRepositoryTest {
                 .user(user)
                 .video(video)
                 .word("apple")
+                .meaning("사과")
                 .sentence("I eat an apple.")
                 .timestamp("00:15")
                 .translation("나는 사과를 먹는다")
+                .wordType(WordType.COLLECT)
                 .build();
 
         // 2. When: 실제 저장 수행
