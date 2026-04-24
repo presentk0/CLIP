@@ -1,8 +1,8 @@
 /* global chrome */
 
 // 서버 주소가 생기면 false로 바꾸고 URL을 실제 서버 주소로 변경하기
-const IS_MOCK = true; 
-const BASE_URL = 'https://api.clip.example.com';
+const IS_MOCK = false; 
+const BASE_URL = 'https://clip-server.com/api';
 
 export const apiFetch = async (endpoint, options = {}) => {
   if (IS_MOCK) {

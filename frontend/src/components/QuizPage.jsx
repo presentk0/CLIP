@@ -1,5 +1,6 @@
 /* global chrome */
 
+import nlp from 'compromise';
 import { useState, useEffect } from 'react';
 import frog from '../imgs/image_710.png';
 import frog1 from '../imgs/image_712.png';
@@ -174,11 +175,34 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
   };
 
 
-  // 불용어 제외 (축약형 포함)
-  const stopWords = [
-    'i', 'am', 'a', 'the', 'is', 'are', 'it', 'to', 'for', 'of', 'and', 'in', 'on', 'at', "'s", "'re", "'m", "'ll", "'ve", "'d", "n't"
-  ];
+  // // 불용어 제외 (축약형 포함)
+  // const stopWords = [
+  //   'i', 'am', 'a', 'the', 'is', 'are', 'it', 'to', 'for', 'of', 'and', 'in', 'on', 'at', "'s", "'re", "'m", "'ll", "'ve", "'d", "n't"
+  // ];
 
+  
+
+  //                             {currentSubtitle.text.split(' ').map((word, index) => {
+  //                               // 해당 종류를 일반 따옴표로 변환(백틱, 오른쪽 작은따옴표, 왼쪽 작은따옴표, 수정 문자 아포스트로피)
+  //                               const normalized = word.replace(/[`''ʼ]/g, "'");
+  //                               // 특수문자만 제거
+  //                               const cleaned = normalized.replace(/[^a-zA-Z']/g, '');
+
+  //                               // 해당 단어를 영문자만 소문자로 바꾸고 불용어 아니면 true, 불용어면 false
+  //                               // map이 모든 단어 순회하면서 isHoverable 여러 번 찍힘
+  //                               const isHoverable = cleaned && !stopWords.includes(cleaned.toLowerCase());
+  //                               console.log('호버1:', isHoverable);
+
+  //                               return (
+  //                                 <span
+  //                                 key={index}
+  //                                 // 클릭 시 불용어 아니면 팝업 고정
+  //                                 onClick={(e) => isHoverable && togglePin(e, cleaned)}>
+  //                                   {/* 원본 단어 그대로 표시 + 공백 추가 */}
+  //                                   {word}{' '}
+  //                                 </span>
+  //                               );
+  //                             })}
 
   // 번역 API 호출
   async function fetchTranslation(word) {
@@ -198,7 +222,7 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
 
 
   // 단어 클릭 시 사전 팝업 열기
-  const togglePin = async (e, word) => {
+  const togglePin = async (e, word, wordFilter) => {
     // 다른 클릭 이벤트 막기
     e.stopPropagation();
 
@@ -244,6 +268,7 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
 
     // 이미 조회한 단어면 캐시에서 가져오기
     if (cache[word]) {
+      console.log('캐시:', cache[word]);
       setDictionaryData(cache[word]);
       setIsPinned(true);
       return;
@@ -254,11 +279,11 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
       const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
       console.log('사전api');
       
-      // 에러날 경우 팝업 닫고 종료
+      // 에러날 경우 기존 팝업 유지
       if (!response.ok) {
-        setIsPinned(false);
-        setDictionaryData(null);
-        setClickedSubtitle(null);
+        // setIsPinned(false);
+        // setDictionaryData(null);
+        // setClickedSubtitle(null);
         return;
       }
 
@@ -266,8 +291,8 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
 
       // API 응답이 있고, 데이터가 있으면 실행
       if (data && data[0]) {
-        // 해당 단어의 첫 번째 품사에 대한 정보만 가져오기
-        const meaning = data[0].meanings[0];
+        // 자막과 일치하는 품사에 대한 정보만 가져오기 (구동사 혹은 일치하는게 없으면 해당 단어의 첫 번째 품사에 대한 정보만 가져오기)
+        const meaning = data[0].meanings.find(m => m.partOfSpeech === wordFilter) || data[0].meanings[0];
 
         // 품사 없으면 팝업 닫고 종료
         if (!meaning?.partOfSpeech) {
@@ -351,6 +376,7 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
   const closePopup = () => {
     setIsPinned(false);
     setDictionaryData(null);
+    setClickedSubtitle(null);
   };
 
 
@@ -398,6 +424,57 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
     noun: '명사',
     adjective: '형용사',
     adverb: '부사'
+  };
+
+
+  // 단어의 품사 구분 및 일부 단어 필터링
+  const getWordFilter = (sentence, word) => {
+    // 원본 자막 넣기
+    const doc = nlp(sentence);
+    // 해당 단어를 자막에서 찾고 관련 태그들을 부여
+    const match = doc.match(word);
+    console.log(match);
+
+    // 구동사 체크
+    const phrasalVerb = doc.match('#PhrasalVerb').text();
+    if (phrasalVerb && phrasalVerb.includes(word)) {
+      // 구동사 전체 반환
+      return phrasalVerb;
+    }
+
+    // 제외 필터링 먼저 체크
+    // 이름 제외
+    if (match.has('#Person')) return false;
+    // 장소 제외
+    if (match.has('#Place')) return false;
+    // 회사명 제외
+    if (match.has('#Organization')) return false;
+    // 고유 명사 제외
+    // if (match.has('#ProperNoun')) return false;
+    // 대명사 제외
+    if (match.has('#Pronoun')) return false;
+    // 전치사 제외
+    if (match.has('#Preposition')) return false;
+    // 접속사 제외
+    if (match.has('#Conjunction')) return false;
+    // 관사 제외
+    if (match.has('#Determiner')) return false;
+    // 의문사 제외
+    if (match.has('#QuestionWord')) return false;
+    // 감탄사 제외
+    if (match.has('#Interjection')) return false;
+
+
+    // 가장 처음 품사 가져오기
+    const tags = match.json()[0]?.terms?.[0]?.tags;
+    console.log(word, '→', tags ? [...tags] : 'no tags');
+      if (tags && tags.length > 0) {
+        const firstTag = [...tags][0];  // Set → Array
+        return firstTag.toLowerCase();  // 'Verb' → 'verb'
+      }
+
+    // 품사를 모르면 null
+    return null;
   };
 
 
@@ -1013,17 +1090,17 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
                                 const normalized = word.replace(/[`''ʼ]/g, "'");
                                 // 특수문자만 제거
                                 const cleaned = normalized.replace(/[^a-zA-Z']/g, '');
+                                // 단어의 품사 구분 및 일부 단어 필터링
+                                const wordFilter = getWordFilter(currentSubtitle.text, cleaned);
 
-                                // 해당 단어를 영문자만 소문자로 바꾸고 불용어 아니면 true, 불용어면 false
-                                // map이 모든 단어 순회하면서 isHoverable 여러 번 찍힘
-                                const isHoverable = cleaned && !stopWords.includes(cleaned.toLowerCase());
-                                console.log('호버1:', isHoverable);
+                                // 구동사는 있으면 클릭 시 구동사로 보이기
+                                const searchWord = wordFilter?.type === 'phrasal' ? wordFilter.phrase : cleaned;
 
                                 return (
                                   <span
-                                  key={index}
-                                  // 클릭 시 불용어 아니면 팝업 고정
-                                  onClick={(e) => isHoverable && togglePin(e, cleaned)}>
+                                    key={index}
+                                    // 클릭 시 필터링이 아니면 팝업 고정
+                                    onClick={(e) => wordFilter && togglePin(e, searchWord, wordFilter)}>
                                     {/* 원본 단어 그대로 표시 + 공백 추가 */}
                                     {word}{' '}
                                   </span>
