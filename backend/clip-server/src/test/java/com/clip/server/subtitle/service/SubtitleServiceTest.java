@@ -3,6 +3,7 @@ package com.clip.server.subtitle.service;
 import com.clip.server.common.exception.BusinessException;
 import com.clip.server.progress.entity.UserVideoProgress;
 import com.clip.server.progress.repository.UserVideoProgressRepository;
+import com.clip.server.quiz.service.KeywordExtractionService;
 import com.clip.server.subtitle.dto.request.SubtitleRequest;
 import com.clip.server.subtitle.dto.response.SubtitleListResponse;
 import com.clip.server.subtitle.dto.response.SubtitleResponse;
@@ -11,6 +12,8 @@ import com.clip.server.subtitle.repository.SubtitleRepository;
 import com.clip.server.user.entity.User;
 import com.clip.server.user.repository.UserRepository;
 import com.clip.server.video.entity.Video;
+import com.clip.server.video.entity.VideoKeyWord;
+import com.clip.server.video.repository.VideoKeyWordRepository;
 import com.clip.server.video.repository.VideoRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -43,6 +46,11 @@ public class SubtitleServiceTest {
     private SubtitleRepository subtitleRepository;
     @Mock
     private UserVideoProgressRepository userVideoProgressRepository;
+    @Mock
+    private VideoKeyWordRepository videoKeywordRepository;
+    @Mock
+    private KeywordExtractionService extractionService;
+
 
     @InjectMocks
     private SubtitleService subtitleService;
@@ -53,6 +61,10 @@ public class SubtitleServiceTest {
     private Video video;
     private SubtitleRequest request;
     private UserVideoProgress progress;
+
+    public SubtitleServiceTest(VideoKeyWordRepository videoKeywordRepository) {
+        this.videoKeywordRepository = videoKeywordRepository;
+    }
 
     @BeforeEach
     void setUp() {
@@ -250,4 +262,67 @@ public class SubtitleServiceTest {
         // then
         assertThat(progress.getLearnedTime()).isEqualTo(100.0); // 10.0초 지점이라 합산 안됨
     }
+
+//    @Test
+//    @DisplayName("자막 저장 시 핵심 키워드를 추출하고 VideoKeyword 테이블에 저장한다")
+//    void saveSubtitle_ExtractAndSaveKeywords() {
+//        // given
+//        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+//        given(videoRepository.findById(videoId)).willReturn(Optional.of(video));
+//        given(userVideoProgressRepository.findByUserAndVideo(any(), any())).willReturn(Optional.of(progress));
+//        given(subtitleRepository.findByVideoAndStartTimeAndText(any(), any(), any())).willReturn(Optional.empty());
+//
+//        Subtitle savedSubtitle = Subtitle.builder()
+//                .video(video)
+//                .text(request.getText())
+//                .translation(request.getTranslation())
+//                .startTime(request.getStartTime())
+//                .endTime(request.getEndTime())
+//                .build();
+//        given(subtitleRepository.save(any(Subtitle.class))).willReturn(savedSubtitle);
+//
+//        // OpenNLP 키워드 추출 Mock 결과 설정
+//        List<String> mockKeywords = List.of("quick", "brown", "fox");
+//        given(extractionService.extractKeywords(savedSubtitle.getText())).willReturn(mockKeywords);
+//
+//        // when
+//        subtitleService.saveSubtitle(userId, videoId, request);
+//
+//        // then
+//        // 1. extractionService가 자막 텍스트로 호출되었는지 확인
+//        verify(extractionService, times(1)).extractKeywords(savedSubtitle.getText());
+//
+//        // 2. videoKeywordRepository.saveAll이 호출되었는지 확인
+//        // 추출된 단어 개수(3개)만큼의 리스트가 저장되어야 함
+//        verify(videoKeywordRepository, times(1)).saveAll(argThat(list -> {
+//            List<VideoKeyWord> keywords = (List<VideoKeyWord>) list;
+//            return keywords.size() == 3 &&
+//                    keywords.get(0).getWord().equals("quick") &&
+//                    keywords.get(0).getSentence().equals("The quick brown fox");
+//        }));
+//    }
+//
+//    @Test
+//    @DisplayName("중복된 자막인 경우 키워드 추출 및 저장을 수행하지 않는다")
+//    void saveSubtitle_Duplicate_NoKeywordExtraction() {
+//        // given
+//        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+//        given(videoRepository.findById(videoId)).willReturn(Optional.of(video));
+//
+//        Subtitle existingSubtitle = Subtitle.builder()
+//                .video(video)
+//                .text("이미 있는 자막")
+//                .startTime(request.getStartTime())
+//                .build();
+//        given(subtitleRepository.findByVideoAndStartTimeAndText(any(), any(), any())).willReturn(Optional.of(existingSubtitle));
+//        given(userVideoProgressRepository.findByUserAndVideo(any(), any())).willReturn(Optional.of(progress));
+//
+//        // when
+//        subtitleService.saveSubtitle(userId, videoId, request);
+//
+//        // then
+//        // 중복된 경우 로직이 조기 종료되므로 추출/저장 서비스가 호출되면 안 됨
+//        verify(extractionService, never()).extractKeywords(anyString());
+//        verify(videoKeywordRepository, never()).saveAll(any());
+//    }
 }
