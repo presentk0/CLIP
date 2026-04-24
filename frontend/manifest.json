@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "CLIP",
+  "version": "1.0.0",
+  "description": "유튜브 영어 학습 도우미",
+  "action": {
+    "default_title": "CLIP 열기"
+  },
+  "background": {
+    "service_worker": "src/background.js",
+    "type": "module"
+  },
+  "permissions":[
+    "sidePanel",
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://api-free.deepl.com/*"
+  ],
+  "content_scripts":[
+    {
+      "matches": ["*://*.youtube.com/*"],
+      "js":["src/content.jsx"]
+    }
+  ]
+}
