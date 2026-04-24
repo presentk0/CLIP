@@ -1,5 +1,6 @@
 package com.clip.server.quiz.entity;
 
+import com.clip.server.word.entity.WordType;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -13,7 +14,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 @Table(name = "quiz_session_word")
 @EntityListeners(AuditingEntityListener.class)
 public class QuizSessionWord {
-
+    // 해당 세션에서 퀴즈 제작을 위한 단어 목록을 미리 뽑아 놓은 클래스
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -24,16 +25,27 @@ public class QuizSessionWord {
 
     @Column(nullable = false)
     private String word;
+
     @Column(nullable = false)
     private String sentence;
+
     @Column(nullable = false, length = 200)
     private String translation;
 
+    @Column(nullable = false, length = 20)
+    private WordType wordType; // 단어 타입: 수집, 호버, 자막 필터링 단어
+
+    @Column(nullable = false)
+    private String timestamp; // 단어 발생 시점
+
+
     @Builder
-    public QuizSessionWord(QuizSession quizSession, String word, String sentence, String translation) {
+    public QuizSessionWord(QuizSession quizSession, String word, String sentence, String translation, WordType wordType, String timestamp) {
         this.quizSession = quizSession;
         this.word = word;
         this.sentence = sentence;
         this.translation = translation;
+        this.wordType = wordType;
+        this.timestamp = timestamp;
     }
 }
