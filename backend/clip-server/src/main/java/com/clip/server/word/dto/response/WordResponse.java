@@ -12,7 +12,9 @@ public class WordResponse {
     private Long id;
     private WordType wordType;
     private String word;
+    private String meaning;
     private String timestamp;
+    private String sentence;
     private String translation;
     private String videoId;
     private String videoTitle;

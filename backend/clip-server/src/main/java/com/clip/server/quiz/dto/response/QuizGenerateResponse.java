@@ -7,16 +7,18 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class QuizStartResponse {
+public class QuizGenerateResponse {
 
     private Long sessionId; // 세션 Id
     private String videoId; // 영상 Id
     private SessionType sessionType; // 퀴즈 타입(일반, 복습)
     private int totalQuizCount; // 퀴즈 개수
-    private LocalDateTime startAt; // 퀴즈 시작 시간
+    List <QuizDetailResponse> quizzes; // 생성된 퀴즈들
+
 }

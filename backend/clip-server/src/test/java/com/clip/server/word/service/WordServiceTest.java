@@ -52,7 +52,7 @@ public class WordServiceTest {
     @BeforeEach
     void setUp() {
         // COLLECT 타입으로 저장 요청하는 기본 DTO
-        request = new CollectedWordRequest("v1", "title1", "apple", "I eat an apple", "0:01", "사과", WordType.COLLECT);
+        request = new CollectedWordRequest("v1", "title1", "apple", "사과", "I eat an apple", "0:01", "나는 사과를 먹는다.", WordType.COLLECT);
 
         fakeUser = User.builder().build();
         ReflectionTestUtils.setField(fakeUser, "id", TEST_USER_ID);

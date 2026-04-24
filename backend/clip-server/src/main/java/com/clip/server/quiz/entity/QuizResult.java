@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "quiz_result")
 public class QuizResult {
-
+    // 퀴즈 문제가 저장되는 클래스
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -51,7 +51,7 @@ public class QuizResult {
     @Column(columnDefinition = "TEXT")
     private String explanation; // AI가 만든 해설
 
-    private String videoTimestamp;
+    private String videoTimestamp; //다시 듣기용 영상 다임 스탬프
 
     @Builder
     public QuizResult(QuizSession quizSession, User user, String word, QuizType quizType,
