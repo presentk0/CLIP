@@ -45,11 +45,11 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
 
       - name: ZIP deployment package
-        run: zip -r ../../clip-deploy.zip .
+        run: zip -r clip-deploy.zip .
         shell: bash
 
       - name: Upload to S3
-        run: aws s3 cp --region ${{ secrets.AWS_REGION }} ../ s3://${{ secrets.S3_DEPLOY_BUCKET_NAME }}/clip-deploy.zip
+        run: aws s3 cp --region ${{ secrets.AWS_REGION }} clip-deploy.zip s3://${{ secrets.S3_DEPLOY_BUCKET_NAME }}/clip-deploy.zip
 
       - name: CodeDeploy
         run: |
