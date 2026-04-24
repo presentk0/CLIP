@@ -11,8 +11,8 @@ permissions:
   contents: read
 
 env:
-  S3_BUCKET_NAME: clip-deploy-bucket
-  CODE_DEPLOY_APP_NAME: CLIP-App
+  S3_BUCKET_NAME: clip-deploy-bucket-813003568690-ap-northeast-2-an
+  CODE_DEPLOY_APP_NAME: CLIP-CodeDeploy-App
   CODE_DEPLOY_GROUP_NAME: CLIP-MVP-Group
 
 jobs:
