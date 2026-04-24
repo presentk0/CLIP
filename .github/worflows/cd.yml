@@ -1,0 +1,60 @@
+name: Java CD with CodeDeploy
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  S3_BUCKET_NAME: clip-deploy-bucket
+  CODE_DEPLOY_APP_NAME: CLIP-App
+  CODE_DEPLOY_GROUP_NAME: CLIP-MVP-Group
+
+jobs:
+  deploy:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-22.04
+    defaults:
+      run:
+        working-directory: ./backend/clip-server
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build with Gradle
+        run: ./gradlew clean build -x test
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: ZIP deployment package
+        run: zip -r ../../clip-deploy.zip .
+        shell: bash
+
+      - name: Upload to S3
+        run: aws s3 cp --region ${{ secrets.AWS_REGION }} ../ s3://${{ secrets.S3_DEPLOY_BUCKET_NAME }}/clip-deploy.zip
+
+      - name: CodeDeploy
+        run: |
+          aws deploy create-deployment \
+          --application-name $CODE_DEPLOY_APP_NAME \
+          --deployment-config-name CodeDeployDefault.AllAtOnce \
+          --deployment-group-name $CODE_DEPLOY_GROUP_NAME \
+          --s3-location bucket=${{ secrets.S3_DEPLOY_BUCKET_NAME }},bundleType=zip,key=deploy.zip
