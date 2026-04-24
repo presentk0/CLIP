@@ -51,8 +51,6 @@ Thumbs.db
 .env.production.local
 
 .env
-application.yml
-application-*.yml
 
 # Log files
 /logs/

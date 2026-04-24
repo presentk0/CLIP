@@ -36,11 +36,11 @@ public class QuizSessionWord {
     private WordType wordType; // 단어 타입: 수집, 호버, 자막 필터링 단어
 
     @Column(nullable = false)
-    private String timestamp; // 단어 발생 시점
+    private Double timestamp; // 단어 발생 시점
 
 
     @Builder
-    public QuizSessionWord(QuizSession quizSession, String word, String sentence, String translation, WordType wordType, String timestamp) {
+    public QuizSessionWord(QuizSession quizSession, String word, String sentence, String translation, WordType wordType, Double timestamp) {
         this.quizSession = quizSession;
         this.word = word;
         this.sentence = sentence;
