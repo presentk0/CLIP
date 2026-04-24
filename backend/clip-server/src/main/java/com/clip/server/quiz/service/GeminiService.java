@@ -126,6 +126,37 @@ public class GeminiService {
         }
     }
 
+    public List<Map<String, String>> recommendImportantWords(String subtitles, int count) {
+        String prompt = String.format("""
+                당신은 토익 850점 수준의 전문 강사입니다. 
+                아래 제공된 영상 자막에서 학습자가 공부하기 좋은 중요 단어 %d개를 선정하세요.
+                
+                [조건]
+                1. 비즈니스 환경이나 토익 시험에 자주 나오는 단어 위주로 선정하세요.
+                2. 각 단어의 정확한 사전적 의미(뜻)를 한국어로 적으세요.
+                
+                [자막 내용]
+                %s
+                
+                [응답 형식]
+                반드시 아래 형식을 지킨 JSON 배열만 반환하세요. (마크다운 기호 금지)
+                [
+                  {"word": "implement", "meaning": "구현하다, 실행하다"},
+                  ...
+                ]
+                """, count, subtitles);
+
+        // callGemini 메서드를 통해 AI 응답을 가져옵니다.
+        String jsonResponse = callGemini(prompt);
+
+        try {
+            return objectMapper.readValue(jsonResponse, new TypeReference<List<Map<String, String>>>() {});
+        } catch (JsonProcessingException e) {
+            log.error("AI 단어 추천 JSON 파싱 실패: {}", jsonResponse);
+            return List.of(); // 실패 시 빈 리스트 반환
+        }
+    }
+
     /**
      * 프롬프트를 받아 Gemini API를 호출하고 결과를 객체로 변환하는 공통 로직입니다.
      */
