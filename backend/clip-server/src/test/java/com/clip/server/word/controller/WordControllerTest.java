@@ -46,7 +46,7 @@ public class WordControllerTest {
     @DisplayName("단어 수집 요청 시 성공하면 201 Created를 반환한다")
     void collectWord_success() throws Exception {
         // 1. Given
-        CollectedWordRequest request = new CollectedWordRequest("v1", "Title", "apple", "I eat an apple", "0:01", "사과", WordType.COLLECT);
+        CollectedWordRequest request = new CollectedWordRequest("v1", "Title", "apple", "사과", "I eat an apple", "0:01", "나는 사과를 먹는다.", WordType.COLLECT);
         CollectedWordResponse mockResponse = CollectedWordResponse.builder()
                 .wordId(1L)
                 .collectedAt(LocalDateTime.now())
@@ -72,9 +72,7 @@ public class WordControllerTest {
     @DisplayName("필수값 누락시 400 Bad Request를 반환한다.")
     void collectWord_fail_validation() throws Exception {
         // Given - word가 빈 값인 경우
-        CollectedWordRequest request = new CollectedWordRequest(
-                "v1", "Title", "", "I eat an apple", "0:01", "사과", WordType.COLLECT
-        );
+        CollectedWordRequest request = new CollectedWordRequest("v1", "Title", "", "사과", "I eat an apple", "0:01", "나는 사과를 먹는다.", WordType.COLLECT);
 
         // When & Then
         mockMvc.perform(post("/api/words/collect")
@@ -93,7 +91,8 @@ public class WordControllerTest {
                 .word("apple")
                 .collectedAt(LocalDateTime.now())
                 .timestamp("1:20")
-                .translation("사과")
+                .sentence("I'm eat an apple")
+                .translation("나는 사과를 먹는다.")
                 .videoTitle("title1")
                 .build();
 

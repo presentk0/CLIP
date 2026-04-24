@@ -28,12 +28,16 @@ public class CollectedWord {
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "video_id", nullable = false, columnDefinition = "VARCHAR(20)")
+    @JoinColumn(name = "video_id", nullable = false)
     private Video video;
 
     // 사용자가 수집한 단어
     @Column(nullable = false, length = 100)
     private String word;
+
+    // 수집한 단어 뜻
+    @Column(nullable = false, length = 100)
+    private String meaning;
 
     // 단어 수집시 해당 단어가 포함된 예문
     @Column(nullable = false)
@@ -46,7 +50,7 @@ public class CollectedWord {
     @Column(nullable = false, length = 10)
     private WordType wordType; // 호버 단어 or 수집 단어 여부 판별
 
-    // 자막 번역
+    // 자막(예문) 번역
     @Column(nullable = false, length = 200)
     private String translation;
 
@@ -56,13 +60,14 @@ public class CollectedWord {
     private LocalDateTime collectedAt;
 
     @Builder
-    public CollectedWord(User user, Video video, String word, String sentence, String timestamp, String translation, WordType wordType) {
+    public CollectedWord(User user, Video video, String word, String sentence, String timestamp, String translation, String meaning, WordType wordType) {
         this.user = user;
         this.video = video;
         this.word = word;
         this.sentence = sentence;
         this.timestamp = timestamp;
         this.translation = translation;
+        this.meaning = meaning;
         this.wordType = wordType;
     }
 

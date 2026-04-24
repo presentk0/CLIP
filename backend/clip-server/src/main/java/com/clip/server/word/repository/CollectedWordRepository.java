@@ -19,4 +19,5 @@ public interface CollectedWordRepository extends JpaRepository<CollectedWord, Lo
     Page<CollectedWord> findAllByUserIdAndVideo_VideoIdAndWordType(Long userId, String videoId, WordType type, Pageable pageable);
     Page<CollectedWord> findAllByUserIdAndWordType(Long userId, WordType type, Pageable pageable);
     Optional<CollectedWord> findByUserIdAndVideo_VideoIdAndWord(Long userId, String videoId, String word);
+    List<CollectedWord> findAllByUserAndVideo(User user, Video video);
 }
