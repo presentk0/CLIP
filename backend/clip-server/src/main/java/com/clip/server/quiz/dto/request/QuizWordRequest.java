@@ -1,6 +1,5 @@
 package com.clip.server.quiz.dto.request;
 
-import com.clip.server.quiz.entity.SessionType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -10,9 +9,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class QuizStartRequest {
+public class QuizWordRequest {
 
-    private Long userId;
-    private String videoId;
-    private SessionType sessionType;
+    private String word;
+    private String meaning;
+    private String videoTimeStamp;
 }

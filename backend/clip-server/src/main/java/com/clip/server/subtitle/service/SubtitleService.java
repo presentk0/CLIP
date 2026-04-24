@@ -3,6 +3,7 @@ package com.clip.server.subtitle.service;
 import com.clip.server.common.exception.BusinessException;
 import com.clip.server.progress.entity.UserVideoProgress;
 import com.clip.server.progress.repository.UserVideoProgressRepository;
+import com.clip.server.quiz.service.KeywordExtractionService;
 import com.clip.server.subtitle.dto.request.SubtitleRequest;
 import com.clip.server.subtitle.dto.response.SubtitleDetailResponse;
 import com.clip.server.subtitle.dto.response.SubtitleListResponse;
@@ -12,18 +13,22 @@ import com.clip.server.subtitle.repository.SubtitleRepository;
 import com.clip.server.user.entity.User;
 import com.clip.server.user.repository.UserRepository;
 import com.clip.server.video.entity.Video;
+import com.clip.server.video.entity.VideoKeyWord;
+import com.clip.server.video.repository.VideoKeyWordRepository;
 import com.clip.server.video.repository.VideoRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static com.clip.server.common.exception.ErrorCode.USER_NOT_FOUND;
 import static com.clip.server.common.exception.ErrorCode.VIDEO_NOT_FOUND;
 
-
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -35,6 +40,8 @@ public class SubtitleService {
     private final UserRepository userRepository;
     private final VideoRepository videoRepository;
     private final UserVideoProgressRepository userVideoProgressRepository;
+    private final VideoKeyWordRepository videoKeyWordRepository;
+    private final KeywordExtractionService extractionService;
 
     @Transactional
     public SubtitleResponse saveSubtitle(Long userId, String videoId, SubtitleRequest subtitleRequest) {
@@ -86,9 +93,25 @@ public class SubtitleService {
                 .startTime(subtitleRequest.getStartTime())
                 .endTime(subtitleRequest.getEndTime())
                 .build();
-        subtitleRepository.save(subtitle);
+        Subtitle saved = subtitleRepository.save(subtitle);
 
-        return mapToSubtitleResponse(subtitle, isQuizGenerate, progress.getLastQuizzedSection());
+        // 영상 자막 불용어 필터링 후 키워드 추출
+        List<String> extraKeyWords = extractionService.extractKeywords(saved.getText());
+
+        // videoKeyWord 객체 생성 후 키워드 값 입력
+        List<VideoKeyWord> videoKeyWords = extraKeyWords.stream()
+                .map(ek-> VideoKeyWord.builder()
+                        .word(ek)
+                        .video(video)
+                        .timestamp(saved.getStartTime())
+                        .sentence(saved.getText())
+                        .translation(saved.getTranslation())
+                        .build())
+                .collect(Collectors.toList());
+        // 자막 추출 키워드 단어 저장
+        videoKeyWordRepository.saveAll(videoKeyWords);
+
+        return mapToSubtitleResponse(saved, isQuizGenerate, progress.getLastQuizzedSection());
     }
 
     private boolean checkoutQuizTrigger(UserVideoProgress progress, int totalDuration) {
@@ -119,10 +142,9 @@ public class SubtitleService {
         int minutes = totalDuration/60;
 
         if(minutes<1) return 0; // 퀴즈 섹션 0개
-        if(minutes<5) return 1; // 1분 이상 5분 미만 영상은 섹션 1개
-        if(minutes<10) return 2; // 5분 이상 10분 미만 영상은 섹션 2개
-        if(minutes<20) return 3; // 10분 이상 20분 미만 영상은 섹션 3개
-        return 4; // 20분 이상 무조건 4개 섹션
+        if(minutes<10) return 1; // 1분 이상 10분 미만 영상은 섹션 1개
+        if(minutes<20) return 2; // 10분 이상 20분미만 영상은 섹션 2개
+        return 3; // 20분 이상 무조건 3개 섹션
     }
 
     public SubtitleListResponse getSubtitles(String videoId, Long userId) {

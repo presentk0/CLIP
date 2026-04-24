@@ -56,7 +56,8 @@ public class SubtitleControllerTest {
                 .startTime(6.00)
                 .endTime(170.00)
                 .isQuizGenerate(true)
-                .lastQuizSection(1)
+                .section(1)
+                .totalSections(3)
                 .build();
 
         given(subtitleService.saveSubtitle(eq(1L), anyString(), any(SubtitleRequest.class)))

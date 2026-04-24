@@ -53,3 +53,7 @@ Thumbs.db
 .env
 application.yml
 application-*.yml
+
+# Log files
+/logs/
+*.log
