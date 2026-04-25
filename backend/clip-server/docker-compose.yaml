@@ -21,6 +21,8 @@ services:
       - SPRING_DATASOURCE_USERNAME=${DB_USERNAME}
       - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD}
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - GEMINI_API_URL=${GEMINI_API_URL}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
     volumes:
       - /home/ubuntu/app/log:/home/ubuntu/app/log
     restart: on-failure
