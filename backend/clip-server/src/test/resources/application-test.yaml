@@ -1,18 +1,17 @@
 spring:
+  config:
+    import: "" # AWS Secrets Manager 차단
+
   datasource:
     url: jdbc:tc:mysql:8.0:///clip_db
     driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+
   jpa:
-    database: mysql
-    database-platform: org.hibernate.dialect.MySQLDialect
     hibernate:
       ddl-auto: create-drop
     show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
-        dialect: org.hibernate.dialect.MySQLDialect
 
+# spring 밖에 두어야 하는 설정들 (Gemini 등)
 gemini:
   api:
     url: https://test-url.com
