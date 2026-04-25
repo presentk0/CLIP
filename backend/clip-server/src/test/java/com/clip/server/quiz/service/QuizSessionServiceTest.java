@@ -1,5 +1,6 @@
 package com.clip.server.quiz.service;
 
+import com.clip.server.quiz.dto.request.QuizGenerateRequest;
 import com.clip.server.quiz.dto.request.QuizWordRequest;
 import com.clip.server.quiz.dto.response.QuizDetailResponse;
 import com.clip.server.quiz.dto.response.QuizGenerateResponse;
@@ -87,6 +88,7 @@ class QuizSessionServiceTest {
     @DisplayName("섹션 퀴즈 생성 - 유저가 수집한 단어가 있는 경우 빈칸 퀴즈를 포함한다")
     void generateSectionQuiz_WithUserWords() {
         // given
+        QuizGenerateRequest request = new QuizGenerateRequest("v123", 1, SessionType.NORMAL);
         given(userRepository.findById(anyLong())).willReturn(Optional.of(user));
         given(videoRepository.findById(anyString())).willReturn(Optional.of(video));
         given(quizSessionRepository.findByUserAndVideo(any(), any())).willReturn(Optional.of(session));
@@ -103,7 +105,7 @@ class QuizSessionServiceTest {
         given(quizService.createOXQuiz(anyLong(), anyLong(), any())).willReturn(mock(QuizDetailResponse.class));
 
         // when
-        QuizGenerateResponse response = quizSessionService.generateSectionQuiz(1L, "v123", 1, SessionType.NORMAL);
+        QuizGenerateResponse response = quizSessionService.generateSectionQuiz(1L, request);
 
         // then
         assertThat(response.getSessionId()).isEqualTo(100L);
@@ -115,6 +117,7 @@ class QuizSessionServiceTest {
     @DisplayName("최종 매칭 퀴즈 생성 - 단어가 5개 미만이면 AI 추천 단어를 보충한다")
     void generateMatchingQuiz_WithAIRecommendation() {
         // given
+        QuizGenerateRequest request = new QuizGenerateRequest("v123", 1, SessionType.NORMAL);
         given(userRepository.findById(anyLong())).willReturn(Optional.of(user));
         given(videoRepository.findById(anyString())).willReturn(Optional.of(video));
         given(quizSessionRepository.findByUserAndVideo(any(), any())).willReturn(Optional.of(session));
@@ -137,7 +140,7 @@ class QuizSessionServiceTest {
         given(quizService.createMatchingQuiz(anyLong(), anyLong(), anyList())).willReturn(List.of());
 
         // when
-        quizSessionService.generateMatchingQuiz(1L, "v123", SessionType.NORMAL);
+        quizSessionService.generateMatchingQuiz(1L, request);
 
         // then
         // 최종적으로 5개의 단어가 QuizService로 전달되었는지 확인
@@ -149,6 +152,7 @@ class QuizSessionServiceTest {
     @DisplayName("새로운 세션 생성 시 단어 스냅샷(동기화)이 수행된다")
     void getOrCreateSession_SyncWords() {
         // given
+        QuizGenerateRequest request = new QuizGenerateRequest("v123", 1, SessionType.NORMAL);
         given(userRepository.findById(anyLong())).willReturn(Optional.of(user));
         given(videoRepository.findById(anyString())).willReturn(Optional.of(video));
 
@@ -163,7 +167,7 @@ class QuizSessionServiceTest {
         ));
 
         // when
-        quizSessionService.generateSectionQuiz(1L, "v123", 1, SessionType.NORMAL);
+        quizSessionService.generateSectionQuiz(1L, request);
 
         // then
         // 세션이 저장되고 단어 스냅샷이 실행되었는지 확인
@@ -175,6 +179,7 @@ class QuizSessionServiceTest {
     @DisplayName("매칭 퀴즈 생성 - 단어 순서가 섞여있어도 우선순위(COLLECT > POPUP > SYSTEM)대로 정렬된다")
     void generateMatchingQuiz_PrioritySorting() {
         // given
+        QuizGenerateRequest request = new QuizGenerateRequest("v123", 1, SessionType.NORMAL);
         given(userRepository.findById(1L)).willReturn(Optional.of(user));
         given(videoRepository.findById("v123")).willReturn(Optional.of(video));
         given(quizSessionRepository.findByUserAndVideo(any(), any())).willReturn(Optional.of(session));
@@ -191,7 +196,7 @@ class QuizSessionServiceTest {
         given(quizService.createMatchingQuiz(anyLong(), anyLong(), anyList())).willReturn(new ArrayList<>());
 
         // when
-        quizSessionService.generateMatchingQuiz(1L, "v123", SessionType.NORMAL);
+        quizSessionService.generateMatchingQuiz(1L, request);
 
         // then
         // QuizService로 전달되는 단어 리스트가 우선순위대로 정렬되었는지 검증 (COLLECT 가 0,1번 인덱스에 와야 함)
