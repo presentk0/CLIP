@@ -1,8 +1,10 @@
 spring:
   config:
     import: "aws-secretsmanager:MVP/spring-app/env"
+  jpa:
+    hibernate:
+      ddl-auto: update
 
-spring:
   cloud:
     aws:
       region:
