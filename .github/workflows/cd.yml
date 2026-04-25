@@ -45,7 +45,9 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
 
       - name: ZIP deployment package
-        run: zip -r clip-deploy.zip .
+        run: |
+          chmod +x scripts/*.sh
+          zip -r clip-deploy.zip .
         shell: bash
 
       - name: Upload to S3
