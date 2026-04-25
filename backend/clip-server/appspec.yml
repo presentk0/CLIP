@@ -10,11 +10,6 @@ permissions:
     pattern: "**"
     owner: ubuntu
     group: ubuntu
-  - object: /home/ubuntu/app/scripts
-    pattern: "*.sh"
-    owner: ubuntu
-    group: ubuntu
-    mode: 755
 
 hooks:
   # 배포 단계 중 'AfterInstall' 단계에서 실행
