@@ -1,0 +1,11 @@
+spring:
+  config:
+    import: "aws-secretsmanager:MVP/spring-app/env"
+
+spring:
+  cloud:
+    aws:
+      region:
+        static: ap-northeast-2
+      credentials:
+        instance-profile: true
