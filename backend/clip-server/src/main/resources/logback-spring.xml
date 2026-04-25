@@ -1,20 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
 
+    <!-- 로컬 환경: 상대 경로 사용 -->
     <springProfile name="local">
         <property name="LOG_PATH" value="./logs" />
     </springProfile>
 
+    <!-- 운영 환경: Docker Compose에서 마운트한 절대 경로 사용 -->
     <springProfile name="prod">
         <property name="LOG_PATH" value="/home/ubuntu/app/log" />
     </springProfile>
 
-    <property name="LOG_FILE_NAME" value="app" /> <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-    <encoder>
-        <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
-    </encoder>
-</appender>
+    <property name="LOG_FILE_NAME" value="app" />
 
+    <!-- 1. 콘솔 출력 설정 -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- 2. 파일 출력 및 롤링 설정 -->
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${LOG_PATH}/${LOG_FILE_NAME}.log</file>
 
@@ -30,6 +36,7 @@
         </encoder>
     </appender>
 
+    <!-- 로컬 실행 시: 콘솔과 파일 모두 출력 -->
     <springProfile name="local">
         <root level="INFO">
             <appender-ref ref="CONSOLE" />
@@ -37,10 +44,17 @@
         </root>
     </springProfile>
 
+    <!-- 운영 서버 실행 시: 콘솔과 파일 모두 출력  -->
     <springProfile name="prod">
         <root level="INFO">
+            <appender-ref ref="CONSOLE" />
             <appender-ref ref="FILE" />
         </root>
     </springProfile>
+
+    <!-- 보험용: 프로필 설정이 꼬였을 때 최소한 콘솔이라도 찍히게 설정 -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE" />
+    </root>
 
 </configuration>

@@ -89,13 +89,16 @@ public class QuizService {
     @Transactional
     public List<QuizDetailResponse> createMatchingQuiz(Long sessionId, Long userId, List<QuizWordRequest> quizWordRequests) {
 
-        // id를 통해 퀴즈 세션, 사용자 엔티티 조회(없는 경우 예외 발생)
         QuizSession quizSession = quizSessionRepository.findById(sessionId).orElseThrow(()-> new BusinessException(ErrorCode.SESSION_NOT_FOUND));
         User user = userRepository.findById(userId).orElseThrow(()-> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
-        // 단어별 타임스탬프 Map 관리
+        // 단어별 타임스탬프 Map 관리 (중복 단어 시 첫 번째 값 유지)
         Map<String, String> timestampMap = quizWordRequests.stream()
-                .collect(Collectors.toMap(QuizWordRequest::getWord, QuizWordRequest::getVideoTimeStamp));
+                .collect(Collectors.toMap(
+                        QuizWordRequest::getWord,
+                        QuizWordRequest::getVideoTimeStamp,
+                        (existing, replacement) -> existing  // 👈 이거 추가!
+                ));
 
         // Dto 리스트-> GeminiService가 처리할 수 있는 방식으로 변환
         List<Map<String, String>> wordList = quizWordRequests.stream()

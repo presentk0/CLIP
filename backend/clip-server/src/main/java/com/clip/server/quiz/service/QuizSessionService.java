@@ -2,6 +2,7 @@ package com.clip.server.quiz.service;
 
 import com.clip.server.common.exception.BusinessException;
 import com.clip.server.common.exception.ErrorCode;
+import com.clip.server.quiz.dto.request.QuizGenerateRequest;
 import com.clip.server.quiz.dto.request.QuizWordRequest;
 import com.clip.server.quiz.dto.response.QuizDetailResponse;
 import com.clip.server.quiz.dto.response.QuizGenerateResponse;
@@ -48,14 +49,14 @@ public class QuizSessionService {
      * 중간 섹션 퀴즈 생성 (OX, 빈칸)
      */
     @Transactional
-    public QuizGenerateResponse generateSectionQuiz(Long userId, String videoId, int sectionNumber, SessionType sessionType) {
+    public QuizGenerateResponse generateSectionQuiz(Long userId, QuizGenerateRequest request) {
 
         // User, Video 정보 확인
         User user = userRepository.findById(userId).orElseThrow(()-> new BusinessException(ErrorCode.USER_NOT_FOUND));
-        Video video = videoRepository.findById(videoId).orElseThrow(()-> new BusinessException(ErrorCode.VIDEO_NOT_FOUND));
+        Video video = videoRepository.findById(request.getVideoId()).orElseThrow(()-> new BusinessException(ErrorCode.VIDEO_NOT_FOUND));
 
         // 세션 정보 확인 및 생성
-        QuizSession quizSession = getOrCreateSession(user, video, sessionType);
+        QuizSession quizSession = getOrCreateSession(user, video, request.getSessionType());
 
         // 전체 학습 시간(보정값 적용)
         double calDuration = video.getDuration() * DENSITY_FACTOR;
@@ -66,8 +67,8 @@ public class QuizSessionService {
 
         // 섹션 시간 및 범위 계산
         double range = (double)calDuration/totalSecCount;
-        double start = range * (sectionNumber-1);
-        double end = range * sectionNumber;
+        double start = range * (request.getSectionNumber()-1);
+        double end = range * request.getSectionNumber();
 
        // 해당 구간 단어 조회 및 우선순위(1~3순위) 정렬
         List<QuizSessionWord> candidates = quizSessionWordRepository.findWordsBySection(quizSession.getId(), start, end);
@@ -96,7 +97,7 @@ public class QuizSessionService {
                     quizzes.add(quizService.createOXQuiz(quizSession.getId(), user.getId(), mapToRequest(candidates.get(i))));
                 }
             } else {
-                log.warn("섹션 {}에 사용할 단어가 없습니다.", sectionNumber);
+                log.warn("섹션 {}에 사용할 단어가 없습니다.", request.getSectionNumber());
             }
         }
 
@@ -107,13 +108,13 @@ public class QuizSessionService {
      * 최종 매칭 퀴즈 생성
      */
     @Transactional
-    public QuizGenerateResponse generateMatchingQuiz(Long userId, String videoId, SessionType sessionType) {
+    public QuizGenerateResponse generateMatchingQuiz(Long userId, QuizGenerateRequest request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
-        Video video = videoRepository.findById(videoId)
+        Video video = videoRepository.findById(request.getVideoId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.VIDEO_NOT_FOUND));
 
-        QuizSession quizSession = getOrCreateSession(user, video, sessionType);
+        QuizSession quizSession = getOrCreateSession(user, video, request.getSessionType());
 
         List<QuizSessionWord> allWords = quizSessionWordRepository.findAllByQuizSession(quizSession);
 
@@ -134,7 +135,17 @@ public class QuizSessionService {
             }
         }
 
-        List<QuizWordRequest> finalFive = finalCandidates.stream().limit(5).collect(Collectors.toList());
+        // 중복 단어 제거 후 5개 선택
+        List<QuizWordRequest> finalFive = finalCandidates.stream()
+                .collect(Collectors.toMap(
+                        QuizWordRequest::getWord,
+                        req -> req,
+                        (existing, replacement) -> existing
+                ))
+                .values()
+                .stream()
+                .limit(5)
+                .collect(Collectors.toList());
         List<QuizDetailResponse> quizzes = quizService.createMatchingQuiz(quizSession.getId(), user.getId(), finalFive);
 
         return mapToQuizStartResponse(quizSession, quizzes);
