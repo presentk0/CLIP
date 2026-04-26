@@ -21,6 +21,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -172,19 +173,20 @@ class QuizSessionServiceTest {
         // then
         // 세션이 저장되고 단어 스냅샷이 실행되었는지 확인
         verify(quizSessionRepository).save(any());
-        verify(sessionWordRepository).saveAll(anyList());
+        verify(  sessionWordRepository).saveAll(anyList());
     }
 
     @Test
     @DisplayName("매칭 퀴즈 생성 - 단어 순서가 섞여있어도 우선순위(COLLECT > POPUP > SYSTEM)대로 정렬된다")
     void generateMatchingQuiz_PrioritySorting() {
         // given
-        QuizGenerateRequest request = new QuizGenerateRequest("v123", 1, SessionType.NORMAL);
+        QuizGenerateRequest request = new QuizGenerateRequest("v123", 0, SessionType.NORMAL);
+
         given(userRepository.findById(1L)).willReturn(Optional.of(user));
         given(videoRepository.findById("v123")).willReturn(Optional.of(video));
         given(quizSessionRepository.findByUserAndVideo(any(), any())).willReturn(Optional.of(session));
 
-        // 일부러 뒤섞인 순서로 단어 리스트 준비
+        // 뒤섞인 데이터 준비
         List<QuizSessionWord> mixedWords = new ArrayList<>(List.of(
                 QuizSessionWord.builder().word("System1").wordType(WordType.SYSTEM).build(),
                 QuizSessionWord.builder().word("Collect1").wordType(WordType.COLLECT).build(),
@@ -199,12 +201,24 @@ class QuizSessionServiceTest {
         quizSessionService.generateMatchingQuiz(1L, request);
 
         // then
-        // QuizService로 전달되는 단어 리스트가 우선순위대로 정렬되었는지 검증 (COLLECT 가 0,1번 인덱스에 와야 함)
-        verify(quizService).createMatchingQuiz(eq(100L), eq(1L), argThat(list ->
-                list.get(0).getWord().startsWith("Collect") &&
-                        list.get(1).getWord().startsWith("Collect") &&
-                        list.get(2).getWord().startsWith("Popup") &&
-                        list.get(4).getWord().equals("System1")
-        ));
+        ArgumentCaptor<List<QuizWordRequest>> listCaptor = ArgumentCaptor.forClass(List.class);
+        verify(quizService).createMatchingQuiz(eq(100L), eq(1L), listCaptor.capture());
+
+        List<QuizWordRequest> capturedList = listCaptor.getValue();
+        List<String> words = capturedList.stream().map(QuizWordRequest::getWord).toList();
+
+        // 💡 디버깅을 위해 결과 리스트가 기대한 등급 순서인지 더 명확하게 검증
+        assertThat(words).hasSize(5);
+
+        // 1. COLLECT 등급 (우선순위 1) - 인덱스 0, 1
+        assertThat(words.get(0)).as("전체 결과: " + words).contains("Collect");
+        assertThat(words.get(1)).as("전체 결과: " + words).contains("Collect");
+
+        // 2. POPUP 등급 (우선순위 2) - 인덱스 2, 3
+        assertThat(words.get(2)).as("전체 결과: " + words).contains("Popup");
+        assertThat(words.get(3)).as("전체 결과: " + words).contains("Popup");
+
+        // 3. SYSTEM 등급 (우선순위 3) - 인덱스 4
+        assertThat(words.get(4)).as("전체 결과: " + words).isEqualTo("System1");
     }
 }

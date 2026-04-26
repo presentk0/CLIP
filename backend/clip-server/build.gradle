@@ -30,6 +30,10 @@ dependencies {
 	testCompileOnly 'org.projectlombok:lombok'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	testAnnotationProcessor 'org.projectlombok:lombok'
+	testImplementation "org.testcontainers:mysql"
+	testImplementation "org.testcontainers:junit-jupiter"
+
+	testRuntimeOnly 'com.h2database:h2'
 
 	// 도커로 DB를 띄워줄 핵심 라이브러리
 	testImplementation "org.testcontainers:junit-jupiter:1.19.0"

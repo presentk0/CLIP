@@ -1,18 +1,41 @@
 spring:
   config:
-    import: "" # AWS Secrets Manager 차단
+    import: ""
 
   datasource:
-    url: jdbc:tc:mysql:8.0:///clip_db
-    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+    url: jdbc:h2:mem:testdb;MODE=MySQL;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
 
   jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
       ddl-auto: create-drop
     show-sql: true
 
-# spring 밖에 두어야 하는 설정들 (Gemini 등)
+  cloud:
+    aws:
+      credentials:
+        access-key: test-key
+        secret-key: test-key
+      region:
+        static: ap-northeast-2
+      stack:
+        auto: false
+
 gemini:
   api:
-    url: https://test-url.com
-    key: test-key-12345
+    key: mock-gemini-key-12345
+    url: https://test-api.com
+
+jwt:
+  secret: vmxkdlaltmxjsmsepdlstksmsdlf rjsmsepdlstksmsdlf
+  expiration: 3600000
+
+aws:
+  access-key: mock
+  secret-key: mock
+  region: ap-northeast-2
+  s3:
+    bucket: test-bucket
