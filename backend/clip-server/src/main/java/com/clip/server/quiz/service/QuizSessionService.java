@@ -140,7 +140,8 @@ public class QuizSessionService {
                 .collect(Collectors.toMap(
                         QuizWordRequest::getWord,
                         req -> req,
-                        (existing, replacement) -> existing
+                        (existing, replacement) -> existing,
+                        LinkedHashMap::new
                 ))
                 .values()
                 .stream()
