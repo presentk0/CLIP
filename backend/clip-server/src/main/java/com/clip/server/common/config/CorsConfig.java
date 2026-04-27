@@ -10,14 +10,15 @@ public class CorsConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOrigins(
+                // allowedOrigins 대신 allowedOriginPatterns를 사용하세요!
+                .allowedOriginPatterns(
                         "chrome-extension://nodoegcapbckibocgdleinfoniaboejg",
                         "chrome-extension://mkmkdednenecdnanbmigooccjcmnjnab",
                         "http://clip-server.com",
                         "https://clip-server.com",
-                        "https://www.youtube.com/"
+                        "https://*.youtube.com"
                 )
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH")
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS") // OPTIONS 추가 권장
                 .allowedHeaders("*")
                 .allowCredentials(true);
     }
