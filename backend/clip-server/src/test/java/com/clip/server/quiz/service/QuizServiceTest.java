@@ -3,7 +3,7 @@ package com.clip.server.quiz.service;
 import com.clip.server.common.exception.BusinessException;
 import com.clip.server.common.exception.ErrorCode;
 import com.clip.server.quiz.dto.request.QuizWordRequest;
-import com.clip.server.quiz.dto.response.GeminiQuizData;
+import com.clip.server.quiz.dto.response.OpenAIQuizDataResponse;
 import com.clip.server.quiz.dto.response.QuizDetailResponse;
 import com.clip.server.quiz.entity.QuizResult;
 import com.clip.server.quiz.entity.QuizSession;
@@ -26,6 +26,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -37,7 +38,7 @@ class QuizServiceTest {
     private QuizService quizService;
 
     @Mock
-    private GeminiService geminiService;
+    private OpenAIService openAIService;
 
     @Mock
     private QuizResultRepository quizResultRepository;
@@ -49,7 +50,7 @@ class QuizServiceTest {
     private QuizSessionRepository quizSessionRepository;
 
     @Test
-    @DisplayName("OX 퀴즈 생성 및 저장 성공 테스트")
+    @DisplayName("OX 퀴즈 생성 및 저장 성공 테스트 - 예문과 해석이 포함되어야 한다")
     void createOXQuiz_Success() {
         // given
         Long sessionId = 1L;
@@ -59,10 +60,20 @@ class QuizServiceTest {
         User user = User.builder().build();
         QuizSession session = QuizSession.builder().build();
 
-        GeminiQuizData aiResponse = new GeminiQuizData("Consistent", QuizType.OX, "Consistent의 뜻은 '일관된'이다.", "O", "맞습니다.");
+        OpenAIQuizDataResponse aiResponse = OpenAIQuizDataResponse.builder()
+                .word("Consistent")
+                .quizType("OX")
+                .content("His actions are consistent with his words.")
+                .translation("그의 행동은 그의 말과 일관된다.")
+                .question("문장에 들어간 단어로 저게 맞을까?")
+                .answer("O")
+                .explanation("맞습니다. 일관된이라는 의미로 잘 쓰였어요.")
+                .build();
 
         QuizResult savedResult = QuizResult.builder()
                 .quizType(QuizType.OX)
+                .content(aiResponse.getContent())
+                .translation(aiResponse.getTranslation())
                 .question(aiResponse.getQuestion())
                 .videoTimestamp(request.getVideoTimeStamp())
                 .build();
@@ -70,8 +81,8 @@ class QuizServiceTest {
 
         given(quizSessionRepository.findById(sessionId)).willReturn(Optional.of(session));
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
-        given(geminiService.generateOXQuiz(any(), any())).willReturn(aiResponse);
-        given(quizResultRepository.save(any())).willReturn(savedResult);
+        given(openAIService.generateOXQuiz(anyString(), anyString())).willReturn(aiResponse);
+        given(quizResultRepository.save(any(QuizResult.class))).willReturn(savedResult);
 
         // when
         QuizDetailResponse response = quizService.createOXQuiz(sessionId, userId, request);
@@ -79,13 +90,15 @@ class QuizServiceTest {
         // then
         assertThat(response.getQuizId()).isEqualTo(100);
         assertThat(response.getQuizType()).isEqualTo(QuizType.OX);
+        assertThat(response.getContent()).isEqualTo("His actions are consistent with his words.");
+        assertThat(response.getTranslation()).isEqualTo("그의 행동은 그의 말과 일관된다.");
         assertThat(response.getVideoTimeStamp()).isEqualTo("01:23");
 
         verify(quizResultRepository).save(any(QuizResult.class));
     }
 
     @Test
-    @DisplayName("빈칸 채우기 퀴즈 생성 및 저장 성공 테스트")
+    @DisplayName("빈칸 채우기 퀴즈 생성 및 저장 성공 테스트 - 오답 리스트(options)가 포함되어야 한다")
     void createBlankQuiz_Success() {
         // given
         Long sessionId = 1L;
@@ -95,10 +108,21 @@ class QuizServiceTest {
         User user = User.builder().build();
         QuizSession session = QuizSession.builder().build();
 
-        GeminiQuizData aiResponse = new GeminiQuizData("Implement", QuizType.BLANK, "We need to ____ the new policy.", "Implement", "문맥상 '구현하다'가 적절합니다.");
+        List<String> options = List.of("Implement", "Ignore", "Increase", "Imagine");
+        OpenAIQuizDataResponse aiResponse = OpenAIQuizDataResponse.builder()
+                .word("Implement")
+                .quizType("BLANK")
+                .content("We need to [ ] the new policy.")
+                .translation("우리는 새로운 정책을 구현해야 한다.")
+                .question("빈칸에 들어갈 알맞은 단어는?")
+                .options(options)
+                .answer("Implement")
+                .explanation("구현하다라는 의미가 적절합니다.")
+                .build();
 
         QuizResult savedResult = QuizResult.builder()
                 .quizType(QuizType.BLANK)
+                .content(aiResponse.getContent())
                 .question(aiResponse.getQuestion())
                 .videoTimestamp(request.getVideoTimeStamp())
                 .build();
@@ -106,16 +130,17 @@ class QuizServiceTest {
 
         given(quizSessionRepository.findById(sessionId)).willReturn(Optional.of(session));
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
-        given(geminiService.generateBlankQuiz(any(), any())).willReturn(aiResponse);
-        given(quizResultRepository.save(any())).willReturn(savedResult);
+        given(openAIService.generateBlankQuiz(anyString(), anyString())).willReturn(aiResponse);
+        given(quizResultRepository.save(any(QuizResult.class))).willReturn(savedResult);
 
         // when
         QuizDetailResponse response = quizService.createBlankQuiz(sessionId, userId, request);
 
         // then
         assertThat(response.getQuizId()).isEqualTo(200);
-        assertThat(response.getQuizType()).isEqualTo(QuizType.BLANK);
-        assertThat(response.getQuestion()).contains("____");
+        assertThat(response.getOptions()).hasSize(4);
+        assertThat(response.getOptions()).contains("Implement");
+        assertThat(response.getContent()).contains("[ ]");
 
         verify(quizResultRepository).save(any(QuizResult.class));
     }
@@ -134,16 +159,15 @@ class QuizServiceTest {
         User user = User.builder().build();
         QuizSession session = QuizSession.builder().build();
 
-        List<GeminiQuizData> aiResponses = List.of(
-                new GeminiQuizData("Apple", QuizType.MATCHING, "Apple", "사과", "과일 이름"),
-                new GeminiQuizData("Banana", QuizType.MATCHING, "Banana", "바나나", "과일 이름")
+        List<OpenAIQuizDataResponse> aiResponses = List.of(
+                OpenAIQuizDataResponse.builder().word("Apple").quizType("MATCHING").question("Apple").answer("사과").build(),
+                OpenAIQuizDataResponse.builder().word("Banana").quizType("MATCHING").question("Banana").answer("바나나").build()
         );
 
         given(quizSessionRepository.findById(sessionId)).willReturn(Optional.of(session));
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
-        given(geminiService.generateMatchingQuiz(any())).willReturn(aiResponses);
+        given(openAIService.generateMatchingQuiz(any())).willReturn(aiResponses);
 
-        // save 호출 시마다 다른 ID를 가진 객체 반환 모사
         given(quizResultRepository.save(any()))
                 .willReturn(createQuizResult(301L, QuizType.MATCHING, "Apple", "00:10"))
                 .willReturn(createQuizResult(302L, QuizType.MATCHING, "Banana", "00:20"));
@@ -167,7 +191,6 @@ class QuizServiceTest {
                 .videoTimestamp(timestamp)
                 .build();
 
-        // Reflection을 통해 private final 또는 private 필드인 id에 값을 넣습니다.
         ReflectionTestUtils.setField(result, "id", id);
         return result;
     }
