@@ -22,10 +22,8 @@ public class SubtitleRequest {
     @NotBlank(message = "자막 내용은 필수입니다.")
     private String text; // 자막 내용
 
-    @NotBlank(message = "자막 번역 내용은 필수입니다.")
     private String translation; // 자막 번역
 
-    @NotNull(message = "시작 시각은 필수입니다.")
     private Double startTime; // 영상 시작 시각
 
     @NotNull(message = "종료 시각은 필수입니다.")
