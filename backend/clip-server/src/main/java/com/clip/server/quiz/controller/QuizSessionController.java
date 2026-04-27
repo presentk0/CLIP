@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/quiz/sessions/generate")
-@Tag(name = "단어 API", description = "퀴즈 생성 API입니다.")
+@Tag(name = "퀴즈 세션 API", description = "퀴즈 생성 API입니다.")
 @Validated
 public class QuizSessionController {
 

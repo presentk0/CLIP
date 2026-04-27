@@ -4,16 +4,15 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
-
-openai:
-  api:
-    key: ${openai.api.key}
-    url: https://api.openai.com/v1/chat/completions
-  model: gpt-5.4-mini
-
   cloud:
     aws:
       region:
         static: ap-northeast-2
       credentials:
         instance-profile: true
+
+openai:
+  api:
+    key: ${openai.api.key}
+    url: https://api.openai.com/v1/chat/completions
+  model: gpt-5.4-mini
