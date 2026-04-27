@@ -11,6 +11,12 @@ permissions:
     owner: ubuntu
     group: ubuntu
 
+  # 배포 스크립트에만 실행 권한 부여
+  - object: /home/ubuntu/app/scripts/deploy.sh
+    owner: ubuntu
+    group: ubuntu
+    mode: 755
+
 hooks:
   # 배포 단계 중 'AfterInstall' 단계에서 실행
   AfterInstall:
