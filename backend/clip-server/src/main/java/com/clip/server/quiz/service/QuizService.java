@@ -110,20 +110,22 @@ public class QuizService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
-        // 1. OpenAI 요청용 단어 리스트 구성
+        // 1. OpenAI 요청용 리스트 구성
         List<Map<String, String>> wordList = requests.stream()
                 .map(r -> Map.of("word", r.getWord(), "meaning", r.getMeaning()))
                 .collect(Collectors.toList());
 
-        // 2. OpenAI를 통한 매칭 퀴즈 세트 생성
+        // 2. OpenAI를 통한 매칭 데이터 세트 생성
         List<OpenAIQuizDataResponse> aiDataList = openAIService.generateMatchingQuiz(wordList);
         if (aiDataList == null || aiDataList.isEmpty()) {
             throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
 
-        // 3. 인덱스를 활용하여 원본 요청 데이터와 매핑하며 저장
+        // 3. 인덱스를 활용하여 원본 데이터와 AI 데이터를 동기화하며 저장
         return IntStream.range(0, aiDataList.size()).mapToObj(i -> {
             OpenAIQuizDataResponse data = aiDataList.get(i);
+
+            // AI 응답에 word가 누락된 경우, 순서상 동일한 위치의 요청 단어로 보정
             String finalWord = (data.getWord() != null && !data.getWord().isBlank())
                     ? data.getWord()
                     : requests.get(i).getWord();
@@ -133,14 +135,26 @@ public class QuizService {
                     .user(user)
                     .word(finalWord)
                     .quizType(QuizType.MATCHING)
-                    .question(data.getQuestion())      // 매칭 퀴즈는 question이 곧 단어
-                    .correctAnswer(data.getAnswer())   // correctAnswer가 한글 뜻
-                    .explanation(data.getExplanation()) // 암기 팁 등
+                    .question(data.getQuestion())      // 예: "effort"
+                    .content(data.getContent())       // 예: "It takes effort."
+                    .translation(data.getTranslation()) // 예: "노력이 필요해."
+                    .correctAnswer(data.getAnswer())   // 예: "노력"
+                    .explanation(data.getExplanation()) // 예: "힘을 쓰는 이미지!"
                     .videoTimestamp(requests.get(i).getVideoTimeStamp())
                     .build();
 
             QuizResult saved = quizResultRepository.save(result);
-            return mapToResponse(saved, null);
+
+            // 매칭 퀴즈 응답 시 뜻(answer)을 포함하여 반환해야 프론트에서 표시 가능
+            return QuizDetailResponse.builder()
+                    .quizId(saved.getId())
+                    .quizType(saved.getQuizType())
+                    .content(saved.getContent())
+                    .translation(saved.getTranslation())
+                    .question(saved.getQuestion())
+                    .answer(saved.getCorrectAnswer()) // 뜻 데이터를 answer에 담음
+                    .videoTimeStamp(saved.getVideoTimestamp())
+                    .build();
         }).collect(Collectors.toList());
     }
 
