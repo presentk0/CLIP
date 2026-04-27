@@ -1,0 +1,42 @@
+spring:
+  config:
+    import: ""
+
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=MySQL;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+
+  cloud:
+    aws:
+      credentials:
+        access-key: test-key
+        secret-key: test-key
+      region:
+        static: ap-northeast-2
+      stack:
+        auto: false
+
+openai:
+  api:
+    key: test-key
+    url: https://api.openai.com/v1/chat/completions
+  model: gpt-5.4-mini
+
+jwt:
+  secret: vmxkdlaltmxjsmsepdlstksmsdlf rjsmsepdlstksmsdlf
+  expiration: 3600000
+
+aws:
+  access-key: mock
+  secret-key: mock
+  region: ap-northeast-2
+  s3:
+    bucket: test-bucket

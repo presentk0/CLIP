@@ -1,0 +1,19 @@
+version: 0.0
+os: linux
+files:
+  - source: /
+    destination: /home/ubuntu/app # S3에서 받은 파일을 풀 위치
+    overwrite: yes
+
+permissions:
+  - object: /home/ubuntu/app
+    pattern: "**"
+    owner: ubuntu
+    group: ubuntu
+
+hooks:
+  # 배포 단계 중 'AfterInstall' 단계에서 실행
+  AfterInstall:
+    - location: scripts/deploy.sh
+      timeout: 300
+      runas: ubuntu

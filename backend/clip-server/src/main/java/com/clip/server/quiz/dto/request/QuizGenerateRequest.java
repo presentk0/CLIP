@@ -13,6 +13,6 @@ import lombok.NoArgsConstructor;
 public class QuizGenerateRequest {
 
     private String videoId;
-    private int sectionNumber;
+    private Integer sectionNumber;
     private SessionType sessionType;
 }
