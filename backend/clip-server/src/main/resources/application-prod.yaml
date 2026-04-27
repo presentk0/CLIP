@@ -1,9 +1,21 @@
 spring:
   config:
     import: "aws-secretsmanager:MVP/spring-app/env"
+
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${spring.datasource.url}
+    username: ${spring.datasource.username}
+    password: ${spring.datasource.password}
+
+
   jpa:
     hibernate:
       ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
+
   cloud:
     aws:
       region:
