@@ -13,7 +13,8 @@ public class CorsConfig implements WebMvcConfigurer {
                 .allowedOrigins(
                         "chrome-extension://nodoegcapbckibocgdleinfoniaboejg",
                         "http://clip-server.com",
-                        "https://clip-server.com"
+                        "https://clip-server.com",
+                        "https://www.youtube.com/"
                 )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH")
                 .allowedHeaders("*")
