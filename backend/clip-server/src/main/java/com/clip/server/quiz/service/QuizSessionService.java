@@ -43,7 +43,7 @@ public class QuizSessionService {
     private final VideoKeyWordRepository videoKeyWordRepository;
     private final QuizSessionWordRepository quizSessionWordRepository;
     private final QuizService quizService;
-    private final GeminiService geminiService;
+    private final OpenAIService openAIService;
 
     /**
      * 중간 섹션 퀴즈 생성 (OX, 빈칸)
@@ -129,7 +129,7 @@ public class QuizSessionService {
         // 3순위 AI 판단: 5개 미만인 경우 Gemini 호출
         if (finalCandidates.size() < 5) {
             int needCount = 5 - finalCandidates.size();
-            List<Map<String, String>> aiRecommended = geminiService.recommendImportantWords(video.getTitle(), needCount);
+            List<Map<String, String>> aiRecommended = openAIService.recommendImportantWords(video.getTitle(), needCount);
             for (Map<String, String> rec : aiRecommended) {
                 finalCandidates.add(new QuizWordRequest(rec.get("word"), rec.get("meaning"), "00:00"));
             }

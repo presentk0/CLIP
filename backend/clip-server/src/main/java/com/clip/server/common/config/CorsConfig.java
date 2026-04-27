@@ -11,7 +11,9 @@ public class CorsConfig implements WebMvcConfigurer {
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
                 .allowedOrigins(
-                        "chrome-extension://nodoegcapbckibocgdleinfoniaboejg"
+                        "chrome-extension://nodoegcapbckibocgdleinfoniaboejg",
+                        "http://clip-server.com",
+                        "https://clip-server.com"
                 )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH")
                 .allowedHeaders("*")
