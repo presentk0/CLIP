@@ -39,9 +39,44 @@ export const apiFetch = async (endpoint, options = {}) => {
     }
 
 
+    // 복습인지 체크? (미사용)
+    if (endpoint === '/api/quiz/sessions/generate/section') {
+      return {
+        success: true,
+        data: {
+          sessions: [
+            {
+              sessionId: 1,
+              videoId: "dQw4w9WgXcQ",
+              videoTitle: "Amazing Travel Video",
+              totalQuizCount: 10,
+              correctCount: 8,
+              accuracy: 80,
+              earnedExp: 85,
+              completedAt: "2024-01-15T10:45:00Z"
+            }
+          ],
+          stats: {
+            totalSessions: 15,
+            totalQuizzes: 150,
+            totalCorrect: 120,
+            averageAccuracy: 80
+          },
+          pagination: {
+            totalCount: 15,
+            currentPage: 0,
+            totalPages: 1,
+            pageSize: 10
+          }
+        }
+      };
+    }
 
-    // 퀴즈 세션 시작
-    if (endpoint === '/api/quiz/sessions/start') {
+
+
+
+    // (빈칸 / ox) 퀴즈 요청
+    if (endpoint === '/api/quiz/sessions/generate/section') {
       // 요청 데이터 확인
       const body = JSON.parse(options?.body || '{}');
       console.log('퀴즈 시작 요청:', body);
@@ -50,14 +85,62 @@ export const apiFetch = async (endpoint, options = {}) => {
         success: true,
         data: {
           sessionId: 456,
-          videoId: "dQw4w9WgXcQ",
+          videoId: "v123",
+          sectionNumber: 1,
           sessionType: "NORMAL",
-          totalQuizCount: 10,
-          startedAt: "2024-03-15T15:00:00Z"
+          totalQuizCount: 3,
+          // startedAt: "2024-03-15T15:00:00Z"
+          quizzes: [
+            {
+              quizId: 402, // 개별 문제를 식별하는 quiz_result의 ID (자식)
+              quizType: "BLANK",
+              question: "The manager said the report will be ____ by tomorrow morning.",
+              videoTimestamp: "01:25"
+            },
+            {
+              quizId: 403,
+              quizType: "OX",
+              question: "주인공은 보고서를 오늘 제출하겠다고 했습니까?",
+              videoTimestamp: "02:10"
+            }
+          ]
         },
         message: "퀴즈를 시작합니다!"
       };
     }
+
+
+    // 매칭 퀴즈 요청
+    if (endpoint === '/api/quiz/sessions/generate/matching') {
+      return{
+        success: true,
+        data: {
+          sessionId: 456,
+          videoId: "v123",
+          sectionNumber: 1,
+          sessionType: "NORMAL",
+          totalQuizCount: 3,
+          quizzes: [
+            {
+              quizId: 402, // 개별 문제를 식별하는 quiz_result의 ID (자식)
+              quizType: "BLANK",
+              question: "The manager said the report will be ____ by tomorrow morning.",
+              videoTimestamp: "01:25"
+            },
+            {
+              quizId: 403,
+              quizType: "OX",
+              question: "주인공은 보고서를 오늘 제출하겠다고 했습니까?",
+              videoTimestamp: "02:10"
+            }
+          ]
+        },
+        message: "1번 섹션 퀴즈가 성공적으로 생성되었습니다."
+      };
+    }
+
+
+
 
 
 
