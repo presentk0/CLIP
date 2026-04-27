@@ -24,6 +24,8 @@ public class QuizDetailResponse {
 
     private List<String> options; // 빈칸 채우기용 오답 포함 선택지 리스트 (4지 선다 등)
 
+    private String answer; // 매칭 퀴즈 시 단어 뜻 전달을 위함
+
     private String videoTimeStamp; // 다시 듣기용 비디오 타임스탬프
 
 }

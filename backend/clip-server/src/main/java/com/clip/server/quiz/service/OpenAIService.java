@@ -134,51 +134,28 @@ public class OpenAIService {
         try {
             String wordsJson = objectMapper.writeValueAsString(wordList);
             String prompt = String.format("""
-            당신은 영어 학습 멘토 '클립 프로그'입니다.
-            단어-뜻 매칭 퀴즈용 데이터를 생성하세요.
+            당신은 영어 학습 멘토 '클립 프로그'입니다. 단어-뜻 매칭 퀴즈 데이터를 생성하세요.
             
-            [입력 단어 리스트]
+            [입력 리스트]
             %s
             
-            [출제 규칙]
-            1. 각 단어의 '핵심 뜻' 하나만 간결하게 작성 (2-5글자)
-            2. explanation에는 암기 팁이나 짧은 예문 추가
-            3. 단어 순서는 그대로 유지 (섞지 마세요)
-            4. 프론트엔드에서 랜덤 배치할 예정
+            [규칙]
+            1. question: 단어 원문 (예: travel)
+            2. answer: 핵심 한글 뜻 (2-5글자)
+            3. explanation: 암기 팁이나 짧은 예문
+            4. content/translation: 해당 단어를 사용한 간단한 예문과 해석 (학습자가 문맥을 볼 수 있게 제공)
             
-            [JSON 응답 형식]
+            [JSON 응답 형식 - 💡 절대 null을 값으로 주지 마세요]
             {
               "quizzes": [
                 {
-                  "word": "travel",
+                  "word": "단어",
                   "quizType": "MATCHING",
-                  "content": null,
-                  "translation": null,
-                  "question": null,
-                  "answer": "여행하다",
-                  "explanation": "trip보다 긴 여정을 의미해!",
-                  "options": null
-                }
-              ]
-            }
-            
-            [예시 입력]
-            [{"word": "travel", "meaning": "여행하다"}, {"word": "move", "meaning": "이동하다"}]
-            
-            [예시 출력]
-            {
-              "quizzes": [
-                {
-                  "word": "travel",
-                  "quizType": "MATCHING",
-                  "answer": "여행하다",
-                  "explanation": "장거리 여행을 뜻해. 예: travel abroad"
-                },
-                {
-                  "word": "move",
-                  "quizType": "MATCHING",
-                  "answer": "이동하다",
-                  "explanation": "위치를 바꾸는 동작. 예: move to Seoul"
+                  "content": "단어가 포함된 짧은 예문",
+                  "translation": "예문의 해석",
+                  "question": "단어 원문",
+                  "answer": "한글 뜻",
+                  "explanation": "암기 팁"
                 }
               ]
             }
