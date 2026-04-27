@@ -3,7 +3,7 @@ package com.clip.server.quiz.service;
 import com.clip.server.common.exception.BusinessException;
 import com.clip.server.common.exception.ErrorCode;
 import com.clip.server.quiz.dto.request.QuizWordRequest;
-import com.clip.server.quiz.dto.response.GeminiQuizData;
+import com.clip.server.quiz.dto.response.OpenAIQuizDataResponse;
 import com.clip.server.quiz.dto.response.QuizDetailResponse;
 import com.clip.server.quiz.entity.QuizResult;
 import com.clip.server.quiz.entity.QuizSession;
@@ -37,7 +37,7 @@ class QuizServiceTest {
     private QuizService quizService;
 
     @Mock
-    private GeminiService geminiService;
+    private OpenAIService openAIService;
 
     @Mock
     private QuizResultRepository quizResultRepository;
@@ -59,7 +59,7 @@ class QuizServiceTest {
         User user = User.builder().build();
         QuizSession session = QuizSession.builder().build();
 
-        GeminiQuizData aiResponse = new GeminiQuizData("Consistent", QuizType.OX, "Consistent의 뜻은 '일관된'이다.", "O", "맞습니다.");
+        OpenAIQuizDataResponse aiResponse = new OpenAIQuizDataResponse("Consistent", QuizType.OX, "Consistent의 뜻은 '일관된'이다.", "O", "맞습니다.");
 
         QuizResult savedResult = QuizResult.builder()
                 .quizType(QuizType.OX)
@@ -70,7 +70,7 @@ class QuizServiceTest {
 
         given(quizSessionRepository.findById(sessionId)).willReturn(Optional.of(session));
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
-        given(geminiService.generateOXQuiz(any(), any())).willReturn(aiResponse);
+        given(openAIService.generateOXQuiz(any(), any())).willReturn(aiResponse);
         given(quizResultRepository.save(any())).willReturn(savedResult);
 
         // when
@@ -95,7 +95,7 @@ class QuizServiceTest {
         User user = User.builder().build();
         QuizSession session = QuizSession.builder().build();
 
-        GeminiQuizData aiResponse = new GeminiQuizData("Implement", QuizType.BLANK, "We need to ____ the new policy.", "Implement", "문맥상 '구현하다'가 적절합니다.");
+        OpenAIQuizDataResponse aiResponse = new OpenAIQuizDataResponse("Implement", QuizType.BLANK, "We need to ____ the new policy.", "Implement", "문맥상 '구현하다'가 적절합니다.");
 
         QuizResult savedResult = QuizResult.builder()
                 .quizType(QuizType.BLANK)
@@ -106,7 +106,7 @@ class QuizServiceTest {
 
         given(quizSessionRepository.findById(sessionId)).willReturn(Optional.of(session));
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
-        given(geminiService.generateBlankQuiz(any(), any())).willReturn(aiResponse);
+        given(openAIService.generateBlankQuiz(any(), any())).willReturn(aiResponse);
         given(quizResultRepository.save(any())).willReturn(savedResult);
 
         // when
@@ -134,14 +134,14 @@ class QuizServiceTest {
         User user = User.builder().build();
         QuizSession session = QuizSession.builder().build();
 
-        List<GeminiQuizData> aiResponses = List.of(
-                new GeminiQuizData("Apple", QuizType.MATCHING, "Apple", "사과", "과일 이름"),
-                new GeminiQuizData("Banana", QuizType.MATCHING, "Banana", "바나나", "과일 이름")
+        List<OpenAIQuizDataResponse> aiResponses = List.of(
+                new OpenAIQuizDataResponse("Apple", QuizType.MATCHING, "Apple", "사과", "과일 이름"),
+                new OpenAIQuizDataResponse("Banana", QuizType.MATCHING, "Banana", "바나나", "과일 이름")
         );
 
         given(quizSessionRepository.findById(sessionId)).willReturn(Optional.of(session));
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
-        given(geminiService.generateMatchingQuiz(any())).willReturn(aiResponses);
+        given(openAIService.generateMatchingQuiz(any())).willReturn(aiResponses);
 
         // save 호출 시마다 다른 ID를 가진 객체 반환 모사
         given(quizResultRepository.save(any()))

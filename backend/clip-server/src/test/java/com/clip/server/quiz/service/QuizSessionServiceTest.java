@@ -47,7 +47,7 @@ class QuizSessionServiceTest {
     @Mock
     private QuizService quizService;
     @Mock
-    private GeminiService geminiService;
+    private OpenAIService openAIService;
     @Mock
     private QuizSessionRepository quizSessionRepository;
     @Mock
@@ -136,7 +136,7 @@ class QuizSessionServiceTest {
                 Map.of("word", "D", "meaning", "뜻D"),
                 Map.of("word", "E", "meaning", "뜻E")
         );
-        given(geminiService.recommendImportantWords(anyString(), eq(2))).willReturn(aiRecs);
+        given(openAIService.recommendImportantWords(anyString(), eq(2))).willReturn(aiRecs);
 
         given(quizService.createMatchingQuiz(anyLong(), anyLong(), anyList())).willReturn(List.of());
 
@@ -145,7 +145,7 @@ class QuizSessionServiceTest {
 
         // then
         // 최종적으로 5개의 단어가 QuizService로 전달되었는지 확인
-        verify(geminiService).recommendImportantWords(anyString(), eq(2));
+        verify(openAIService).recommendImportantWords(anyString(), eq(2));
         verify(quizService).createMatchingQuiz(eq(100L), eq(1L), argThat(list -> list.size() == 5));
     }
 
@@ -207,7 +207,7 @@ class QuizSessionServiceTest {
         List<QuizWordRequest> capturedList = listCaptor.getValue();
         List<String> words = capturedList.stream().map(QuizWordRequest::getWord).toList();
 
-        // 💡 디버깅을 위해 결과 리스트가 기대한 등급 순서인지 더 명확하게 검증
+        // 디버깅을 위해 결과 리스트가 기대한 등급 순서인지 더 명확하게 검증
         assertThat(words).hasSize(5);
 
         // 1. COLLECT 등급 (우선순위 1) - 인덱스 0, 1
