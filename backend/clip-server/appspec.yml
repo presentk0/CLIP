@@ -10,8 +10,9 @@ permissions:
     pattern: "**"
     owner: ubuntu
     group: ubuntu
-  - object: /home/ubuntu/app/scripts
-    pattern: "*.sh"
+
+  # 배포 스크립트에만 실행 권한 부여
+  - object: /home/ubuntu/app/scripts/deploy.sh
     owner: ubuntu
     group: ubuntu
     mode: 755
