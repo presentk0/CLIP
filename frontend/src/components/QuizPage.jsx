@@ -75,7 +75,7 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
     const fetchSubtitles = async () => {
       try {
         // 서버에서 자막 조회
-        const response = await apiFetch(`/api/videos/${videoId}/subtitles`, {
+        const response = await apiFetch(`/videos/${videoId}/subtitles`, {
           method: 'GET'
         });
         console.log('서버 자막 조회');
@@ -174,35 +174,6 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
     });
   };
 
-
-  // // 불용어 제외 (축약형 포함)
-  // const stopWords = [
-  //   'i', 'am', 'a', 'the', 'is', 'are', 'it', 'to', 'for', 'of', 'and', 'in', 'on', 'at', "'s", "'re", "'m", "'ll", "'ve", "'d", "n't"
-  // ];
-
-  
-
-  //                             {currentSubtitle.text.split(' ').map((word, index) => {
-  //                               // 해당 종류를 일반 따옴표로 변환(백틱, 오른쪽 작은따옴표, 왼쪽 작은따옴표, 수정 문자 아포스트로피)
-  //                               const normalized = word.replace(/[`''ʼ]/g, "'");
-  //                               // 특수문자만 제거
-  //                               const cleaned = normalized.replace(/[^a-zA-Z']/g, '');
-
-  //                               // 해당 단어를 영문자만 소문자로 바꾸고 불용어 아니면 true, 불용어면 false
-  //                               // map이 모든 단어 순회하면서 isHoverable 여러 번 찍힘
-  //                               const isHoverable = cleaned && !stopWords.includes(cleaned.toLowerCase());
-  //                               console.log('호버1:', isHoverable);
-
-  //                               return (
-  //                                 <span
-  //                                 key={index}
-  //                                 // 클릭 시 불용어 아니면 팝업 고정
-  //                                 onClick={(e) => isHoverable && togglePin(e, cleaned)}>
-  //                                   {/* 원본 단어 그대로 표시 + 공백 추가 */}
-  //                                   {word}{' '}
-  //                                 </span>
-  //                               );
-  //                             })}
 
   // 번역 API 호출
   async function fetchTranslation(word) {
@@ -343,7 +314,7 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
         setIsPinned(true);
 
         // 팝업 열 때 서버에 타입 POPUP으로 보내기
-        await apiFetch('/api/words/collect', {
+        await apiFetch('/words/collect', {
           method: 'POST',
           body: JSON.stringify({
             wordType: 'POPUP',
@@ -359,7 +330,7 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
             // translation: result.translation,
             title: videoTitle
           })
-        }).catch(() => {});
+        }).catch((error) => {console.log('이거 에러11:', error)});
         console.log('서버에팝업1:', videoId, word, result.meaningTranslation, result.exampleTranslation, savedSubtitle.text, formatTime(savedSubtitle.startTime), savedSubtitle.translation, videoTitle);
       }
     } catch (error) {
@@ -392,7 +363,7 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
   // 단어 수집 버튼
   const collectWord = async () => {
     try {
-      await apiFetch('/api/words/collect', {
+      await apiFetch('/words/collect', {
         method: 'POST',
         body: JSON.stringify({
           wordType: 'COLLECT',
@@ -580,7 +551,7 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
 
         // 영상 일시정지 메시지 전송
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-          if (tabs[0]) chrome.tabs.sendMessage(tabs[0].id, { type: 'SET_QUIZ_MODE', active: true }).catch(() => {});
+          if (tabs[0]) chrome.tabs.sendMessage(tabs[0].id, { type: 'SET_QUIZ_MODE', active: true }).catch((error) => {console.log('이거 에러22:', error)});
         });
       }
 
@@ -603,7 +574,7 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
 
       // 영상 일시정지 메시지 전송
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        if (tabs[0]) chrome.tabs.sendMessage(tabs[0].id, { type: 'SET_QUIZ_MODE', active: true }).catch(() => {});
+        if (tabs[0]) chrome.tabs.sendMessage(tabs[0].id, { type: 'SET_QUIZ_MODE', active: true }).catch((error) => {console.log('이거 에러33:', error)});
       });
     }
   };
@@ -641,7 +612,7 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
     if (!tempChoice || isConfirmed) return;
     try {
       // 서버에 정답 제출
-      const result = await apiFetch('/api/quiz/submit', {
+      const result = await apiFetch('/quiz/submit', {
         method: 'POST',
         body: JSON.stringify({
           sessionId,
@@ -688,7 +659,7 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
     } else {
       // 마지막 문제였으면 퀴즈 종료
       try {
-        const finalResult = await apiFetch(`/api/quiz/sessions/${sessionId}/complete`, {
+        const finalResult = await apiFetch(`/quiz/sessions/${sessionId}/complete`, {
           method: 'POST'
         });
         console.log('정산완료');
