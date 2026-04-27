@@ -1,0 +1,9 @@
+spring:
+  application:
+    name: CLIP
+  profiles:
+    active: local
+  servlet:
+    encoding:
+      charset: UTF-8
+      force: true
