@@ -24,10 +24,11 @@ spring:
       stack:
         auto: false
 
-gemini:
+openai:
   api:
-    key: mock-gemini-key-12345
-    url: https://test-api.com
+    key: test-key
+    url: https://api.openai.com/v1/chat/completions
+  model: gpt-5.4-mini
 
 jwt:
   secret: vmxkdlaltmxjsmsepdlstksmsdlf rjsmsepdlstksmsdlf
