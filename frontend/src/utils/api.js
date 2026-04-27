@@ -115,27 +115,24 @@ export const apiFetch = async (endpoint, options = {}) => {
       return{
         success: true,
         data: {
-          sessionId: 456,
-          videoId: "v123",
-          sectionNumber: 1,
+          sessionId: 9,
+          videoId: "abc123",
           sessionType: "NORMAL",
-          totalQuizCount: 3,
+          totalQuizCount: 6,
           quizzes: [
             {
-              quizId: 402, // 개별 문제를 식별하는 quiz_result의 ID (자식)
-              quizType: "BLANK",
-              question: "The manager said the report will be ____ by tomorrow morning.",
-              videoTimestamp: "01:25"
+              quizId: 49,
+              quizType: "MATCHING",
+              content: "She worked hard to achieve her dream.",
+              translation: "그녀는 꿈을 이루기 위해 열심히 노력했다.",
+              question: "achieve",
+              options: null,
+              answer: "이루다",
+              videoTimeStamp: "00:00"
             },
-            {
-              quizId: 403,
-              quizType: "OX",
-              question: "주인공은 보고서를 오늘 제출하겠다고 했습니까?",
-              videoTimestamp: "02:10"
-            }
           ]
         },
-        message: "1번 섹션 퀴즈가 성공적으로 생성되었습니다."
+        message: "매칭 퀴즈 요청에 성공하였습니다."
       };
     }
 
