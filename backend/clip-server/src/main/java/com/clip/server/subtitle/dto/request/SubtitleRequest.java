@@ -24,10 +24,11 @@ public class SubtitleRequest {
 
     private String translation; // 자막 번역
 
-    private Double startTime; // 영상 시작 시각
+    @Builder.Default
+    private Double startTime = 0.0; // 영상 시작 시각
 
-    @NotNull(message = "종료 시각은 필수입니다.")
-    private Double endTime; // 영상 종료 시각
+    @Builder.Default
+    private Double endTime = 0.0; // 영상 종료 시각
 
     @NotNull(message = "영상 전체 길이는 필수입니다.")
     @Min(value = 1, message = "영상 길이는 최소 1초 이상이어야 합니다.")
