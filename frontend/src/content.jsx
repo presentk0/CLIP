@@ -38,14 +38,13 @@ let loopEnd = null;
 // 영상 끝 감지 리스너 활성화 여부 체크
 let isEndListenerSet = false;
 
-// // 구간 반복 이벤트 리스너 강제 종료용
-// let eventLoop = false;
-// // 영상 끝 감지 이벤트 리스너 강제 종료용
-// let eventTimeUpdate = false;
-// // 영상 재생 이벤트 리스너 강제 종료용
-// let eventPlay = false;
-// // 영상 정지 이벤트 리스너 강제 종료용
-// let eventPause = false;
+
+// 구간 반복 이벤트 리스너 강제 종료용
+let eventLoop = null;
+// 영상 끝 감지 이벤트 리스너 강제 종료용
+let eventTimeUpdate = null;
+// 영상 재생 및 일시정지 이벤트 리스너 강제 종료용
+let eventPlayPause = null;
 
 
 
@@ -119,6 +118,8 @@ chrome.runtime.onMessage.addListener((message) => {
     const video = document.querySelector('video');
     if (!video) return;
     if (message.type === 'START_LOOP') {
+      // 현재 영상 플레이어 객체 저장
+      eventLoop = video;
       loopStart = message.startTime;
       loopEnd = message.endTime;
       video.currentTime = loopStart;
@@ -130,6 +131,8 @@ chrome.runtime.onMessage.addListener((message) => {
       loopEnd = null;
       video.pause();
       video.removeEventListener('timeupdate', handleLoop);
+      // 저장한 영상 영상 플레이어 객체 리셋
+      eventLoop = null;
     }
   }
 });
@@ -165,6 +168,9 @@ window.addEventListener('yt-navigate-finish', () => {
     // 영상 바뀔 때 큐 비우기
     resetQueue();
 
+    // 이벤트 리스너 리셋
+    resetListeners();
+
     // 패널 열려있을 때만 실행
     if (isPanelOpen) {
       // 영상 페이지면 추천 영상 숨기고 자막 감지
@@ -184,22 +190,34 @@ window.addEventListener('yt-navigate-finish', () => {
 });
 
 
-// // 이벤트 리스너 초기화
-// function () {
-//   video.removeEventListener('timeupdate', handleTimeUpdate);
-//   video.removeEventListener('timeupdate', handleLoop);
-//   video.addEventListener('play', () => {
-//   video.addEventListener('pause', () => {
 
-//   // 영상 구간 반복 이벤트 리스너 강제 종료용
-//   eventLoop = false;
-// // 영상 끝 감지 이벤트 리스너 강제 종료용
-//   eventTimeUpdate = false;
-// // 영상 재생 이벤트 리스너 강제 종료용
-//   eventPlay = false;
-// // 영상 정지 이벤트 리스너 강제 종료용
-//   eventPause = false;
-// }
+
+
+// 이벤트 리스너 리셋
+function resetListeners() {
+  if (eventTimeUpdate) {
+    eventTimeUpdate.removeEventListener('timeupdate', handleTimeUpdate);
+    // 영상 끝 감지 이벤트 리스너 강제 종료용
+    eventTimeUpdate = null;
+  }
+
+  if (eventLoop) {
+    eventLoop.removeEventListener('timeupdate', handleLoop);
+    // 영상 구간 반복 이벤트 리스너 강제 종료용
+    eventLoop = null;
+  }
+
+
+  if (eventPlayPause) {
+    eventPlayPause.removeEventListener('play', handleVideoPlay);
+    eventPlayPause.removeEventListener('pause', handleVideoPause);
+    // 영상 재생 및 일시정지 이벤트 리스너 강제 종료용
+    eventPlayPause = null;
+  }
+}
+
+
+
 
 
 // 영상 시청 페이지면 자막 감지 함수 실행하고 아니면 자막 감지 중지 함수 실행
@@ -226,23 +244,16 @@ function observeSubtitles() {
   // 성공하면 리셋
   retryCount = 0;
 
+  // 현재 영상 플레이어 객체 저장
+  eventPlayPause = video;
+
   // 이벤트 리스너 중복 방지
   if (!listenersAdded) {
-  // 영상이 재생 중일 때만 MutationObserver를 켜서 메모리 낭비 방지
-  // 중간 광고 나오면 꼬이는 오류 확인
-  video.addEventListener('play', () => {
-    console.log('play 이벤트!', document.querySelector('.ad-showing') ? '광고' : '본영상');
-      // 광고면 stopObserver 안 함!
-  if (document.querySelector('.ad-showing')) {
-    return;
-  }
-    startObserver();
-  });
-  // 영상이 멈추면 자막 감시 끄기
-  video.addEventListener('pause', () => {
-    console.log('pause 이벤트!', document.querySelector('.ad-showing') ? '광고' : '본영상');
-    stopObserver();
-  });
+    // 영상이 재생 중일 때만 MutationObserver를 켜서 메모리 낭비 방지
+    video.addEventListener('play', handleVideoPlay);
+
+    // 영상이 멈추면 자막 감시 끄기
+    video.addEventListener('pause', handleVideoPause);
     listenersAdded = true;
   }
 
@@ -251,6 +262,26 @@ function observeSubtitles() {
     console.log('콘텐츠 자막 감지 실행1:', Date.now());
     startObserver();
   }
+}
+
+
+// 영상이 재생 중일 때 광고 체크 후 자막 감지 시작
+function handleVideoPlay() {
+  // 광고면 startObserver 안 함!
+  if (document.querySelector('.ad-showing')) {
+    return;
+  }
+  startObserver();
+}
+
+
+// 영상이 일시정지 중일 때 광고 체크 후 자막 감지 종료
+function handleVideoPause() {
+  // 광고면 stopObserver 안 함
+  if (document.querySelector('.ad-showing')) {
+    return;
+  }
+  stopObserver();
 }
 
 
@@ -320,6 +351,7 @@ function startObserver() {
     // 매번 video를 가져오기 때문에 중간광고도 대응가능
     const video = document.querySelector('video');
     if (!video) {return;}
+    eventTimeUpdate = video;
 
     // 자막 전체 가져오기
     const subtitleElement = document.querySelectorAll('.ytp-caption-segment');
@@ -494,7 +526,7 @@ async function processQueue() {
       const quizResponse = await apiFetch(`/videos/${item.videoId}/subtitles`, {
         method: 'POST',
         body: JSON.stringify({
-          videoid: item.videoId,
+          // videoid: item.videoId,
           title: item.videoTitle,
           text: item.text,
           translation: translation,
@@ -895,6 +927,9 @@ function init() {
   quizSectionCount = 0;
   // 매칭 퀴즈 요청 횟수 리셋
   matchingQuizCount = 0;
+
+  // 이벤트 리스너 리셋
+  resetListeners();
 
   // 영상 페이지일 경우
   if (window.location.href.includes('/watch')) {
