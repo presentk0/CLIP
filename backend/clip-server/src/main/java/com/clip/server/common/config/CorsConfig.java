@@ -14,7 +14,7 @@ public class CorsConfig implements WebMvcConfigurer {
                 .allowedOriginPatterns(
                         "chrome-extension://nodoegcapbckibocgdleinfoniaboejg",
                         "chrome-extension://mkmkdednenecdnanbmigooccjcmnjnab",
-			"chrome-extension://hchkjnbfbmfgfidilneahojmiddkdeaj",
+                        "chrome-extension://hchkjnbfbmfgfidilneahojmiddkdeaj",
                         "http://clip-server.com",
                         "https://clip-server.com",
                         "https://*.youtube.com"
