@@ -21,6 +21,12 @@
   "content_scripts":[
     {
       "matches": ["*://*.youtube.com/*"],
+      "js": ["src/inject.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": ["*://*.youtube.com/*"],
       "js":["src/content.jsx"]
     }
   ]
