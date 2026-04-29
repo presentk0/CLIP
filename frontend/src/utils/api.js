@@ -322,7 +322,7 @@ export const apiFetch = async (endpoint, options = {}) => {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${accessToken}`,
+      // 'Authorization': `Bearer ${accessToken}`,
       ...options.headers,
     }
   });

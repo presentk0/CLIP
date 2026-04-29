@@ -8,31 +8,25 @@ on:
 jobs:
   test:
     runs-on: ubuntu-22.04
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: testdb
-        ports:
-          - 3306:3306
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_API_URL: ${{ secrets.GEMINI_API_URL }}
     defaults:
       run:
         working-directory: ./backend/clip-server
-
+    
     steps:
       - uses: actions/checkout@v4
 
-      - name: set up JDK 17
-        uses: actions/setup-java@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: gradle
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build and Test with Gradle
-        run: ./gradlew test
+      - name: Build with Gradle
+        run: ./gradlew clean build -Dspring.profiles.active=test
+        shell: bash
