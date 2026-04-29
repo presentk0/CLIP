@@ -318,6 +318,7 @@ export const apiFetch = async (endpoint, options = {}) => {
 
   // 실제 서버 통신 로직 (나중에 사용)
   // const { accessToken } = await chrome.storage.local.get(['accessToken']);
+  // response = 서버 응답 객체 (아직 텍스트 상태)
   const response = await fetch(`${BASE_URL}${endpoint}`, {
     ...options,
     headers: {
@@ -327,6 +328,7 @@ export const apiFetch = async (endpoint, options = {}) => {
     }
   });
 
+  // result = JSON으로 파싱된 데이터
   const result = await response.json();
   if (!result.success) throw new Error(result.error?.message || 'API Error');
   return result.data;

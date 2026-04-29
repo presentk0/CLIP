@@ -49,6 +49,9 @@ dependencies {
 	// Spring Cloud AWS Starter Secrets Manager
 	implementation 'io.awspring.cloud:spring-cloud-aws-starter-secrets-manager:3.1.1'
 	implementation 'io.awspring.cloud:spring-cloud-aws-starter:3.1.1'
+
+	// 날짜/시간 타입을 JSON으로 변환
+	implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
 }
 
 tasks.named('test') {

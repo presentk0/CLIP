@@ -83,7 +83,8 @@ async function translateText(text) {
       method: 'POST',
       headers: {
         // API 키 형식 'Authorization': 'DeepL-Auth-Key xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:fx'
-        'Authorization': 'DeepL-Auth-Key 여기에 번역 API키 입력',
+        'Authorization': 'DeepL-Auth-Key 여기에 입력하기',
+        
         // JSON으로 변경
         'Content-Type': 'application/json',
       },
