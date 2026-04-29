@@ -8,6 +8,12 @@ import { apiFetch } from '../utils/api';
 import bulb from '../imgs/image_62.png';
 
 function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
+const text = "thank you very much I have a few suggestions Dr. Smith is here today How are you doing";
+
+const sentences = nlp(text).sentences().out('array');
+console.log('테스트', sentences);
+
+
   // 현재 문제 번호 (0부터 시작)
   const [currentIndex, setCurrentIndex] = useState(0);
   // 유저가 선택한 보기 (아직 제출 안 함)
@@ -72,16 +78,18 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
   useEffect(() => {
     // videoId가 다르면 미실행
     if (!videoId) return;
+    console.log('현재 영상', videoId);
     const fetchSubtitles = async () => {
       try {
         // 서버에서 자막 조회
         const response = await apiFetch(`/videos/${videoId}/subtitles`, {
           method: 'GET'
         });
-        console.log('서버 자막 조회');
+        console.log('서버 자막 조회:', response);
         // 자막이 있으면 시간순 정렬 후 저장
-        if (response.success && response.data.subtitles.length > 0) {
-          const sorted = response.data.subtitles.sort((a, b) => a.startTime - b.startTime);
+        if (response.subtitles && response.subtitles.length > 0) {
+          console.log('자막있음');
+          const sorted = response.subtitles.sort((a, b) => a.startTime - b.startTime);
           setSubtitles(sorted);
           setSubtitleIndex(sorted.length - 1);
           setCurrentSubtitle(sorted[sorted.length - 1]);
@@ -296,17 +304,17 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
           antonyms: meaning.antonyms?.slice(0, 5) || [],
           // 단어 번역
           meaningTranslation: '',
-          // 예문 번역
-          exampleTranslation: ''
+          // // 예문 번역
+          // exampleTranslation: ''
         };
 
         // 뜻 번역
         result.meaningTranslation = await fetchTranslation(result.definition) || '';
 
-        // 예문 있을 때만 번역
-        if (result.example) {
-          result.exampleTranslation = await fetchTranslation(result.example) || '';
-        }
+        // // 예문 있을 때만 번역
+        // if (result.example) {
+        //   result.exampleTranslation = await fetchTranslation(result.example) || '';
+        // }
 
         // 캐시에 저장
         setCache(prev => ({ ...prev, [word]: result }));
@@ -321,7 +329,7 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
             videoId: videoId,
             word: word,
             meaning: result.meaningTranslation,
-            example: result.exampleTranslation,
+            // example: result.exampleTranslation,
             sentence: savedSubtitle.text,
             timestamp: formatTime(savedSubtitle.startTime),
             // set은 다음 렌더링에 반영되기에 즉시 사용해야 하는 api는 dictionaryData.translation 대신 savedSubtitle.translation 사용
@@ -331,7 +339,7 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
             title: videoTitle
           })
         }).catch((error) => {console.log('이거 에러11:', error)});
-        console.log('서버에팝업1:', videoId, word, result.meaningTranslation, result.exampleTranslation, savedSubtitle.text, formatTime(savedSubtitle.startTime), savedSubtitle.translation, videoTitle);
+        console.log('서버에팝업1:', videoId, word, result.meaningTranslation, savedSubtitle.text, formatTime(savedSubtitle.startTime), savedSubtitle.translation, videoTitle);
       }
     } catch (error) {
       console.log('사전 조회 실패:', error);
@@ -370,7 +378,7 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
           videoId: videoId,
           word: dictionaryData.word,
           meaning: dictionaryData.meaningTranslation,
-          example: dictionaryData.exampleTranslation,
+          // example: dictionaryData.exampleTranslation,
           // 단어가 포함된 문장
           sentence: clickedSubtitle.text,
           // 영상 시간
@@ -382,7 +390,7 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
           title: videoTitle
         })
       });
-      console.log('단어수집C:', videoId, dictionaryData.word, dictionaryData.meaningTranslation, dictionaryData.exampleTranslation, clickedSubtitle.text, formatTime(currentSubtitle.startTime), clickedSubtitle.translation, videoTitle);
+      console.log('단어수집C:', videoId, dictionaryData.word, dictionaryData.meaningTranslation, clickedSubtitle.text, formatTime(currentSubtitle.startTime), clickedSubtitle.translation, videoTitle);
     } catch (error) {
       console.log('단어 수집 실패:', error);
     }
