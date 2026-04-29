@@ -8,6 +8,12 @@ import { apiFetch } from '../utils/api';
 import bulb from '../imgs/image_62.png';
 
 function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
+const text = "thank you very much I have a few suggestions Dr. Smith is here today How are you doing";
+
+const sentences = nlp(text).sentences().out('array');
+console.log('테스트', sentences);
+
+
   // 현재 문제 번호 (0부터 시작)
   const [currentIndex, setCurrentIndex] = useState(0);
   // 유저가 선택한 보기 (아직 제출 안 함)
@@ -72,16 +78,18 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
   useEffect(() => {
     // videoId가 다르면 미실행
     if (!videoId) return;
+    console.log('현재 영상', videoId);
     const fetchSubtitles = async () => {
       try {
         // 서버에서 자막 조회
-        const response = await apiFetch(`/api/videos/${videoId}/subtitles`, {
+        const response = await apiFetch(`/videos/${videoId}/subtitles`, {
           method: 'GET'
         });
-        console.log('서버 자막 조회');
+        console.log('서버 자막 조회:', response);
         // 자막이 있으면 시간순 정렬 후 저장
-        if (response.success && response.data.subtitles.length > 0) {
-          const sorted = response.data.subtitles.sort((a, b) => a.startTime - b.startTime);
+        if (response.subtitles && response.subtitles.length > 0) {
+          console.log('자막있음');
+          const sorted = response.subtitles.sort((a, b) => a.startTime - b.startTime);
           setSubtitles(sorted);
           setSubtitleIndex(sorted.length - 1);
           setCurrentSubtitle(sorted[sorted.length - 1]);
@@ -174,35 +182,6 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
     });
   };
 
-
-  // // 불용어 제외 (축약형 포함)
-  // const stopWords = [
-  //   'i', 'am', 'a', 'the', 'is', 'are', 'it', 'to', 'for', 'of', 'and', 'in', 'on', 'at', "'s", "'re", "'m", "'ll", "'ve", "'d", "n't"
-  // ];
-
-  
-
-  //                             {currentSubtitle.text.split(' ').map((word, index) => {
-  //                               // 해당 종류를 일반 따옴표로 변환(백틱, 오른쪽 작은따옴표, 왼쪽 작은따옴표, 수정 문자 아포스트로피)
-  //                               const normalized = word.replace(/[`''ʼ]/g, "'");
-  //                               // 특수문자만 제거
-  //                               const cleaned = normalized.replace(/[^a-zA-Z']/g, '');
-
-  //                               // 해당 단어를 영문자만 소문자로 바꾸고 불용어 아니면 true, 불용어면 false
-  //                               // map이 모든 단어 순회하면서 isHoverable 여러 번 찍힘
-  //                               const isHoverable = cleaned && !stopWords.includes(cleaned.toLowerCase());
-  //                               console.log('호버1:', isHoverable);
-
-  //                               return (
-  //                                 <span
-  //                                 key={index}
-  //                                 // 클릭 시 불용어 아니면 팝업 고정
-  //                                 onClick={(e) => isHoverable && togglePin(e, cleaned)}>
-  //                                   {/* 원본 단어 그대로 표시 + 공백 추가 */}
-  //                                   {word}{' '}
-  //                                 </span>
-  //                               );
-  //                             })}
 
   // 번역 API 호출
   async function fetchTranslation(word) {
@@ -325,17 +304,17 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
           antonyms: meaning.antonyms?.slice(0, 5) || [],
           // 단어 번역
           meaningTranslation: '',
-          // 예문 번역
-          exampleTranslation: ''
+          // // 예문 번역
+          // exampleTranslation: ''
         };
 
         // 뜻 번역
         result.meaningTranslation = await fetchTranslation(result.definition) || '';
 
-        // 예문 있을 때만 번역
-        if (result.example) {
-          result.exampleTranslation = await fetchTranslation(result.example) || '';
-        }
+        // // 예문 있을 때만 번역
+        // if (result.example) {
+        //   result.exampleTranslation = await fetchTranslation(result.example) || '';
+        // }
 
         // 캐시에 저장
         setCache(prev => ({ ...prev, [word]: result }));
@@ -343,14 +322,14 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
         setIsPinned(true);
 
         // 팝업 열 때 서버에 타입 POPUP으로 보내기
-        await apiFetch('/api/words/collect', {
+        await apiFetch('/words/collect', {
           method: 'POST',
           body: JSON.stringify({
             wordType: 'POPUP',
             videoId: videoId,
             word: word,
             meaning: result.meaningTranslation,
-            example: result.exampleTranslation,
+            // example: result.exampleTranslation,
             sentence: savedSubtitle.text,
             timestamp: formatTime(savedSubtitle.startTime),
             // set은 다음 렌더링에 반영되기에 즉시 사용해야 하는 api는 dictionaryData.translation 대신 savedSubtitle.translation 사용
@@ -359,8 +338,8 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
             // translation: result.translation,
             title: videoTitle
           })
-        }).catch(() => {});
-        console.log('서버에팝업1:', videoId, word, result.meaningTranslation, result.exampleTranslation, savedSubtitle.text, formatTime(savedSubtitle.startTime), savedSubtitle.translation, videoTitle);
+        }).catch((error) => {console.log('이거 에러11:', error)});
+        console.log('서버에팝업1:', videoId, word, result.meaningTranslation, savedSubtitle.text, formatTime(savedSubtitle.startTime), savedSubtitle.translation, videoTitle);
       }
     } catch (error) {
       console.log('사전 조회 실패:', error);
@@ -392,14 +371,14 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
   // 단어 수집 버튼
   const collectWord = async () => {
     try {
-      await apiFetch('/api/words/collect', {
+      await apiFetch('/words/collect', {
         method: 'POST',
         body: JSON.stringify({
           wordType: 'COLLECT',
           videoId: videoId,
           word: dictionaryData.word,
           meaning: dictionaryData.meaningTranslation,
-          example: dictionaryData.exampleTranslation,
+          // example: dictionaryData.exampleTranslation,
           // 단어가 포함된 문장
           sentence: clickedSubtitle.text,
           // 영상 시간
@@ -411,7 +390,7 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
           title: videoTitle
         })
       });
-      console.log('단어수집C:', videoId, dictionaryData.word, dictionaryData.meaningTranslation, dictionaryData.exampleTranslation, clickedSubtitle.text, formatTime(currentSubtitle.startTime), clickedSubtitle.translation, videoTitle);
+      console.log('단어수집C:', videoId, dictionaryData.word, dictionaryData.meaningTranslation, clickedSubtitle.text, formatTime(currentSubtitle.startTime), clickedSubtitle.translation, videoTitle);
     } catch (error) {
       console.log('단어 수집 실패:', error);
     }
@@ -580,7 +559,7 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
 
         // 영상 일시정지 메시지 전송
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-          if (tabs[0]) chrome.tabs.sendMessage(tabs[0].id, { type: 'SET_QUIZ_MODE', active: true }).catch(() => {});
+          if (tabs[0]) chrome.tabs.sendMessage(tabs[0].id, { type: 'SET_QUIZ_MODE', active: true }).catch((error) => {console.log('이거 에러22:', error)});
         });
       }
 
@@ -603,7 +582,7 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
 
       // 영상 일시정지 메시지 전송
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        if (tabs[0]) chrome.tabs.sendMessage(tabs[0].id, { type: 'SET_QUIZ_MODE', active: true }).catch(() => {});
+        if (tabs[0]) chrome.tabs.sendMessage(tabs[0].id, { type: 'SET_QUIZ_MODE', active: true }).catch((error) => {console.log('이거 에러33:', error)});
       });
     }
   };
@@ -641,7 +620,7 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
     if (!tempChoice || isConfirmed) return;
     try {
       // 서버에 정답 제출
-      const result = await apiFetch('/api/quiz/submit', {
+      const result = await apiFetch('/quiz/submit', {
         method: 'POST',
         body: JSON.stringify({
           sessionId,
@@ -688,7 +667,7 @@ function QuizPage({ videoId, videoTitle, onExitPage, onSettlementPage }) {
     } else {
       // 마지막 문제였으면 퀴즈 종료
       try {
-        const finalResult = await apiFetch(`/api/quiz/sessions/${sessionId}/complete`, {
+        const finalResult = await apiFetch(`/quiz/sessions/${sessionId}/complete`, {
           method: 'POST'
         });
         console.log('정산완료');

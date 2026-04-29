@@ -37,9 +37,8 @@ out/
 .vscode/
 
 ### 설정 파일 ###
-src/main/resources/application.yaml
 src/main/resources/application-local.yaml
-src/test/resources/application-test.yaml
+
 ### OS 관련 ###
 .DS_Store
 Thumbs.db
@@ -51,5 +50,7 @@ Thumbs.db
 .env.production.local
 
 .env
-application.yml
-application-*.yml
+
+# Log files
+/logs/
+*.log

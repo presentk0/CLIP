@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
 @Table(name = "quiz_session")
 @EntityListeners(AuditingEntityListener.class)
 public class QuizSession {
-
+    //퀴즈 한 판의 전체 성적을 저장하는 클래스
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
