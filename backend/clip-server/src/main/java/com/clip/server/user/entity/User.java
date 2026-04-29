@@ -50,4 +50,11 @@ public class User {
         this.level = level;
         this.exp = exp;
     }
+
+    public void addExp(int amount) {
+        if(this.exp==null) {
+            this.exp = 0;
+        }
+        this.exp += amount;
+    }
 }

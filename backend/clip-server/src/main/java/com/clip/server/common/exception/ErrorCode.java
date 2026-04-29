@@ -30,6 +30,7 @@ public enum ErrorCode {
     VIDEO_NOT_FOUND(HttpStatus.NOT_FOUND, "VIDEO_NOT_FOUND", "영상을 찾을 수 없습니다."),
     SESSION_NOT_FOUND(HttpStatus.NOT_FOUND, "SESSION_NOT_FOUND", "퀴즈 세션을 찾을 수 없습니다."),
     PREFERENCE_NOT_FOUND(HttpStatus.NOT_FOUND, "PREFERENCE_NOT_FOUND", "학습 설정을 찾을 수 없습니다."),
+    QUIZ_NOT_FOUND(HttpStatus.NOT_FOUND, "QUIZ_NOT_FOUND", "퀴즈를 찾을 수 없습니다."),
 
     // 409 Conflict
     WORD_ALREADY_COLLECTED(HttpStatus.CONFLICT, "WORD_ALREADY_COLLECTED", "이미 수집한 단어입니다."),
