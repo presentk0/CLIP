@@ -86,6 +86,8 @@ console.log('테스트', sentences);
           method: 'GET'
         });
         console.log('서버 자막 조회:', response);
+        console.log('response.subtitles:', response.subtitles);
+        console.log('response.data:', response.data);
         // 자막이 있으면 시간순 정렬 후 저장
         if (response.subtitles && response.subtitles.length > 0) {
           console.log('자막있음');
