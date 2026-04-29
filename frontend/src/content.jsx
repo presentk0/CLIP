@@ -3,26 +3,14 @@ import { apiFetch } from "./utils/api";
 
 // 영상 중복 전송 방지용
 let lastVideoId = '';
-
-
-
-
-// // 자막 배열 중복 방지용
-// let lastSubtitle = [];
-// // 자막 문자열로 변환 후 중복 체크용
-// let lastKey = '';
-// // 시작 시간 저장용
-// let startTime = null;
-
-
-
-
-// // 퀴즈 생성을 위해 임시로 모아두는 자막 저장 박스 (전송 로직 고칠 예정)
-// let collectedSubtitles = [];
-
-
-
-
+// 전체 자막 데이터 저장
+let allSubtitles = [];
+// 마지막에 전송한 자막 인덱스
+let lastSentIndex = -1;
+// 인터셉터 중복 방지
+let isSubtitleInterceptorSet = false;
+// 리스너 중복 방지
+let isTimeUpdateSet = false;
 
 
 // 서버로 보낼 자막 데이터들 모아두는 박스
@@ -39,15 +27,6 @@ const MAX_QUEUE = 10;
 let isPanelOpen = false;
 // 퀴즈 중복 요청 방지
 let quizRequested = false;
-// 초기값 감지 미실행 상태
-let observer = null;
-
-
-
-// // 자막 감시중인지 제크
-// let isObserving = false;
-
-
 
 
 // 구간 반복 시작 시간
@@ -66,35 +45,14 @@ let eventEndListener = null;
 let eventSubtitleListener = null;
 
 
-
-// // 영상 재생 및 일시정지 이벤트 리스너 강제 종료용
-// let eventPlayPause = null;
-
-
-
 // 영상 페이지에서 영상 가져오기 실패 시 재시도 횟수 카운트용
 let retryCount = 0;
 // 영상 페이지에서 영상 가져오기 (실패 시 최대 15번까지 재시도)
 const MAX_RETRY = 15;
 
 
-
-// // play, pause 같은 영상 이벤트 리스너 중복 방지용
-// let listenersAdded = false;
-
-
-
-
 // 홈 & 검색 화면에서 새로운 영상 썸네일이 나타나는지 감시용 (배지 부착용)
 let thumbnailObserver = null;
-// // 서버에서 받은 현재 퀴즈 세션의 고유 ID (제출 및 결과 조회용)
-// let sessionId = null;
-// 영상 당 최초 1회만 영상 길이를 전송
-
-
-// let isDuration = false;
-// // 영상 당 최초 1회만 영상 제목과 아이디, 채널명 전송
-
 
 
 let isQuiz = false;
@@ -107,7 +65,7 @@ let matchingQuizCount = 0;
 let lastUrl = '';
 
 
-// 사이드 패널 신호 수신
+// ========== 사이드 패널 신호 수신 ==========
 chrome.runtime.onMessage.addListener((message) => {
   // 패널 열림
   if (message.type === 'PANEL_OPENED') {
@@ -121,17 +79,11 @@ chrome.runtime.onMessage.addListener((message) => {
   if (message.type === 'PANEL_CLOSED') {
     isPanelOpen = false;
 
-    // ========== 이벤트 리스너 관련 리셋 ==========
-    resetListeners();
+    // ========== 리스너/자막 리셋 ==========
+    resetSubtitleSystem();
 
     // ========== 퀴즈/영상 상태 리셋 ==========
     isQuiz = false;
-
-
-    // isDuration = false;
-
-
-
     quizSectionCount = 0;
     matchingQuizCount = 0;
     quizRequested = false;
@@ -140,13 +92,6 @@ chrome.runtime.onMessage.addListener((message) => {
     // ========== 큐/기타 리셋 ==========
     resetQueue();
     retryCount = 0;
-
-
-    // listenersAdded = false;
-
-
-
-
 
     // ========== 썸네일/UI ==========
     // 썸네일 옵저버 리셋
@@ -158,20 +103,6 @@ chrome.runtime.onMessage.addListener((message) => {
     removeBadges();
     // 추천 영상 다시 보여주기
     showRecommendations();
-
-
-    // // 저장한 자막 삭제(미사용)
-    // // localStorage.removeItem('subtitles');
-    // // 자막 감시를 종료
-    // stopObserver();
-
-    // const video = document.querySelector('video');
-    // if (video) {
-    //   // 구간 반복 루프 제거
-    //   video.removeEventListener('timeupdate', handleLoop);
-    // }
-    // loopStart = null;
-    // loopEnd = null;
   }
 
   // 퀴즈 시 영상 멈추기
@@ -190,6 +121,9 @@ chrome.runtime.onMessage.addListener((message) => {
       eventLoop = video;
       loopStart = message.startTime;
       loopEnd = message.endTime;
+      console.log(loopStart);
+      console.log(loopEnd);
+
       video.currentTime = loopStart;
       video.play();
       video.addEventListener('timeupdate', handleLoop);
@@ -213,49 +147,30 @@ window.addEventListener('yt-navigate-finish', () => {
   // location.href = 현재 페이지의 전체 URL
   if (location.href !== lastUrl) {
     console.log('실행여부2');
-    // 기존 자막 감시 종료
-    stopObserver();
+
+    // ========== 썸네일 관련 ==========
     // 썸네일 배지 감시 중지
     if (thumbnailObserver) {
       thumbnailObserver.disconnect();
       thumbnailObserver = null;
     }
 
-
-
-    // // 새 영상이면 이전 자막 캐시 리셋
-    // lastSubtitle = [];
-    // lastKey = '';
-    // startTime = null;
-
-
-
-
+    // ========== 상태 리셋 ==========
     lastVideoId = '';
-    // collectedSubtitles = [];
     quizRequested = false;
-    isEndListenerSet = false;
-
-
-
-    // isDuration = false;
-
-
-
-
     isQuiz = false;
     // 현재 퀴즈 섹션 수 리셋
     quizSectionCount = 0;
     // 매칭 퀴즈 요청 횟수 리셋
     matchingQuizCount = 0;
 
+    // ========== 큐/리스너 리셋 ==========
     // 영상 바뀔 때 큐 비우기
     resetQueue();
-
     // 이벤트 리스너 리셋
-    resetListeners();
+    resetSubtitleSystem();
 
-    // 패널 열려있을 때만 실행
+    // ========== 패널 열려있을 때만 실행 ==========
     if (isPanelOpen) {
       // 영상 페이지면 추천 영상 숨기고 자막 감지
       if (location.href.includes('/watch')) {
@@ -271,23 +186,24 @@ window.addEventListener('yt-navigate-finish', () => {
         setTimeout(observeThumbnails, 3000);
       }
     }
-    // 현재 url 저장
+
+    // ========== 현재 URL 저장 ==========
     lastUrl = location.href;
   }
 });
 
 
-
-
-
-// 이벤트 리스너 관련 리셋
-function resetListeners() {
+// 이벤트 리스너/자막 리셋
+function resetSubtitleSystem() {
   // 전체 자막 데이터 리셋
   allSubtitles = [];
   // 마지막에 전송한 자막 인덱스 리셋
   lastSentIndex = -1;
+
   // 리스너 중복 방지 리셋
   isTimeUpdateSet = false;
+  // 영상 끝 감지 횟수 리셋
+  isEndListenerSet = false;
 
   // 영상 끝 감지 이벤트 리스너 강제 종료
   if (eventEndListener) {
@@ -309,31 +225,18 @@ function resetListeners() {
   }
   loopStart = null;
   loopEnd = null;
-
-
-
-
-
-  // if (eventPlayPause) {
-  //   eventPlayPause.removeEventListener('play', handleVideoPlay);
-  //   eventPlayPause.removeEventListener('pause', handleVideoPause);
-  //   // 영상 재생 및 일시정지 이벤트 리스너 강제 종료용
-  //   eventPlayPause = null;
-
-  // }
-
-
-
 }
-
-
-
 
 
 // 영상 시청 페이지면 자막 감지 함수 실행하고 아니면 자막 감지 중지 함수 실행
 function observeSubtitles() {
   // 사이드 패널 열려야 실행
   if (!isPanelOpen) return;
+
+  // 쇼츠 차단
+  if (window.location.href.includes('/shorts')) {
+    return;
+  }
 
   // watch 페이지에서만 실행
   if (!window.location.href.includes('/watch')) {
@@ -354,24 +257,6 @@ function observeSubtitles() {
   // 성공하면 리셋
   retryCount = 0;
 
-  // // 현재 영상 플레이어 객체 저장
-  // eventPlayPause = video;
-
-  // // 이벤트 리스너 중복 방지
-  // if (!listenersAdded) {
-  //   // 영상이 재생 중일 때만 MutationObserver를 켜서 메모리 낭비 방지
-  //   video.addEventListener('play', handleVideoPlay);
-
-  //   // 영상이 멈추면 자막 감시 끄기
-  //   video.addEventListener('pause', handleVideoPause);
-  //   listenersAdded = true;
-  // }
-
-  // // 이미 재생 중이면 바로 시작
-  // if (!video.paused) {
-  //   console.log('콘텐츠 자막 감지 실행1:', Date.now());
-  //   startObserver();
-  // }
 
   // 영상 정보 가져오기
   const videoId = new URL(window.location.href).searchParams.get('v');
@@ -391,355 +276,85 @@ function observeSubtitles() {
     isQuiz = true;
   }
 
-  // // APP.jsx에 영상 전체 길이 전송(최초 1회), 바로 보내면 최종정산 페이지가 렌더링되어 있지 않아서 문제 생김
-  //   if (!isDuration && duration) {
-  //     chrome.runtime.sendMessage({
-  //       type: 'VIDEO_DURATION',
-  //       duration: duration
-  //     });
-  //     isDuration = true;
-  //     console.log('영상 길이 전송:', Date.now(), duration);
-  //   }
-
-
   // 영상 자막 전체 가져오는 함수 실행
   setupSubtitleInterceptor();
 }
 
 
-// // 영상이 재생 중일 때 광고 체크 후 자막 감지 시작
-// function handleVideoPlay() {
-//   // 광고면 startObserver 안 함!
-//   if (document.querySelector('.ad-showing')) {
-//     return;
-//   }
-//   startObserver();
-// }
-
-
-// // 영상이 일시정지 중일 때 광고 체크 후 자막 감지 종료
-// function handleVideoPause() {
-//   // 광고면 stopObserver 안 함
-//   if (document.querySelector('.ad-showing')) {
-//     return;
-//   }
-//   stopObserver();
-// }
-
-
-// // 자막 감지 시작 함수
-// function startObserver() {
-//   // ========== 실행 조건 체크 ==========
-//   // 사이드 패널 열려야 실행
-//   if (!isPanelOpen) return;
-
-//   // 쇼츠 차단
-//   if (window.location.href.includes('/shorts')) {
-//     return;
-//   }
-
-//   // 영상 페이지가 아니면
-//   if (!window.location.href.includes('/watch')) {
-//     // 추천 영상 보이기
-//     showRecommendations();
-//     return;
-//   }
-
-//   // 이미 자막을 감시중이면 자막 감지 함수 종료 (중복 실행 방지)
-//   if (isObserving) { return; }
-
-//   // ========== 필수 요소 가져오기 ==========
-//   // 자막이 표시되는 영역 찾기 (없으면 전체 페이지에서 감시)
-//   const container = document.querySelector('.ytp-caption-window-container') || document.body;
-//   if (!container) return;
-
-//   // URL에서 영상 ID 추출
-//   // 유튜브 URL 구조 = https://www.youtube.com/watch?v=dQw4w9WgXcQ 이런 형태에서 v= 부분이 videoId
-//   const videoId = new URL(window.location.href).searchParams.get('v');
-//   if (!videoId) return;
-
-//   // 영상 제목 가져오기
-//   const videoTitle = document.querySelector('#title h1')?.textContent?.trim() || '';
-//   if (!videoTitle) return;
-
-//   // 영상 채널명 가져오기
-//   const channelName = document.querySelector('#channel-name a')?.textContent;
-//   if (!channelName) return;
-//   console.log('콘텐츠 시작1:', Date.now());
-
-//   // ========== 퀴즈 페이지 초기화 (최초 1회) ==========
-//   // 사이드 패널에 영상 정보 전송 → 퀴즈 페이지로 이동
-//   if (!isQuiz && videoId && videoTitle && channelName) {
-//     console.log('퀴즈메시지 보내기 전:', Date.now(), videoId);
-//     chrome.runtime.sendMessage({
-//       type: 'GO_TO_QUIZ',
-//       videoId: videoId,
-//       videoTitle: videoTitle,
-//       channelName: channelName
-//     }).catch((error) => { console.log('이거 에러1:', error) });
-//     isQuiz = true;
-//     console.log('퀴즈페이지 이동:', Date.now());
-//   }
-
-//   // ========== 자막 감시 시작 ==========
-//   // MutationObserver: 화면 HTML 요소(DOM)의 변화를 감지하는 브라우저 내장 기능
-//   // 자막이 바뀔 때마다 자동으로 observer가 실행
-//   observer = new MutationObserver(async () => {
-//     // ----- 광고 체크 -----
-//     // 광고 재생 중이면 자막 수집 안 함
-//     if (document.querySelector('.ad-showing')) {
-//       console.log('광고1:', Date.now());
-//       return;
-//     }
-
-//     // ----- 영상 플레이어 가져오기 -----
-//     // 영상 플레이어 가져오기, 매번 video를 가져오기 때문에 중간광고도 대응가능
-//     const video = document.querySelector('video');
-//     if (!video) return;
-//     // 영상 끝 감지용으로 저장
-//     eventTimeUpdate = video;
-
-//     // ----- 영상 길이 App.jsx로 전송 (최초 1회) -----
-//     // 영상 전체 길이 가져오기
-//     const duration = video.duration;
-//     console.log('영상 전체 가져옴:', Date.now(), duration);
-
-//     // 바로 보내면 최종정산 페이지가 렌더링되어 있지 않아서 문제 생김
-//     if (!isDuration && duration) {
-//       chrome.runtime.sendMessage({
-//         type: 'VIDEO_DURATION',
-//         duration: duration
-//       });
-//       isDuration = true;
-//       console.log('영상 길이 전송:', Date.now(), duration);
-//     }
-
-//     // ----- 영상 끝 감지 리스너 등록 (최초 1회) -----
-//     // ended는 영상이 끝나는거 감지 못해서 실시간 감지를 위해 timeupdate 사용
-//     // 평소 미실행 중간 광고 끝나고 끝남 확인1 뜨니까 수정 필요 (오류)
-//     if (!isEndListenerSet) {
-//       // video = 이벤트를 받을 요소 (EventTarget)
-//       // 'timeupdate' = 이벤트 타입
-//       // handleTimeUpdate = 콜백 함수
-//       video.addEventListener('timeupdate', handleTimeUpdate);
-
-//       // 이벤트 리스너 등록할 때마다 쌓이는거 방지
-//       isEndListenerSet = true;
-//       console.log('영상 시간 감지 시작:', Date.now());
-//     }
-
-//     // ----- 현재 자막 가져오기 -----
-//     // 화면의 모든 자막 요소를 찾기(단일 요소는 배열 안 됨)
-//     // 텍스트만 추출
-//     // 영어만 필터링 (한국어, 시스템 메시지 제외)
-//     const texts = Array.from(document.querySelectorAll('.ytp-caption-segment'))
-//       .map(el => el.textContent.trim())
-//       .filter(t => t && isEnglishOnly(t));
-//     console.log('texts:', texts);
-
-//     // 텍스트가 바뀐 순간의 비디오 재생 시점(초)을 가져옴
-//     const currentTime = video.currentTime;
-
-//     // ----- 중복 체크 -----
-//     // 배열은 직접 비교 불가능해서 배열 구조를 통채로 문자열로 변환해서 비교
-//     // ["배열"] === ["배열"] -> 항상 false (참조 비교)
-//     // '["문자열"]' === '["문자열"]' -> 내용 비교 가능
-//     const currentKey = JSON.stringify(texts);
-//     console.log('currentKey:', currentKey);
-
-//     // 중복 체크
-//     if (currentKey === lastKey) return;
-//     console.log('=== 변화 감지 ===');
-//     console.log('lastSubtitle:', lastSubtitle);
-//     console.log('lastSubtitle.length:', lastSubtitle.length);
-//     console.log('startTime:', startTime);
-
-
-//     // ----- 자막 전송 로직 -----
-//     // 이전 자막 (문자열)
-//     const lastText = lastSubtitle.join(' ');
-//     // 현재 자막 (문자열)
-//     const currentText = texts.join(' ');
-
-
-//     console.log('lastText:', lastText);
-//     console.log('currentText:', currentText);
-//     console.log('startsWith:', currentText.startsWith(lastText));
-
-
-
-//     if (lastSubtitle.length > 0 && startTime !== null) {
-//       // 자동 생성 자막 대비용, 현재 자막이 이전 자막으로 시작하는지 체크
-//       if (!currentText.startsWith(lastText)) {
-//         console.log('자막 나옴:', Date.now(), lastSubtitle);
-//         // 각 문장 따로 큐에 넣기
-//         for (const text of lastSubtitle) {
-//           addToQueue(text, startTime, currentTime, videoId, videoTitle, duration);
-//         }
-//         // 자막이 있으면 새 자막 시작 시간 업데이트, 자막이 없으면 시작 시간 리셋
-//         startTime = texts.length > 0 ? currentTime : null;
-//       } else {
-//         console.log('startsWith = true, 전송 안 함');
-//       }
-//     } else {
-//       console.log('조건 미충족 - lastSubtitle.length:', lastSubtitle.length, 'startTime:', startTime);
-//     }
-
-//     // ----- 새 자막 시작 감지 -----
-//     // 이전에 자막이 없다가 새로 나타났을 경우 새 자막 시작 시간 업데이트
-//     if (lastKey === '' && texts.length > 0) {
-//       startTime = currentTime;
-//     }
-
-//     // ----- 다음 자막 비교용 현재 상태 저장 -----
-//     lastSubtitle = texts;
-//     console.log('lastSubtitle:', lastSubtitle);
-//     lastKey = currentKey;
-//     console.log('lastKey:', lastKey);
-//   });
-
-//   // ========== 감시 시작 코드 ==========
-//   // observe: 실제 감시를 시작하는 함수
-//   // container 안에서 아래 변화가 생기면 위 함수 실행
-//   observer.observe(container, {
-//     // 새로운 HTML 태그(<span>, <div> 등)가 생기거나, 기존 태그가 삭제될 때 알림
-//     childList: true,
-//     // 전체 구역(subtree)을 훑어봄으로써 자식의 자식들까지 전부 감지
-//     subtree: true,
-//     // 글자(텍스트)가 바뀌는지 감시, 태그의 변화가 없고 글자만 변해도 작동하는 코드
-//     characterData: true
-//   });
-//   isObserving = true;
-// }
-
-
-// // 영어만 허용하는 필터 함수
-// function isEnglishOnly(text) {
-//   if (!text?.trim()) return false;
-
-//   // 영어, 숫자, 일반 특수문자만 허용
-//   const allowed = /^[a-zA-Z0-9\s.,!?'"""''()\-:;@#$%^&*[\]/\\~`+=<>{}|_]+$/;
-//   return allowed.test(text);
-// }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// ========== 전역 변수 ==========
-// 전체 자막 데이터 저장
-let allSubtitles = [];
-// 마지막에 전송한 자막 인덱스
-let lastSentIndex = -1;
-// 인터셉터 중복 방지
-let isSubtitleInterceptorSet = false;
-// 리스너 중복 방지
-let isTimeUpdateSet = false;
-
-
 // XMLHttpRequest 가로채기 설정
 // 유튜브가 자막을 요청할 때 응답을 엿봄
-
 // XMLHttpRequest = 브라우저 내장 객체 (네트워크 요청용)
 // XMLHttpRequest.prototype = XMLHttpRequest에서 쓸 수 있는 모든 함수들 가져오기
 function setupSubtitleInterceptor() {
   // 최초 1회만 발동
   if (isSubtitleInterceptorSet) return;
   isSubtitleInterceptorSet = true;
+  console.log('최초 1회', Date.now());
 
-  // 브라우저가 만든 함수(받는 주소, 요청 방식이 담김) 백업
-  const originalOpen = XMLHttpRequest.prototype.open;
-  // 브라우저가 만든 함수(실제 요청 전송) 백업
-  const originalSend = XMLHttpRequest.prototype.send;
+  // ========== inject.js에서 자막 데이터 수신 ==========
+  window.addEventListener('message', (event) => {
+    // 유튜브에서 온 것만
+    if (event.origin !== 'https://www.youtube.com') return;
+    // inject.js에서 온 것만
+    if (event.data.type !== 'CLIPZY_SUBTITLE_DATA') return;
 
-  // open 함수에 익명 함수를 덮어쓰기 (URL 저장용)
-  // method = 'GET'
-  // url = 'https://youtube.com/api/timedtext'
-  // open()을 호출한 객체의 method(순서 때문에 가져오기)와 url을 가져오기
-  XMLHttpRequest.prototype.open = function(method, url) {
-    // this에는 url이 없으니 open()을 호출한 url을 저장
-    this.url = url;
-    // 백업해둔 원본 함수를 수동으로 같은 상황(this)에서 같은 값(arguments)으로 실행하는 조건을 설정 하기
-    // apply 첫 번째 인자(누가(유튜브가 자막 요청할 때 만드는 객체) 이 함수를 실행하는지)
-    // apply 두 번째 인자(arguments = 모든 인자 (method, url, ...나머지 인자)들로 실행)
-    return originalOpen.apply(this, arguments);
-  };
+    // 사이드 패널 닫혀있으면 무시
+    if (!isPanelOpen) return;
 
-  // send 함수에 익명 함수를 덮어쓰기 (대신 응답하기)
-  // send()을 호출한 객체에 익명 함수를 적용 (요청은 open 이후에 send를 하기에 같은 this를 가짐)
-  XMLHttpRequest.prototype.send = function() {
-    // 호출한 객체의 서버 응답이 완료되면 익명 함수를 실행
-    this.addEventListener('load', function() {
-      // 사이드 패널 닫혀있으면 무시
-      if (!isPanelOpen) return;
+    // 안에 tStartMs, dDurationMs, segs가 있는 객체들이 담겨있는 events 가져오기
+    const response = event.data.response;
 
-      // 호출한 객체의 URL이 존재하는지 && 호출한 객체의 URL에 'timedtext' 포함되어있는지 확인 && 호출한 객체의 URL에 'lang=en'이 있는지 확인 즉 영어인지 확인
-      // 유튜브 자막 URL에는 'timedtext'와 'lang'이 포함됨
-      if (this.url && this.url.includes('timedtext') && this.url.includes('lang=en')) {
-        try {
-          // 문자열(자막 데이터가 ""로 담김)을 객체로 변환
-          const data = JSON.parse(this.responseText);
+    try {
+      // 문자열(자막 데이터가 ""로 담김)을 객체로 변환
+      const data = JSON.parse(response);
 
-          // 자막 데이터의 이벤트 요소(tStartMs,dDurationMs, segs) 저장
-          allSubtitles = data.events
-            // segs(텍스트 조각)가 있는 이벤트 요소만 가져오기
-            .filter(event => event.segs)
-            .map(event => ({
-              // 각각의 segs에 담긴 텍스트 조각들(utf8) 합치기
-              text: event.segs.map(seg => seg.utf8 || '').join('').trim(),
-              // 시작 시간 저장
-              startTime: event.tStartMs,
-              // 끝 시간 저장(시작 시간 + 지속 시간)
-              endTime: event.tStartMs + (event.dDurationMs || 0)
-            }))
-            // sub.text가 빈 텍스트이면 해당 데이터 제거(segs가 공백 또는 빈 값인 경우 방지)
-            .filter(sub => sub.text)
-            // 전체가 [...] 형태일 때만 해당 데이터 제거
-            .filter(sub => !/^\[.*\]$/.test(sub.text.trim()));
+      // 자막 데이터의 이벤트 요소(tStartMs,dDurationMs, segs) 저장
+      allSubtitles = data.events
+      // segs(텍스트 조각)가 있는 이벤트 요소만 가져오기
+      .filter(event => event.segs)
+      .map(event => ({
+        // 각각의 segs에 담긴 텍스트 조각들(utf8) 합치기
+        text: event.segs.map(seg => seg.utf8 || '').join('').trim(),
+        // 시작 시간 초 단위로 저장
+        startTime: event.tStartMs / 1000,
+        // 끝 시간 초 단위로 저장(시작 시간 + 지속 시간)
+        endTime: (event.tStartMs + (event.dDurationMs || 0)) / 1000
+      }))
+      // sub.text가 빈 텍스트이면 해당 데이터 제거(segs가 공백 또는 빈 값인 경우 방지)
+      .filter(sub => sub.text)
+      // 전체가 [...] 형태일 때만 해당 데이터 제거
+      .filter(sub => !/^\[.*\]$/.test(sub.text.trim()));
 
-          // 자막 데이터에 담긴 텍스트의 줄바꿈을 공백으로 변환
-          allSubtitles = allSubtitles.map(sub => ({
-            ...sub,
-            text: sub.text.replace(/\n/g, ' ').trim()
-          }));
+      // 자막 데이터에 담긴 텍스트의 줄바꿈을 공백으로 변환
+      allSubtitles = allSubtitles.map(sub => ({
+        ...sub,
+        text: sub.text.replace(/\n/g, ' ').trim()
+      }));
 
-          console.log('자막 나옴', allSubtitles.length, '개');
+      console.log('자막 나옴', allSubtitles.length, '개');
 
-          // 인덱스 리셋
-          lastSentIndex = -1;
-          
-          // timeupdate 리스너 설정
-          setupTimeUpdateListener();
-          setupEndListener();
-        } catch (error) {
-          console.log('자막 파싱 실패:', error);
-        }
-      }
-    });
+      // 인덱스 리셋
+      lastSentIndex = -1;
 
-    // 백업해둔 원본 함수를 수동으로 같은 상황(this)에서 같은 값(arguments)으로 실행
-    return originalSend.apply(this, arguments);
-  };
-
-  console.log('자막 인터셉터 활성화');
-}
+      // timeupdate 리스너 설정
+      setupTimeUpdateListener();
+      console.log('타임', Date.now());
+      setupEndListener();
+      console.log('엔드', Date.now());
+    } catch (error) {
+      console.log('자막 파싱 실패:', error);
+    }
+  });
+};
 
 
 // timeupdate 리스너 설정
 // 영상 재생 시간이 바뀔 때마다 호출됨
-
 function setupTimeUpdateListener() {
+  console.log('설정 전', Date.now());
   // 이미 설정됐으면 스킵
   if (isTimeUpdateSet) return;
+  console.log('설정 후', Date.now());
 
   const video = document.querySelector('video');
   if (!video) return;
@@ -754,10 +369,12 @@ function setupTimeUpdateListener() {
 
 // 영상 끝 감지 함수(최초 1회)
 function setupEndListener() {
+  console.log('설정 전1', Date.now());
   if (!isEndListenerSet) return;
+  console.log('설정 후1', Date.now());
   const video = document.querySelector('video');
   if (!video) return;
-
+  console.log('설정 후2', Date.now());
   eventEndListener = video;
   video.addEventListener('timeupdate', handleTimeUpdate);
   isEndListenerSet = true;
@@ -765,115 +382,63 @@ function setupEndListener() {
 }
 
 
-
-
-
-
 // 현재 시간에 맞는 자막 찾아서 전송
-
 function handleSubtitleSync(e) {
+  console.log('1. handleSubtitleSync 호출');
   const video = e.target;
-  // 영상이 없거나 자막 데이터가 없으면 스킵
-  if (!video || allSubtitles.length === 0) return;
-  // 광고면 스킵
-  if (document.querySelector('.ad-showing')) return;
+  // // 영상이 없거나 자막 데이터가 없으면 스킵
+  // if (!video || allSubtitles.length === 0) return;
+
+  if (!video) {
+    console.log('2. video 없음');
+    return;
+  }
+  
+  if (allSubtitles.length === 0) {
+    console.log('3. allSubtitles 비어있음');
+    return;
+  }
+  if (document.querySelector('.ad-showing')) {
+    console.log('4. 광고 중');
+    return;
+  }
+
+  // // 광고면 스킵
+  // if (document.querySelector('.ad-showing')) return;
 
   // 현재 시간 실시간 업데이트
   const currentTime = video.currentTime;
+
+  console.log('5. currentTime:', currentTime);
+  console.log('6. 첫 자막 시간:', allSubtitles[0]?.startTime, '~', allSubtitles[0]?.endTime);
 
   // 현재 시간이 자막의 시작~끝 사이에 있으면 allSubtitles에 맞는 인덱스 반환
   const index = allSubtitles.findIndex(sub =>
     currentTime >= sub.startTime && currentTime <= sub.endTime
   );
+    console.log('7. 찾은 index:', index);
+  console.log('8. lastSentIndex:', lastSentIndex);
 
   // 자막 데이터가 있고 && 기존 영상이면 전송(새로고침하면 초기화)
   if (index !== -1 && index !== lastSentIndex) {
     // 인덱스 순서로 담기
     const sub = allSubtitles[index];
+    console.log('9. 자막 전송:', sub.text);
 
     // 필요한 정보 가져오기
     const videoId = new URL(window.location.href).searchParams.get('v');
     const videoTitle = document.querySelector('#title h1')?.textContent?.trim() || '';
     const duration = video.duration;
 
-    console.log('📤 자막 전송:', sub.text);
-    
-    // 기존 addToQueue 함수 호출
+    console.log('자막 전송:', sub.text);
+
+    // 큐 대기열에 넣기
     addToQueue(sub.text, sub.startTime, sub.endTime, videoId, videoTitle, duration);
     
     lastSentIndex = index;
+  } else {
+    console.log('10. 전송 안 함 - index:', index, 'lastSentIndex:', lastSentIndex);
   }
-}
-
-// 
-// 자막 시스템 리셋
-// 영상 변경 시 호출
-// 
-// function resetSubtitleSystem() {
-//   allSubtitles = [];
-//   lastSentIndex = -1;
-//   isTimeUpdateSet = false;
-  
-//   // // timeupdate 리스너 제거
-//   // const video = document.querySelector('video');
-//   // if (video) {
-//   //   video.removeEventListener('timeupdate', handleSubtitleSync);
-//   // }
-
-//     if (eventSubtitleListener) {
-//     eventSubtitleListener.removeEventListener('timeupdate', handleSubtitleSync);
-//     eventSubtitleListener = null;
-//   }
-// }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// 영상 길이에 맞는 섹션 수 계산
-function getSectionCount(duration) {
-  // 1분 미만
-  if (duration < 60) return 0;
-  // 1분~5분 미만
-  if (300 < duration <= 60) return 1;
-  // 5분~10분 미만
-  if (600 < duration <= 300) return 1;
-  // 10분~20분 미만
-  if (1200 < duration <= 600) return 2;
-  // 20분~30분 미만
-  if (1800 < duration <= 1200) return 3;
-  // 30분 이상
-  if (1800 <= duration) return 3;
 }
 
 
@@ -898,29 +463,21 @@ function handleTimeUpdate(e) {
 }
 
 
-
-
-function stopObserver() {
-  //  자막 감시 중지
-  // if 없어도 작동하지만 로딩 고려해서 값이 있을 때만 실행하는 안전장치
-  if (observer) {
-    // MutationObserver 감시 중지
-    observer.disconnect();
-
-
-
-
-    // // 감시 종료한 상태
-    // isObserving = false;
-
-
-
-
-    // 메모리 삭제
-    observer = null;
-  }
+// 영상 길이에 맞는 섹션 수 계산
+function getSectionCount(duration) {
+  // 1분 미만
+  if (duration < 60) return 0;
+  // 1분~5분 미만
+  if (300 < duration <= 60) return 1;
+  // 5분~10분 미만
+  if (600 < duration <= 300) return 1;
+  // 10분~20분 미만
+  if (1200 < duration <= 600) return 2;
+  // 20분~30분 미만
+  if (1800 < duration <= 1200) return 3;
+  // 30분 이상
+  if (1800 <= duration) return 3;
 }
-
 
 
 // 큐에 자막 넣기
@@ -985,16 +542,6 @@ async function processQueue() {
         startTime: item.startTime,
         endTime: item.endTime
       });
-
-      // collectedSubtitles.push({
-      //   text: item.text,
-      // });
-
-      // // 자막이 10개 쌓였고 퀴즈를 요청한 적이 없다면 퀴즈 생성 요청 (수정 예정)
-      // if (collectedSubtitles.length >= 10 && !quizRequested) {
-      //   startQuizSession();
-      // }
-
 
     } catch (error) {
       console.log('처리 실패:', error);
@@ -1340,32 +887,10 @@ function init() {
   console.log('콘텐츠 리셋1:', Date.now());
   // 재시도 횟수 리셋
   retryCount = 0;
-
-
-
-  // // play, pause 같은 영상 이벤트 리스너 미실행으로 설정
-  // listenersAdded = false;
-
-
-
-  // // 자막 배열 리셋
-  // collectedSubtitles = [];
   // 퀴즈 요청 상태 리셋
   quizRequested = false;
   // 저장된 영상ID 리셋
   lastVideoId = '';
-  // 영상 끝 감지 횟수 리셋
-  isEndListenerSet = false;
-
-
-
-
-  // // 영상 전체 길이 전송 횟수 리셋
-  // isDuration = false;
-
-
-
-
   // 영상 제목과 아이디, 채널명 전송 횟수 리셋
   isQuiz = false;
   // 현재 퀴즈 섹션 수 리셋
@@ -1373,9 +898,13 @@ function init() {
   // 매칭 퀴즈 요청 횟수 리셋
   matchingQuizCount = 0;
 
-  // 이벤트 리스너 관련 리셋
-  resetListeners();
+  // ========== 큐 리셋 ==========
+  resetQueue();
 
+  // ========== 리스너/자막 리셋 =========
+  resetSubtitleSystem();
+
+  // ========== 페이지별 처리 ==========
   // 영상 페이지일 경우
   if (window.location.href.includes('/watch')) {
     // 추천 영상 숨기기
