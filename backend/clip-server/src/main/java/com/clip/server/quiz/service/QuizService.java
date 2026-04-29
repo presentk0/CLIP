@@ -2,9 +2,11 @@ package com.clip.server.quiz.service;
 
 import com.clip.server.common.exception.BusinessException;
 import com.clip.server.common.exception.ErrorCode;
+import com.clip.server.quiz.dto.request.QuizSubmitRequest;
 import com.clip.server.quiz.dto.request.QuizWordRequest;
 import com.clip.server.quiz.dto.response.OpenAIQuizDataResponse;
 import com.clip.server.quiz.dto.response.QuizDetailResponse;
+import com.clip.server.quiz.dto.response.QuizSubmitResponse;
 import com.clip.server.quiz.entity.QuizResult;
 import com.clip.server.quiz.entity.QuizSession;
 import com.clip.server.quiz.entity.QuizType;
@@ -25,6 +27,7 @@ import java.util.stream.IntStream;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class QuizService {
 
     private final OpenAIService openAIService;
@@ -63,7 +66,7 @@ public class QuizService {
         QuizResult saved = quizResultRepository.save(result);
 
         // 3. 프론트엔드용 DTO 매핑
-        return mapToResponse(saved, null);
+        return mapToQuizDetailResponse(saved, null);
     }
 
     /**
@@ -97,7 +100,7 @@ public class QuizService {
         QuizResult saved = quizResultRepository.save(result);
 
         // 3. 프론트엔드용 DTO 매핑 (options 리스트 포함)
-        return mapToResponse(saved, aiData.getOptions());
+        return mapToQuizDetailResponse(saved, aiData.getOptions());
     }
 
     /**
@@ -158,10 +161,34 @@ public class QuizService {
         }).collect(Collectors.toList());
     }
 
+//    public QuizSubmitResponse submitQuiz(Long userId, QuizSubmitRequest request) {
+//
+//        // 퀴즈 세션, 사용자 정보 확인
+//        QuizResult quizResult = quizResultRepository.findById(request.getQuizId())
+//                .orElseThrow(()-> new BusinessException(ErrorCode.QUIZ_NOT_FOUND));
+//        User user = userRepository.findById(userId)
+//                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+//
+//        boolean isCorrect = checkAnswer(quizResult.getCorrectAnswer(), request.getUserAnswer());
+//        int earnedExp = isCorrect? 10 : 0; // 정답이면 exp 오답이면 0
+//
+//        if(isCorrect) {
+//            user.addExp(earnedExp);
+//        }
+//
+//        quizResult.submitAnswer(request.getUserAnswer(), isCorrect, earnedExp);
+//    }
+
+    private boolean checkAnswer(String correctAnswer, String userAnswer) {
+        if(correctAnswer.equals(userAnswer)) {
+            return true;
+        } return false;
+    }
+
     /**
      * 🔥 엔티티 -> 응답 DTO 변환 유틸리티
      */
-    private QuizDetailResponse mapToResponse(QuizResult result, List<String> options) {
+    private QuizDetailResponse mapToQuizDetailResponse(QuizResult result, List<String> options) {
         return QuizDetailResponse.builder()
                 .quizId(result.getId())
                 .quizType(result.getQuizType())
@@ -172,4 +199,14 @@ public class QuizService {
                 .videoTimeStamp(result.getVideoTimestamp())
                 .build();
     }
+
+//    private QuizSubmitResponse mapToQuizSubmitResponse() {
+//        return QuizSubmitResponse.builder()
+//                .isCorrect()
+//                .correctAnswer()
+//                .earnedExp()
+//                .feedback()
+//                .currentExp()
+//                .build();
+//    }
 }
