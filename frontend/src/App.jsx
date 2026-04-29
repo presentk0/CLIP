@@ -19,6 +19,9 @@ function App() {
   const [channelName, setChannelName] = useState('');
   // 영상 전체 길이
   const [duration, setDuration] = useState(0);
+  // 영상 바뀌면 퀴즈페이지 언마운트
+  const [resetKey, setResetKey] = useState(0);
+
 
   // 사이드패널 열림 감지 및 연결
   useEffect(() => {
@@ -58,21 +61,37 @@ function App() {
     const listener = (message) => {
       console.log('메시지 받음:', message.type, Date.now());
       if (message.type === 'GO_TO_QUIZ') {
-        console.log('퀴즈 페이지 이동1:', Date.now());
+        console.log('퀴즈 페이지 이동1:', Date.now(), message.videoId);
+        // if (isChange !== message.videoId) {setIsChange(true)};
         setVideoId(message.videoId);
         setVideoTitle(message.videoTitle);
         setChannelName(message.channelName);
-        setMove(1);
-      }
-      if (message.type === 'VIDEO_DURATION') {
-        console.log('퀴즈 페이지 이동2:', Date.now());
+
+        // 최종정산 페이지 전용
         setDuration(message.duration);
         setMove(1);
+      }
+      // if (message.type === 'VIDEO_DURATION') {
+      //   console.log('퀴즈 페이지 이동2:', Date.now());
+      //   setDuration(message.duration);
+      //   setMove(1);
+      // }
+      if (message.type === 'GO_TO_DEFAULT') {
+        console.log('언마운트 후 디폴트로');
+        goToDefault();
       }
     };
     chrome.runtime.onMessage.addListener(listener);
     return () => chrome.runtime.onMessage.removeListener(listener);
   }, []);
+
+
+  // 영상 이동 시 퀴즈페이지 리셋 후 디폴트페이지로 이동
+  const goToDefault = () => {
+    setResetKey(prev => prev + 1);
+    setMove(0);
+  };
+
 
 
   // 정산 페이지로 이동
@@ -104,6 +123,7 @@ function App() {
       {/* 페이지 1: 퀴즈 화면 */}
       {move === 1 && (
         <QuizPage
+          key={resetKey}
           videoId={videoId}
           videoTitle={videoTitle}
           onExitPage={handleExit}
