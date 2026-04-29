@@ -318,16 +318,16 @@ export const apiFetch = async (endpoint, options = {}) => {
 
   // 실제 서버 통신 로직 (나중에 사용)
   // const { accessToken } = await chrome.storage.local.get(['accessToken']);
-  // const response = await fetch(`${BASE_URL}${endpoint}`, {
-  //   ...options,
-  //   headers: {
-  //     'Content-Type': 'application/json',
-  //     'Authorization': `Bearer ${accessToken}`,
-  //     ...options.headers,
-  //   }
-  // });
+  const response = await fetch(`${BASE_URL}${endpoint}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      // 'Authorization': `Bearer ${accessToken}`,
+      ...options.headers,
+    }
+  });
 
-  // const result = await response.json();
-  // if (!result.success) throw new Error(result.error?.message || 'API Error');
-  // return result.data;
+  const result = await response.json();
+  if (!result.success) throw new Error(result.error?.message || 'API Error');
+  return result.data;
 };
