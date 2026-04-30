@@ -16,3 +16,4 @@ docker compose up -d --build
 # 3. 사용하지 않는(Dangling) 이미지 정리 (용량 확보)
 echo "> 사용하지 않는 이미지 제거..."
 docker image prune -f
+docker container prune -f
