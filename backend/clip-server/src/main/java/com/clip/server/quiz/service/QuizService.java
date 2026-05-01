@@ -35,6 +35,8 @@ public class QuizService {
     private final UserRepository userRepository;
     private final QuizSessionRepository quizSessionRepository;
 
+    private static final int CORRECT_EXP = 100;
+
     /**
      * OX 퀴즈 생성 및 저장
      */
@@ -61,6 +63,8 @@ public class QuizService {
                 .correctAnswer(aiData.getAnswer())
                 .explanation(aiData.getExplanation()) // 친절한 뉘앙스 해설
                 .videoTimestamp(request.getVideoTimeStamp())
+                .correctFeedback(aiData.getCorrectFeedback())
+                .wrongFeedback(aiData.getWrongFeedback())
                 .build();
 
         QuizResult saved = quizResultRepository.save(result);
@@ -95,6 +99,8 @@ public class QuizService {
                 .correctAnswer(aiData.getAnswer())
                 .explanation(aiData.getExplanation())
                 .videoTimestamp(request.getVideoTimeStamp())
+                .correctFeedback(aiData.getCorrectFeedback())
+                .wrongFeedback(aiData.getWrongFeedback())
                 .build();
 
         QuizResult saved = quizResultRepository.save(result);
@@ -144,6 +150,8 @@ public class QuizService {
                     .correctAnswer(data.getAnswer())   // 예: "노력"
                     .explanation(data.getExplanation()) // 예: "힘을 쓰는 이미지!"
                     .videoTimestamp(requests.get(i).getVideoTimeStamp())
+                    .correctFeedback(data.getCorrectFeedback())
+                    .wrongFeedback(data.getWrongFeedback())
                     .build();
 
             QuizResult saved = quizResultRepository.save(result);
@@ -161,28 +169,34 @@ public class QuizService {
         }).collect(Collectors.toList());
     }
 
-//    public QuizSubmitResponse submitQuiz(Long userId, QuizSubmitRequest request) {
-//
-//        // 퀴즈 세션, 사용자 정보 확인
-//        QuizResult quizResult = quizResultRepository.findById(request.getQuizId())
-//                .orElseThrow(()-> new BusinessException(ErrorCode.QUIZ_NOT_FOUND));
-//        User user = userRepository.findById(userId)
-//                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
-//
-//        boolean isCorrect = checkAnswer(quizResult.getCorrectAnswer(), request.getUserAnswer());
-//        int earnedExp = isCorrect? 10 : 0; // 정답이면 exp 오답이면 0
-//
-//        if(isCorrect) {
-//            user.addExp(earnedExp);
-//        }
-//
-//        quizResult.submitAnswer(request.getUserAnswer(), isCorrect, earnedExp);
-//    }
+    // 퀴즈 제출 로직
+    @Transactional
+    public QuizSubmitResponse submitQuiz(Long userId, QuizSubmitRequest request) {
 
+        // 퀴즈 세션, 사용자 정보 확인
+        QuizResult quizResult = quizResultRepository.findById(request.getQuizId())
+                .orElseThrow(()-> new BusinessException(ErrorCode.QUIZ_NOT_FOUND));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        boolean isCorrect = checkAnswer(quizResult.getCorrectAnswer(), request.getUserAnswer());
+        int earnedExp = isCorrect? CORRECT_EXP : 0; // 정답이면 exp 오답이면 0
+
+        // 사용자 exp 업데이트
+        if(isCorrect) {
+            user.addExp(earnedExp);
+        }
+
+        // 사용자 답, 정답 여부, 퀴즈를 통해 얻은 exp 저장
+        quizResult.submitAnswer(request.getUserAnswer(), isCorrect, earnedExp);
+
+        return mapToQuizSubmitResponse(quizResult, user.getExp());
+    }
+
+    // 퀴즈 정답 체크
     private boolean checkAnswer(String correctAnswer, String userAnswer) {
-        if(correctAnswer.equals(userAnswer)) {
-            return true;
-        } return false;
+        if (correctAnswer == null || userAnswer == null) return false;
+        return correctAnswer.equals(userAnswer);
     }
 
     /**
@@ -200,13 +214,14 @@ public class QuizService {
                 .build();
     }
 
-//    private QuizSubmitResponse mapToQuizSubmitResponse() {
-//        return QuizSubmitResponse.builder()
-//                .isCorrect()
-//                .correctAnswer()
-//                .earnedExp()
-//                .feedback()
-//                .currentExp()
-//                .build();
-//    }
+    private QuizSubmitResponse mapToQuizSubmitResponse(QuizResult quizResult, Integer currentExp) {
+        return QuizSubmitResponse.builder()
+                .isCorrect(quizResult.getIsCorrect())
+                .correctAnswer(quizResult.getCorrectAnswer())
+                .earnedExp(quizResult.getEarnedExp())
+                .feedback(quizResult.getIsCorrect()? quizResult.getCorrectFeedback() : quizResult.getWrongFeedback()) // 정오답 여부에 맞는 피드백 제공
+                .explanation(quizResult.getExplanation())
+                .currentExp(currentExp)
+                .build();
+    }
 }

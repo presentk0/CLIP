@@ -1,6 +1,7 @@
 package com.clip.server.word.dto.response;
 
 import com.clip.server.word.entity.WordType;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -18,5 +19,6 @@ public class WordResponse {
     private String translation;
     private String videoId;
     private String videoTitle;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime collectedAt;
 }

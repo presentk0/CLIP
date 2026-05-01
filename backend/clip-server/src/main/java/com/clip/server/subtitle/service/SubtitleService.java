@@ -1,6 +1,7 @@
 package com.clip.server.subtitle.service;
 
 import com.clip.server.common.exception.BusinessException;
+import com.clip.server.common.exception.ErrorCode;
 import com.clip.server.progress.entity.UserVideoProgress;
 import com.clip.server.progress.repository.UserVideoProgressRepository;
 import com.clip.server.quiz.service.KeywordExtractionService;
@@ -161,6 +162,12 @@ public class SubtitleService {
                .stream()
                .map(this::mapToSubtitleDetailResponse)
                .toList();
+
+        // 자막 리스트가 비어있을 경우 에러처리
+        if (subtitles.isEmpty()) {
+            log.error("videoId: {} 에 해당하는 자막 데이터가 존재하지 않습니다.", videoId);
+            throw new BusinessException(ErrorCode.SUBTITLE_NOT_FOUND);
+        }
 
        return SubtitleListResponse.builder()
                .videoId(videoId)

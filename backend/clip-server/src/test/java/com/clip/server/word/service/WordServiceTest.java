@@ -21,6 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.*;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -72,6 +73,12 @@ public class WordServiceTest {
                 .willReturn(Optional.empty());
         given(videoRepository.findById("v1")).willReturn(Optional.of(fakeVideo));
 
+        CollectedWord fakeSavedWord = CollectedWord.builder()
+                .word("effort")
+                .meaning("노력")
+                .build();
+        given(collectedWordRepository.save(any(CollectedWord.class)))
+                .willReturn(fakeSavedWord);
         // 2. when
         wordService.save(TEST_USER_ID, request);
 
@@ -104,7 +111,6 @@ public class WordServiceTest {
         PageRequest pageRequest = PageRequest.of(0, 10, Sort.by("collectedAt").descending());
         Page<CollectedWord> wordPage = new PageImpl<>(List.of(), pageRequest, 0);
 
-        // ✅ 레포지토리 메서드명과 인자(WordType.COLLECT)를 서비스와 일치시킴
         given(collectedWordRepository.findAllByUserIdAndVideo_VideoIdAndWordType(eq(TEST_USER_ID), eq(videoId), eq(WordType.COLLECT), any(Pageable.class)))
                 .willReturn(wordPage);
 
