@@ -79,11 +79,12 @@ public class WordService {
                 .timestamp(collectedWordRequest.getTimestamp())
                 .translation(collectedWordRequest.getTranslation())
                 .build();
-        collectedWordRepository.save(collectedWord);
+        CollectedWord saved = collectedWordRepository.save(collectedWord);
         // 5. 총 저장 단어수 계산
         long totalCount = collectedWordRepository.countByUser(user);
 
-        return mapToCollectedWordResponse(collectedWord, totalCount);
+
+        return mapToCollectedWordResponse(saved, totalCount);
     }
 
     // 사용자의 전체 수집 단어 조회 메서드

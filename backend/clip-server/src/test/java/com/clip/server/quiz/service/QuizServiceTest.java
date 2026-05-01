@@ -2,9 +2,11 @@ package com.clip.server.quiz.service;
 
 import com.clip.server.common.exception.BusinessException;
 import com.clip.server.common.exception.ErrorCode;
+import com.clip.server.quiz.dto.request.QuizSubmitRequest;
 import com.clip.server.quiz.dto.request.QuizWordRequest;
 import com.clip.server.quiz.dto.response.OpenAIQuizDataResponse;
 import com.clip.server.quiz.dto.response.QuizDetailResponse;
+import com.clip.server.quiz.dto.response.QuizSubmitResponse;
 import com.clip.server.quiz.entity.QuizResult;
 import com.clip.server.quiz.entity.QuizSession;
 import com.clip.server.quiz.entity.QuizType;
@@ -12,6 +14,7 @@ import com.clip.server.quiz.repository.QuizResultRepository;
 import com.clip.server.quiz.repository.QuizSessionRepository;
 import com.clip.server.user.entity.User;
 import com.clip.server.user.repository.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -48,6 +51,29 @@ class QuizServiceTest {
 
     @Mock
     private QuizSessionRepository quizSessionRepository;
+
+    private User user;
+    private QuizResult quizResult;
+
+    @BeforeEach
+    void setUp() {
+        user = User.builder()
+                .email("test@test.com")
+                .name("테스터")
+                .build();
+        ReflectionTestUtils.setField(user, "id", 1L);
+        ReflectionTestUtils.setField(user, "exp", 100);
+
+        quizResult = QuizResult.builder()
+                .word("effort")
+                .quizType(QuizType.OX)
+                .correctAnswer("O")
+                .correctFeedback("정답이에요! 아주 잘했어요.")
+                .wrongFeedback("아쉬워요, effort는 노력이란 뜻이에요.")
+                .explanation("기본 해설입니다.")
+                .build();
+        ReflectionTestUtils.setField(quizResult, "id", 50L);
+    }
 
     @Test
     @DisplayName("OX 퀴즈 생성 및 저장 성공 테스트 - 예문과 해석이 포함되어야 한다")
@@ -208,4 +234,43 @@ class QuizServiceTest {
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.SESSION_NOT_FOUND);
     }
+
+    @Test
+    @DisplayName("퀴즈 정답 제출 시 경험치가 100 증가하고 칭찬 피드백을 반환한다")
+    void submitQuiz_Success() {
+        // given
+        QuizSubmitRequest request = new QuizSubmitRequest(10L, 50L, "O");
+        given(userRepository.findById(1L)).willReturn(Optional.of(user));
+        given(quizResultRepository.findById(50L)).willReturn(Optional.of(quizResult));
+
+        // when
+        QuizSubmitResponse response = quizService.submitQuiz(1L, request);
+
+        // then
+        assertThat(response.isCorrect()).isTrue();
+        assertThat(response.getEarnedExp()).isEqualTo(100);
+        assertThat(response.getCurrentExp()).isEqualTo(200);
+        assertThat(response.getFeedback()).isEqualTo("정답이에요! 아주 잘했어요.");
+        assertThat(quizResult.getIsCorrect()).isTrue();
+    }
+
+    @Test
+    @DisplayName("퀴즈 오답 제출 시 경험치는 증가하지 않고 격려 피드백을 반환한다")
+    void submitQuiz_WrongAnswer() {
+        // given
+        QuizSubmitRequest request = new QuizSubmitRequest(10L, 50L, "X");
+        given(userRepository.findById(1L)).willReturn(Optional.of(user));
+        given(quizResultRepository.findById(50L)).willReturn(Optional.of(quizResult));
+
+        // when
+        QuizSubmitResponse response = quizService.submitQuiz(1L, request);
+
+        // then
+        assertThat(response.isCorrect()).isFalse();
+        assertThat(response.getEarnedExp()).isEqualTo(0);
+        assertThat(response.getCurrentExp()).isEqualTo(100); // 변화 없음
+        assertThat(response.getFeedback()).isEqualTo("아쉬워요, effort는 노력이란 뜻이에요.");
+        assertThat(quizResult.getIsCorrect()).isFalse();
+    }
+
 }
