@@ -43,12 +43,12 @@ public class User {
     private LocalDateTime updatedAt;
 
     @Builder
-    public User(String email, String name, String profileImageUrl, Integer level, Integer exp) {
+    public User(String email, String name, String profileImageUrl) {
         this.email = email;
         this.name = name;
         this.profileImageUrl = profileImageUrl;
-        this.level = level;
-        this.exp = exp;
+        this.level = 1;
+        this.exp = 0;
     }
 
     public void addExp(int amount) {
