@@ -23,6 +23,10 @@ spring:
       credentials:
         instance-profile: true
 
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
 openai:
   api:
     key: ${openai.api.key}

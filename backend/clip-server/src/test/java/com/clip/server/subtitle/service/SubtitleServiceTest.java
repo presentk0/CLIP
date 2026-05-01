@@ -310,4 +310,5 @@ public class SubtitleServiceTest {
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("영상을 찾을 수 없습니다.");
     }
+
 }
