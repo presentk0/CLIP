@@ -1,5 +1,7 @@
 package com.clip.server.quiz.entity;
 
+import com.clip.server.common.exception.BusinessException;
+import com.clip.server.common.exception.ErrorCode;
 import com.clip.server.user.entity.User;
 import com.clip.server.video.entity.Video;
 import jakarta.persistence.*;
@@ -54,6 +56,9 @@ public class QuizSession {
     @Column(name = "completed_at")
     private LocalDateTime completedAt; // 퀴즈 종료 시각
 
+    @Enumerated(EnumType.STRING)
+    private SessionStatus status = SessionStatus.IN_PROGRESS; // 세션 진행 상태 기본 IN_PROGRESS, 세션 완료 COMPLETED
+
     @Builder
     public QuizSession(User user, Video video, SessionType sessionType, int totalQuizCount) {
         this.user = user;
@@ -64,12 +69,21 @@ public class QuizSession {
         this.wrongCount = 0;
         this.earnedExp = 0;
         this.startAt = LocalDateTime.now();
+        this.status = SessionStatus.IN_PROGRESS;
     }
 
-    public void completeSession(int correctCount, int wrongCount, int earnedExp) {
+    // 퀴즈 세션 완료 시 상태 변경 메서드
+    public void complete(int totalQuizCount, int correctCount, int wrongCount, int earnedExp) {
+        if(this.status == SessionStatus.COMPLETED) {
+            throw new BusinessException(ErrorCode.SESSION_ALREADY_COMPLETED);
+        }
+
+        this.totalQuizCount = totalQuizCount;
         this.correctCount = correctCount;
         this.wrongCount = wrongCount;
         this.earnedExp = earnedExp;
+        this.status = SessionStatus.COMPLETED;
         this.completedAt = LocalDateTime.now();
     }
+
 }

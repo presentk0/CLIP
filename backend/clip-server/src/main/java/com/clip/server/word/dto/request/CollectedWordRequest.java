@@ -6,9 +6,8 @@ import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 @Getter
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
-@Builder
 public class CollectedWordRequest {
 
     @NotBlank(message = "영상 Id는 필수입니다.")

@@ -3,17 +3,13 @@ package com.clip.server.subtitle.dto.request;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.math.BigDecimal;
 
 @Getter
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
-@Builder
 public class SubtitleRequest {
 
     @NotBlank(message = "영상 제목은 필수입니다.")
@@ -24,10 +20,8 @@ public class SubtitleRequest {
 
     private String translation; // 자막 번역
 
-    @Builder.Default
     private Double startTime = 0.0; // 영상 시작 시각
 
-    @Builder.Default
     private Double endTime = 0.0; // 영상 종료 시각
 
     @NotNull(message = "영상 전체 길이는 필수입니다.")
