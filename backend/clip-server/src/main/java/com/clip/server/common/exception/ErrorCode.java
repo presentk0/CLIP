@@ -32,7 +32,7 @@ public enum ErrorCode {
     PREFERENCE_NOT_FOUND(HttpStatus.NOT_FOUND, "PREFERENCE_NOT_FOUND", "학습 설정을 찾을 수 없습니다."),
     QUIZ_NOT_FOUND(HttpStatus.NOT_FOUND, "QUIZ_NOT_FOUND", "퀴즈를 찾을 수 없습니다."),
     SUBTITLE_NOT_FOUND(HttpStatus.NOT_FOUND, "SUBTITLE_NOT_FOUND", "해당 영상의 자막을 찾을 수 없습니다."),
-
+    LEARNING_HISTORY_NOT_FOUND(HttpStatus.NOT_FOUND, "LEARNING_HISTORY_NOT_FOUND", "해당 학습 이력을 찾을 수 없습니다."),
     // 409 Conflict
     WORD_ALREADY_COLLECTED(HttpStatus.CONFLICT, "WORD_ALREADY_COLLECTED", "이미 수집한 단어입니다."),
     PREFERENCE_ALREADY_EXISTS(HttpStatus.CONFLICT, "PREFERENCE_ALREADY_EXISTS", "이미 온보딩을 완료했습니다."),

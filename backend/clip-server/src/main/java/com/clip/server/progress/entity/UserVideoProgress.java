@@ -34,6 +34,8 @@ public class UserVideoProgress {
     @Builder.Default
     private int lastQuizzedSection = 0;    // 마지막 퀴즈 출제 섹션 번호
 
+    @Builder.Default
+    private int completionCount = 0; // 영상별 누적 학습 횟수
 
     // 누적 시간 리셋 (반복 시청 시 사용)
     public void resetProgress() {

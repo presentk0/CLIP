@@ -62,8 +62,7 @@ public class QuizResult {
     private Boolean isCorrect ; // 정답 여부
 
     @Column(name = "earned_exp")
-    @ColumnDefault("0")
-    private Integer earnedExp;
+    private Integer earnedExp = 0;
 
     @Column(name = "video_timestamp")
     private String videoTimestamp; // 다시 듣기용 타임 스탬프
