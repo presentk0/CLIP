@@ -175,7 +175,7 @@ public class SubtitleService {
                .build();
     }
 
-    public SubtitleResponse mapToSubtitleResponse(Subtitle subtitle, Boolean isQuizGenerate, int lastQuizSection) {
+    private SubtitleResponse mapToSubtitleResponse(Subtitle subtitle, Boolean isQuizGenerate, int lastQuizSection) {
         int totalSections = getTargetSectionCount(subtitle.getVideo().getDuration());
 
         return SubtitleResponse.builder()
@@ -191,7 +191,7 @@ public class SubtitleService {
                 .build();
     }
 
-    public SubtitleDetailResponse mapToSubtitleDetailResponse(Subtitle subtitle) {
+    private SubtitleDetailResponse mapToSubtitleDetailResponse(Subtitle subtitle) {
         return SubtitleDetailResponse.builder()
                 .subtitleId(subtitle.getId())
                 .text(subtitle.getText())

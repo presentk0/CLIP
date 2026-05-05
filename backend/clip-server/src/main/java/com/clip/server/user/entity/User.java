@@ -30,7 +30,7 @@ public class User {
     @Column(name = "profile_image_url",  length = 500)
     private String profileImageUrl;
 
-    private Integer level = 1;
+    private Integer level = 0;
     private Integer exp = 0;
 
     @CreatedDate
@@ -47,7 +47,7 @@ public class User {
         this.email = email;
         this.name = name;
         this.profileImageUrl = profileImageUrl;
-        this.level = 1;
+        this.level = 0;
         this.exp = 0;
     }
 
@@ -56,5 +56,19 @@ public class User {
             this.exp = 0;
         }
         this.exp += amount;
+
+        while (this.exp >= getThreshold(this.level + 1)) {
+            this.level++;
+        }
     }
+
+    /**
+     * L 레벨에 도달하기 위해 필요한 총 누적 경험치 계산
+     * 공식: 1500L + 180L(L-1)
+     */
+    private int getThreshold(int L) {
+        if (L <= 0) return 0;
+        return (1500 * L) + (180 * L * (L - 1));
+    }
+
 }

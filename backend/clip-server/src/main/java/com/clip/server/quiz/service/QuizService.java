@@ -36,7 +36,7 @@ public class QuizService {
     private final QuizSessionRepository quizSessionRepository;
 
     private static final int CORRECT_EXP = 100;
-
+    private static final int MATCHING_QUIZ_COUNT = 5;
     /**
      * OX 퀴즈 생성 및 저장
      */
@@ -131,6 +131,7 @@ public class QuizService {
         }
 
         // 3. 인덱스를 활용하여 원본 데이터와 AI 데이터를 동기화하며 저장
+        int quizCount = Math.min(aiDataList.size(), MATCHING_QUIZ_COUNT);
         return IntStream.range(0, aiDataList.size()).mapToObj(i -> {
             OpenAIQuizDataResponse data = aiDataList.get(i);
 
