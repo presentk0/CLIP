@@ -1,15 +1,22 @@
 package com.clip.server.quiz.service;
 
+import com.clip.server.common.exception.BusinessException;
+import com.clip.server.common.exception.ErrorCode;
 import com.clip.server.quiz.dto.request.QuizGenerateRequest;
 import com.clip.server.quiz.dto.request.QuizWordRequest;
+import com.clip.server.quiz.dto.response.QuizCompleteResponse;
 import com.clip.server.quiz.dto.response.QuizDetailResponse;
 import com.clip.server.quiz.dto.response.QuizGenerateResponse;
-import com.clip.server.quiz.entity.QuizSession;
-import com.clip.server.quiz.entity.QuizSessionWord;
-import com.clip.server.quiz.entity.SessionType;
+import com.clip.server.quiz.entity.*;
+import com.clip.server.quiz.repository.QuizResultRepository;
 import com.clip.server.quiz.repository.QuizSessionRepository;
 import com.clip.server.quiz.repository.QuizSessionWordRepository;
 import com.clip.server.user.entity.User;
+import com.clip.server.user.entity.badge.BadgeType;
+import com.clip.server.user.entity.badge.UserBadge;
+import com.clip.server.user.entity.learning.LearningHistory;
+import com.clip.server.user.repository.LearningHistoryRepository;
+import com.clip.server.user.repository.UserBadgeRepository;
 import com.clip.server.user.repository.UserRepository;
 import com.clip.server.video.entity.Video;
 import com.clip.server.video.entity.VideoKeyWord;
@@ -33,10 +40,10 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class QuizSessionServiceTest {
@@ -60,6 +67,12 @@ class QuizSessionServiceTest {
     private CollectedWordRepository collectedWordRepository;
     @Mock
     private VideoKeyWordRepository videoKeyWordRepository;
+    @Mock
+    private LearningHistoryRepository learningHistoryRepository;
+    @Mock
+    private UserBadgeRepository userBadgeRepository;
+    @Mock
+    private QuizResultRepository quizResultRepository;
 
     private User user;
     private Video video;
@@ -83,6 +96,7 @@ class QuizSessionServiceTest {
                 .totalQuizCount(8) // 3(섹션) + 5(매칭)
                 .build();
         ReflectionTestUtils.setField(session, "id", 100L);
+
     }
 
     @Test
@@ -220,5 +234,101 @@ class QuizSessionServiceTest {
 
         // 3. SYSTEM 등급 (우선순위 3) - 인덱스 4
         assertThat(words.get(4)).as("전체 결과: " + words).isEqualTo("System1");
+    }
+
+    @Test
+    @DisplayName("퀴즈 세션 완료 시 경험치가 정산되고 브론즈 배지가 부여된다")
+    void completeQuizSession_Success_BronzeBadge() {
+        // given
+        Long userId = 1L;
+        Long sessionId = 100L;
+
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+        given(quizSessionRepository.findById(sessionId)).willReturn(Optional.of(session));
+
+        // 처음 완주하는 상황 가정 (LearningHistory가 새로 생성됨)
+        given(learningHistoryRepository.findByUserAndVideo(any(), any())).willReturn(Optional.empty());
+        given(learningHistoryRepository.save(any())).willAnswer(invocation -> invocation.getArgument(0));
+
+        // 단어 5개 수집 상태
+        given(collectedWordRepository.countByUserIdAndVideoVideoIdAndWordType(any(), any(), any()))
+                .willReturn(5L);
+
+        // 퀴즈 결과: 2문제 중 2문제 정답 (각 100 EXP 가정)
+        QuizResult r1 = QuizResult.builder()
+                .word("apple")
+                .correctAnswer("apple")
+                .quizType(QuizType.MATCHING)
+                .build();
+        r1.submitAnswer("apple", true, 100);
+
+        QuizResult r2 = QuizResult.builder()
+                .word("banana")
+                .correctAnswer("banana")
+                .quizType(QuizType.MATCHING)
+                .build();
+        r2.submitAnswer("banana", true, 100);
+
+        given(quizResultRepository.findByQuizSession(session)).willReturn(List.of(r1, r2));
+
+        // 배지 중복 체크: 아직 없음
+        given(userBadgeRepository.existsByUserAndVideoAndBadgeType(any(), any(), eq(BadgeType.BRONZE)))
+                .willReturn(false);
+
+        // when
+        QuizCompleteResponse response = quizSessionService.completeQuizSession(userId, sessionId);
+
+        // then
+        // 1. 경험치 검증: 퀴즈(200) + 영상보상(기본값) + 브론즈보너스(300)
+        // VIDEO_COMPENSATION이 200이라 가정하면 총 700 EXP
+        assertThat(response.getEarnedExp()).isGreaterThan(500);
+        assertThat(user.getExp()).isEqualTo(response.getEarnedExp());
+
+        // 2. 상태 변경 검증
+        assertThat(session.getStatus()).isEqualTo(SessionStatus.COMPLETED);
+        assertThat(response.getNewBadge().getBadgeType()).isEqualTo(BadgeType.BRONZE);
+
+        // 3. 호출 횟수 검증
+        verify(userBadgeRepository, times(1)).save(any(UserBadge.class));
+        verify(learningHistoryRepository, times(1)).save(any(LearningHistory.class));
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 세션 ID로 완료 요청 시 예외가 발생한다")
+    void completeQuizSession_Fail_SessionNotFound() {
+        // given
+        given(userRepository.findById(any())).willReturn(Optional.of(user));
+        given(quizSessionRepository.findById(any())).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> quizSessionService.completeQuizSession(1L, 999L))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.SESSION_NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("영상을 3번째 완주하면 골드 배지와 1000 EXP 보너스를 받는다")
+    void completeQuizSession_Success_GoldBadge() {
+        // given
+        given(userRepository.findById(user.getId())).willReturn(Optional.of(user));
+        given(quizSessionRepository.findById(session.getId())).willReturn(Optional.of(session));
+        // LearningHistory의 completionCount가 2인 상태로 설정 (이번이 3번째)
+        LearningHistory history = LearningHistory.builder().user(user).video(video).build();
+        ReflectionTestUtils.setField(history, "completionCount", 2);
+        given(learningHistoryRepository.findByUserAndVideo(any(), any())).willReturn(Optional.of(history));
+
+        // 배지 중복 체크: 골드 배지는 아직 없음
+        given(userBadgeRepository.existsByUserAndVideoAndBadgeType(any(), any(), eq(BadgeType.GOLD))).willReturn(false);
+
+        // 퀴즈 결과: 0점 가정 (보너스만 확인하기 위해)
+        given(quizResultRepository.findByQuizSession(any())).willReturn(List.of());
+
+        // when
+        QuizCompleteResponse response = quizSessionService.completeQuizSession(user.getId(), session.getId());
+
+        // then
+        // 보너스(1000) + 영상보상(200) = 1200 EXP 확인
+        assertThat(response.getEarnedExp()).isEqualTo(1200);
+        assertThat(response.getNewBadge().getBadgeType()).isEqualTo(BadgeType.GOLD);
     }
 }

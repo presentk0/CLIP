@@ -142,7 +142,7 @@ public class OpenAIService {
             String wordsJson = objectMapper.writeValueAsString(wordList);
             String prompt = String.format("""
                     당신은 영어 학습을 도와주는 캐릭터 '클립 프로그'입니다.
-                    단어-뜻 매칭 퀴즈 데이터를 생성하세요.
+                    단어-뜻 매칭 퀴즈 데이터를 생성하세요. 다음 단어들로 매칭 퀴즈를 정확히 5개만 생성해줘.
                     사용자가 지루하지 않도록 친근하고 감정이 담긴 피드백을 제공합니다.
                     
                     [입력 리스트]

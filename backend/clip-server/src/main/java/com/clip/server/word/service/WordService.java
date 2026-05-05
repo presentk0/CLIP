@@ -120,7 +120,7 @@ public class WordService {
                 .build();
     }
 
-    public CollectedWordResponse mapToCollectedWordResponse(CollectedWord collectedWord, long totalCount) {
+    private CollectedWordResponse mapToCollectedWordResponse(CollectedWord collectedWord, long totalCount) {
         return CollectedWordResponse.builder()
                 .wordId(collectedWord.getId())
                 .collectedAt(collectedWord.getCollectedAt())
@@ -128,7 +128,7 @@ public class WordService {
                 .build();
     }
 
-    public WordResponse mapToWordResponse(CollectedWord collectedWord) {
+    private WordResponse mapToWordResponse(CollectedWord collectedWord) {
         return WordResponse.builder()
                 .id(collectedWord.getId())
                 .videoId(collectedWord.getVideo().getVideoId())
