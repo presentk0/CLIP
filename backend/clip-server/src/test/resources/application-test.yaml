@@ -40,3 +40,7 @@ aws:
   region: ap-northeast-2
   s3:
     bucket: test-bucket
+
+deepl:
+  api:
+    key: test-key
