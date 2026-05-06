@@ -9,7 +9,7 @@ import java.util.List;
 @Getter
 @Builder
 @NoArgsConstructor  // Jackson 역직렬화용
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class OpenAIQuizDataResponse {
 
