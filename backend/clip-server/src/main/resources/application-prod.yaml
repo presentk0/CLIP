@@ -38,4 +38,4 @@ openai:
 
 deepl:
   api:
-    key: ${deepl-api-key}
+    key: ${deepl.api.key}
