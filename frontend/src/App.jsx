@@ -6,6 +6,7 @@ import DefaultPage from './components/DefaultPage';
 import SettlementPage from './components/SettlementPage';
 import './App.css';
 
+
 function App() {
   // 현재 페이지 번호 (0: 기본, 1: 퀴즈, 2: 정산)
   const [move, setMove] = useState(0);
@@ -23,35 +24,78 @@ function App() {
   const [resetKey, setResetKey] = useState(0);
 
 
+
+
+
   // 사이드패널 열림 감지 및 연결
   useEffect(() => {
     // 연결 실패 시 재시도 횟수
     let retryCount = 0;
     // 최대 10번까지 재시도
-    const MAX_RETRY = 10;  
+    const maxRetry = 10;  
+    // 패널 열림 중복 요청 방지
+    let isSent = false;
 
     // 백그라운드와 연결 (사이드패널 닫힘 감지용)
     chrome.runtime.connect({ name: 'sidepanel' });
 
     // content.jsx에 사이드패널 열림 신호 보내기
     const sendPanelOpened = () => {
+      if (isSent) return;
+
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         console.log('패널 열림 신호1');
         if (tabs[0]) {
-          chrome.tabs.sendMessage(tabs[0].id, { type: 'PANEL_OPENED' }).catch(() => {
-            console.log('패널 열림 신호2');
+          chrome.tabs.sendMessage(tabs[0].id, { type: 'PANEL_OPENED' })
+          .then(() => {
+            isSent = true;
+          })
+          .catch((error) => {
+            console.log('패널 열림 실패 신호', error.message);
             retryCount++;
-            if (retryCount < MAX_RETRY) {
+            if (retryCount < maxRetry) {
               console.log('패널 열림 재시도');
               // 실패하면 1초 후 재시도
               setTimeout(sendPanelOpened, 1000);
             } else {
-              console.log('연결 실패 - 페이지 새로고침 필요');
+              console.log('연결 실패 - 페이지 새로고침 필요', error.message);
             }
           });
         }
-      })};
+      })
+    };
+
     sendPanelOpened();
+
+    // content.js 새로고침 감지
+    const listener = (message) => {
+      console.log('메시지 받음2:', message.type, Date.now());
+      if (message.type === 'CONTENT_LOADED') {
+        // isSent = false;
+        // retryCount = 0;
+        // sendPanelOpened();
+        console.log('새로고침 받음', Date.now());
+
+    // 성공한 적 있으면 바로 1번만 시도
+    if (isSent) {
+      console.log('새로고침 시도1', Date.now());
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs[0]) {
+          console.log('새로고침 시도2', Date.now());
+          chrome.tabs.sendMessage(tabs[0].id, { type: 'PANEL_OPENED' })
+            .catch((error) => console.log('재전송 실패', error.message));
+        }
+      });
+    } else {
+      // 아직 성공 못 했으면 재시도 로직
+      retryCount = 0;
+      sendPanelOpened();
+    }
+      }
+    };
+
+    chrome.runtime.onMessage.addListener(listener);
+    return () =>  chrome.runtime.onMessage.removeListener(listener);
   }, []);
 
 
@@ -77,7 +121,7 @@ function App() {
       //   setMove(1);
       // }
       if (message.type === 'GO_TO_DEFAULT') {
-        console.log('언마운트 후 디폴트로');
+        console.log('언마운트 후 디폴트로', Date.now());
         goToDefault();
       }
     };
@@ -103,10 +147,27 @@ function App() {
   };
 
 
-  // 디폴트 페이지로 이동 (이탈페이지)
+  // 디폴트 페이지로 이동 (중간 이탈)
   const handleExit = () => {
     setMove(0);
   };
+
+
+  // 최종 정산 완료 후 퀴즈페이지로 돌아가기
+const handleGoBackToQuiz = () => {
+  console.log('정산하고 버튼', Date.now());
+  // 정산 데이터 초기화
+  setSettlementData(null);
+  // 퀴즈페이지로 이동
+  setMove(1);
+  
+  // 영상 재생 신호 보내기
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    if (tabs[0]) {
+      chrome.tabs.sendMessage(tabs[0].id, { type: 'RESUME_VIDEO' });
+    }
+  });
+};
 
 
   return (
@@ -126,6 +187,7 @@ function App() {
           key={resetKey}
           videoId={videoId}
           videoTitle={videoTitle}
+          duration={duration}
           onExitPage={handleExit}
           onSettlementPage={handleSettlement}
         />
@@ -140,6 +202,7 @@ function App() {
           videoTitle={videoTitle}
           channelName={channelName}
           duration={duration}
+          onGoBackToQuiz={handleGoBackToQuiz}
         />
       )}
     </div>
