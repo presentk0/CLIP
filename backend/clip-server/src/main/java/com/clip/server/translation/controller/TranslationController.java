@@ -26,8 +26,8 @@ public class TranslationController {
     @PostMapping("/subtitles")
     public ResponseEntity<ApiResponse<TranslationResponse>> translateSubtitles(
             @RequestBody TranslationRequest request) {
-
-        TranslationResponse response = translationService.translateTexts(request);
+        Long tempUserId = 1L;
+        TranslationResponse response = translationService.translateAndSave(tempUserId, request);
 
         return ResponseEntity.ok(ApiResponse.success(
                 response,

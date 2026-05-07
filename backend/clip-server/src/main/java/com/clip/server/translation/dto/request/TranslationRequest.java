@@ -1,5 +1,6 @@
 package com.clip.server.translation.dto.request;
 
+import com.clip.server.subtitle.dto.request.SubtitleRequest;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -13,6 +14,19 @@ import java.util.List;
 public class TranslationRequest {
 
     private String videoId;
-    private List<String> texts; // 영상 전체 자막
+    private String title;
+    private Integer duration;
+    private List<SubtitleDetail> subtitleRequests;
 
+    /**
+     * 자막의 개별 정보를 담는 내부 클래스
+     */
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class SubtitleDetail {
+        private String text;        // 원문
+        private Double startTime;
+        private Double endTime;
+    }
 }

@@ -63,6 +63,7 @@ public class QuizSessionService {
 
     private final QuizService quizService;
     private final OpenAIService openAIService;
+    private final QuizFeedbackGenerator quizFeedbackGenerator;
 
 
     /**
@@ -383,6 +384,16 @@ public class QuizSessionService {
         // 세션 완료 상태 업데이트 IN_PROGRESS -> COMPLETED
         quizSession.complete(totalQuizCount, correctCount, wrongCount, totalEarnedExp);
 
+        // 가장 많이 틀린 퀴즈 타입 추출 (예: "OX", "빈칸")
+        Optional mostWrongType = quizResultRepository.findMostWrongQuizType(sessionId);
+
+        // 2. 피드백 생성 (AI 호출 없이 즉시 생성!)
+        String feedback = quizFeedbackGenerator.generateFeedback(
+                accuracy,
+                video.getTitle(),
+                mostWrongType
+        );
+
         return QuizCompleteResponse.builder()
                 .sessionId(sessionId)
                 .totalQuizCount(totalQuizCount)
@@ -394,6 +405,7 @@ public class QuizSessionService {
                 .currentLevel(newLevel)
                 .newBadge(toBadgeInfo(video.getVideoId(), badgeAwardResponse.getBadgeType()))
                 .completedAt(LocalDateTime.now())
+                .feedback(feedback)
                 .build();
     }
 

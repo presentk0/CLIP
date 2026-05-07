@@ -11,6 +11,7 @@ import com.clip.server.subtitle.dto.response.SubtitleListResponse;
 import com.clip.server.subtitle.dto.response.SubtitleResponse;
 import com.clip.server.subtitle.entity.Subtitle;
 import com.clip.server.subtitle.repository.SubtitleRepository;
+import com.clip.server.translation.dto.request.TranslationRequest;
 import com.clip.server.user.entity.User;
 import com.clip.server.user.repository.UserRepository;
 import com.clip.server.video.entity.Video;
@@ -23,7 +24,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static com.clip.server.common.exception.ErrorCode.USER_NOT_FOUND;
@@ -44,75 +44,108 @@ public class SubtitleService {
     private final VideoKeyWordRepository videoKeyWordRepository;
     private final KeywordExtractionService extractionService;
 
+    // 번역 후 자막 전체 저장 메서드
+    @Transactional
+    public void bulkSaveSubtitles(String videoId, String title, Integer duration,
+                                  List<TranslationRequest.SubtitleDetail> requests,
+                                  List<String> translatedTexts) {
+
+        // 비디오 조회 또는 생성
+        Video video = videoRepository.findById(videoId)
+                .orElseGet(() -> videoRepository.save(Video.builder()
+                        .videoId(videoId)
+                        .title(title)
+                        .duration(duration)
+                        .build())
+                );
+
+        for (int i = 0; i < requests.size(); i++) {
+            TranslationRequest.SubtitleDetail req = requests.get(i);
+            String translation = translatedTexts.get(i); // 리스트에서 번역본 추출
+
+            // 중복 체크 후 저장
+            if (subtitleRepository.findByVideoAndStartTimeAndText(video, req.getStartTime(), req.getText()).isEmpty()) {
+                saveSubtitleAndKeywordsInternal(video, req.getText(), translation, req.getStartTime(), req.getEndTime());
+            }
+        }
+    }
+
+    // 유저가 영상 시청시 호출
     @Transactional
     public SubtitleResponse saveSubtitle(Long userId, String videoId, SubtitleRequest subtitleRequest) {
-        // 1. 유저 정보 확인
-        User user = userRepository.findById(userId).orElseThrow(()-> new BusinessException(USER_NOT_FOUND));
 
-        // 2. Video 정보 확인 없으면 생성
+        // 유저 정보 확인
+        User user = userRepository.findById(userId).orElseThrow(() -> new BusinessException(USER_NOT_FOUND));
+
+        // 영상 정보 확인
         Video video = videoRepository.findById(videoId).
                 orElseGet(()->{
-                    Video newVideo = Video.builder()
-                            .videoId(videoId)
-                            .title(subtitleRequest.getTitle())
-                            .duration(subtitleRequest.getDuration())
-                            .build();
-                    return videoRepository.save(newVideo);
-                }
-        );
+                            Video newVideo = Video.builder()
+                                    .videoId(videoId)
+                                    .title(subtitleRequest.getTitle())
+                                    .duration(subtitleRequest.getDuration())
+                                    .build();
+                            return videoRepository.save(newVideo);
+                        }
+                );
 
-        // 3. 유저 진행도 조회 없으면 생성
+        // 유저 진행도 조회 없으면 생성
         UserVideoProgress progress = userVideoProgressRepository.findByUserAndVideo(user, video)
                 .orElseGet(()->{
-                            UserVideoProgress newProgress = UserVideoProgress.builder()
-                                    .user(user)
-                                    .video(video)
-                                    .build();
-                            return userVideoProgressRepository.save(newProgress);
-                        });
+                    UserVideoProgress newProgress = UserVideoProgress.builder()
+                            .user(user)
+                            .video(video)
+                            .build();
+                    return userVideoProgressRepository.save(newProgress);
+                });
 
-        // 4. 자막 중복 체크(startTime 중복 여부 확인)
-        Optional<Subtitle> existingSubtitle = subtitleRepository.findByVideoAndStartTimeAndText(video, subtitleRequest.getStartTime(), subtitleRequest.getText());
-        // 이미 존재하는 자막이면 기존 값 반환
-        if(existingSubtitle.isPresent()) {
-            return mapToSubtitleResponse(existingSubtitle.get(), false, progress.getLastQuizzedSection());
-        }
-
+        // 자막 존재 여부와 상관없이 진행도는 무조건 체크
         boolean isQuizGenerate = false;
-        // 5.
         if (!subtitleRequest.getStartTime().equals(progress.getLastAddedStartTime())) {
             double userWatchDuration = subtitleRequest.getEndTime() - subtitleRequest.getStartTime();
-            // 자막 시간을 사용자 학습 시간으로 저장
             progress.addProgress(userWatchDuration, subtitleRequest.getStartTime());
             isQuizGenerate = checkoutQuizTrigger(progress, video.getDuration());
         }
 
+        // 자막 저장 체크
+        Subtitle subtitle = subtitleRepository.findByVideoAndStartTimeAndText(video, subtitleRequest.getStartTime(), subtitleRequest.getText())
+                .orElseGet(() -> saveSubtitleAndKeywordsInternal(
+                        video,
+                        subtitleRequest.getText(),
+                        subtitleRequest.getTranslation(),
+                        subtitleRequest.getStartTime(),
+                        subtitleRequest.getEndTime()
+                ));
+
+        return mapToSubtitleResponse(subtitle, isQuizGenerate, progress.getLastQuizzedSection());
+    }
+
+    // 공통 저장 로직
+    private Subtitle saveSubtitleAndKeywordsInternal(Video video, String text, String translation, Double startTime, Double endTime) {
         Subtitle subtitle = Subtitle.builder()
                 .video(video)
-                .text(subtitleRequest.getText())
-                .translation(subtitleRequest.getTranslation())
-                .startTime(subtitleRequest.getStartTime())
-                .endTime(subtitleRequest.getEndTime())
+                .text(text)
+                .translation(translation)
+                .startTime(startTime)
+                .endTime(endTime)
                 .build();
         Subtitle saved = subtitleRepository.save(subtitle);
 
-        // 영상 자막 불용어 필터링 후 키워드 추출
+        // 키워드 추출 및 저장
         List<String> extraKeyWords = extractionService.extractKeywords(saved.getText());
-
-        // videoKeyWord 객체 생성 후 키워드 값 입력
         List<VideoKeyWord> videoKeyWords = extraKeyWords.stream()
-                .map(ek-> VideoKeyWord.builder()
-                        .word(ek)
+                .map(word -> VideoKeyWord.builder()
+                        .word(word)
                         .video(video)
                         .timestamp(saved.getStartTime())
                         .sentence(saved.getText())
                         .translation(saved.getTranslation())
                         .build())
                 .collect(Collectors.toList());
-        // 자막 추출 키워드 단어 저장
+
         videoKeyWordRepository.saveAll(videoKeyWords);
 
-        return mapToSubtitleResponse(saved, isQuizGenerate, progress.getLastQuizzedSection());
+        return saved;
     }
 
     private boolean checkoutQuizTrigger(UserVideoProgress progress, int totalDuration) {
