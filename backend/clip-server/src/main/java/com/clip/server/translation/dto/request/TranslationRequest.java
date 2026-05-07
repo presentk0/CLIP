@@ -25,7 +25,7 @@ public class TranslationRequest {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class SubtitleDetail {
-        private String text;        // 원문
+        private String text; // 원문
         private Double startTime;
         private Double endTime;
     }
