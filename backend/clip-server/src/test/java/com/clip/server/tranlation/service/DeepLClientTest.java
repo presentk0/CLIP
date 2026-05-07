@@ -36,7 +36,7 @@ public class DeepLClientTest {
         List<String> inputs = List.of("Hello", "World");
         String expectedResponse = "{\"translations\": [{\"text\": \"안녕\"}, {\"text\": \"세상\"}]}";
 
-        mockServer.expect(requestTo("https://api-free.deepl.com/v2/translate"))
+        mockServer.expect(requestTo("https://api.deepl.com/v2/translate"))
                 .andExpect(method(HttpMethod.POST))
                 .andExpect(header("Authorization", "DeepL-Auth-Key test-key"))
                 .andRespond(withSuccess(expectedResponse, MediaType.APPLICATION_JSON));
