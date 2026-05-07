@@ -21,7 +21,7 @@ public class DeepLClient implements TranslationClient {
     private String apiKey;
 
     private final RestTemplate restTemplate;
-    private static final String DEEPL_API_URL = "https://api-free.deepl.com/v2/translate";
+    private static final String DEEPL_API_URL = "https://api.deepl.com/v2/translate";
 
     @Override
     public List<String> translateBatch(List<String> texts) {
