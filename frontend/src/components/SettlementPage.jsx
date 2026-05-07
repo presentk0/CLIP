@@ -1,12 +1,20 @@
 import happy from '../imgs/image_703.png';
+import frog2 from '../imgs/image_750.png';
 
-function SettlementPage({ data, videoId, videoTitle, channelName, duration ,onGoHome }) {
+function SettlementPage({ data, videoId, videoTitle, channelName, duration , onGoBackToQuiz }) {
   // 영상 전체 길이를 00:00:00 형태로 바꿔야 함(오류)
   // 해당 영상의 썸네일 이미지
   const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
   return (
     // 전체 박스
-    <div>
+    <div style={{
+      display: 'flex',
+      width: '402px',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      alignItems: 'center',
+      background: '#F5F5F5'
+    }}>
 
       {/* 전체 내용 박스 */}
       <div
@@ -16,6 +24,7 @@ function SettlementPage({ data, videoId, videoTitle, channelName, duration ,onGo
         flexDirection: 'column',
         alignItems: 'center',
         gap: '24px',
+        flexShrink: '0'
       }}>
 
         {/* 뱃지 진행률까지 담는 박스 */}
@@ -36,14 +45,202 @@ function SettlementPage({ data, videoId, videoTitle, channelName, duration ,onGo
             alignSelf: 'stretch',
           }}>
 
+            {/* 상단 보라색 퀴즈 정산 바 */}
+            <div style={{
+              display: 'flex',
+              height: '54px',
+              padding: '9px 161px 9px 16px',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              gap: '10px',
+              alignSelf: 'stretch',
+              background: '#C084FC',
+            }}>
 
+              {/* 버튼과 페이지 제목 박스 */}
+              <div style={{
+                display: 'flex',
+                width: '225px',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}>
+
+                {/* 왼쪽 버튼? 2개 박스 */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}>
+
+                  {/* 왼쪽 회색 박스 */}
+                  <div style={{
+                    display: 'flex',
+                    width: '24px',
+                    height: '24px',
+                    alignItems: 'center',
+                    background: '#E1E1E1',
+                  }}>
+                  </div>
+
+                  {/* 오른쪽 회색 박스 */}
+                  <div style={{
+                    display: 'flex',
+                    width: '24px',
+                    height: '24px',
+                    alignItems: 'center',
+                    background: '#E1E1E1',
+                  }}>
+                  </div>
+                </div>
+
+                {/* 페이지 제목 박스 */}
+                <div style={{
+                  display: 'flex',
+                  width: '80px',
+                  height: '36px',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  flexShrink: '0',
+                }}>
+
+                  {/* 페이지 제목 */}
+                  <p style={{
+                    color: '#FFF',
+                    textAlign: 'center',
+                    fontFamily: 'Pretendard',
+                    fontSize: '16px',
+                    fontStyle: 'normal',
+                    fontWeight: '700',
+                    lineHeight: 'normal',
+                    letterSpacing: '-0.032px',
+                  }}>
+                    퀴즈 정산
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* 퀴즈 진행 전체 바 */}
+            <div style={{
+              display: 'flex',
+              padding: '4px 0',
+              alignItems: 'center',
+              gap: '12px',
+            }}>
+
+              {/* 푼 문제 / 전체 문제 박스 */}
+              <div style={{
+                width: '36px',
+                height: '14px',
+              }}>
+
+                {/* 푼 문제 */}
+                <p style={{
+                  display: 'flex',
+                  width: '36px',
+                  height: '14px',
+                  flexDirection: 'column',
+                  justifyContent: 'center',
+                  color: '#0D0C34',
+                  textAlign: 'center',
+                  fontFamily: 'Pretendard',
+                  fontSize: '16px',
+                  fontStyle: 'normal',
+                  fontWeight: '700',
+                  lineHeight: 'normal',
+                  letterSpacing: '-0.032px',
+                }}>
+                  푼 문제
+                </p>
+
+                {/* /전체 문제 */}
+                <p style={{
+                  display: 'flex',
+                  width: '36px',
+                  height: '14px',
+                  flexDirection: 'column',
+                  justifyContent: 'center',
+                  color: '#9F9EB0',
+                  fontFamily: 'Pretendard',
+                  fontSize: '16px',
+                  fontStyle: 'normal',
+                  fontWeight: '500',
+                  lineHeight: 'normal',
+                  letterSpacing: '-0.032px',
+                }}>
+                  /전체 문제
+                </p>
+              </div>
+
+              {/* 진행도 바 전체 박스 */}
+              <div style={{
+                display: 'flex',
+                width: '274px',
+                flexDirection: 'column',
+                alignItems: 'center',
+              }}>
+
+                {/* 진행도 바 색상 박스 */}
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'flex-start',
+                  alignSelf: 'stretch',
+                }}>
+
+                  {/* 회색 전체 진행도 바 */}
+                  <div style={{
+                    display: 'flex',
+                    width: '274px',
+                    height: '14px',
+                    flexDirection: 'column',
+                    alignItems: 'flex-start',
+                    position: 'absolute',
+                    borderRadius: '999px',
+                    background: '#D8D8E2',
+                  }}>
+                  </div>
+
+                  {/* 보라색 현재 진행도 바 */}
+                  <div style={{
+                    display: 'flex',
+                    width: '96px',
+                    height: '14px',
+                    flexDirection: 'column',
+                    alignItems: 'flex-start',
+                    borderRadius: '999px',
+                    background: '#9B87E8',
+                  }}>
+                  </div>
+                </div>
+
+                {/* 현재 진행도에 붙는 개구리 이미지 */}
+                <div style={{
+                  width: '36px',
+                  height: '36px',
+                  aspectRatio: '1/1',
+                  position: 'absolute',
+                  left: '75px',
+                  top: '-14px',
+                  background: `url(${frog2}) transparent -42.788px -1.005px / 228.637% 225.776% no-repeat`,
+                }}>
+                </div>
+              </div>
+
+              {/* 우측 나가기 버튼 */}
+              <button
+              onClick={() => onGoBackToQuiz()}
+              style={{
+                display: 'flex',
+                width: '36px',
+                height: '36px',
+                alignItems: 'center',
+                background: '#E1E1E1',
+              }}>
+                홈
+              </button>
+            </div>
           </div>
-
-
-
-
-
-
 
           {/* 뱃지 진행률 박스 */}
           <div style={{
@@ -618,27 +815,236 @@ function SettlementPage({ data, videoId, videoTitle, channelName, duration ,onGo
               </div>
             </div>
           </div>
+        </div>
 
+        {/* 정확도, 수집 결과 안내 박스 */}
+        <div style={{
+          display: 'flex',
+          width: '370px',
+          height: '68px',
+          padding: '16px 45px 16px 16px',
+          flexDirection: 'column',
+          alignItems: 'flex-start',
+          gap: '10px',
+          flexShrink: '0',
+          borderRadius: '12px',
+          background: '#CCC',
+        }}>
 
+          {/* 아이콘과 안내 글 박스 */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+          }}>
 
+            {/* 왼쪽 회색 아이콘 */}
+            <div style={{
+              width: '32px',
+              height: '32px',
+              aspectRatio: '1/1',
+              background: '#E0E0E0',
+            }}>
+            </div>
 
+            {/* 안내 글 박스 */}
+            <p style={{
+              width: '269px',
+              color: '#FFF',
+              fontFamily: 'Pretendard',
+              fontSize: '12px',
+              fontStyle: 'normal',
+              fontWeight: '500',
+              lineHeight: '18px', /* 150% */
+            }}>
+              퀴즈 정확도 80% 달성! 여행 영어 어휘 12개 수집 완료!
+              <span style={{
+                color: '#F5F6FA',
+                fontFamily: 'Pretendard',
+                fontSize: '12px',
+                fontStyle: 'normal',
+                fontWeight: '700',
+                lineHeight: '18px',
+              }}>
+                이번 주 정확도 78%→80% 향상!
+              </span>
+            </p>
+          </div>
+        </div>
 
+        {/* AI 추천 영상 박스 */}
+        <div style={{
+          display: 'flex',
+          width: '370px',
+          padding: '24px 16px 20px 16px',
+          flexDirection: 'column',
+          alignItems: 'flex-end',
+          gap: '24px',
+          borderRadius: '24px',
+          background: '#FFF',
+        }}>
 
+          {/* AI 추천 영상 안내 글 박스 */}
+          <div style={{
+            display: 'flex',
+            paddingLeft: '4px',
+            flexDirection: 'column',
+            alignItems: 'flex-start',
+            gap: '8px',
+            alignSelf: 'stretch',
+          }}>
 
+            {/* AI가 다음으로 추천하는 영상 안내 글 */}
+            <p style={{
+              alignSelf: 'stretch',
+              color: '#01030D',
+              fontFamily: 'Pretendard',
+              fontSize: '18px',
+              fontStyle: 'normal',
+              fontWeight: '700',
+              lineHeight: 'normal',
+              letterSpacing: '0.5px',
+              textTransform: 'uppercase',
+            }}>
+              AI가 다음으로 추천하는 영상
+            </p>
 
+            {/* 추천하는 영상 설명 글 */}
+            <p style={{
+              alignSelf: 'stretch',
+              color: '#9198A3',
+              fontFamily: 'Pretendard',
+              fontSize: '12px',
+              fontStyle: 'normal',
+              fontWeight: '500',
+              lineHeight: '18px', /* 150% */
+              textTransform: 'uppercase',
+            }}>
+              문맥 적용이 약한 너에게 보완할 영상을 추천할게!
+              <span>영상에는 ~~ 다루고 있어서 ~~도움이 될거야</span>
+            </p>
+          </div>
 
+          {/* 추천 영상 박스 */}
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-start',
+            gap: '10px',
+            alignSelf: 'stretch',
+          }}>
 
+            {/* 추천 영상 섬네일 */}
+            <div style={{
+              display: 'flex',
+              height: '190px',
+              padding: '152px 0 0 288px',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              alignSelf: 'stretch',
+              borderRadius: '14px',
+              background: '#CCC',
+            }}>
+              {/* 추천 영상 전체 길이 박스 */}
+              <div style={{
+                display: 'flex',
+                width: '50px',
+                padding: '10px 10px 11px 10px',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                gap: '10px',
+              }}>
+
+                {/* 추천 영상 전체 길이 */}
+                <div style={{
+                  display: 'flex',
+                  height: '17px',
+                  flexDirection: 'column',
+                  alignItems: 'flex-start',
+                  gap: '10px',
+                  alignSelf: 'stretch',
+                  borderRadius: '4px',
+                  background: 'rgba(15, 15, 15, 0.50)',
+                }}>
+                </div>
+              </div>
+            </div>
+
+            {/* 채널 이미지, 추천 영상 제목, 채널명 박스 */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '8px',
+            }}>
+
+              {/* 채널 이미지 */}
+              <div style={{
+                display: 'flex',
+                width: '40.004px',
+                height: '40.004px',
+                alignItems: 'center',
+                borderRadius: '999px',
+                background: '#CCC',
+              }}>
+              </div>
+
+              {/* 추천 영상 제목, 채널명 박스 */}
+              <div style={{
+                display: 'flex',
+                width: '275px',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                gap: '8px',
+              }}>
+
+                {/* 추천 영상 제목 */}
+                <p style={{
+                  display: 'flex',
+                  height: '32px',
+                  flexDirection: 'column',
+                  justifyContent: 'center',
+                  alignSelf: 'stretch',
+                  color: '#01030D',
+                  fontFamily: 'Roboto',
+                  fontSize: '14px',
+                  fontStyle: 'normal',
+                  fontWeight: '700',
+                  lineHeight: '16px', /* 114.286% */
+                  letterSpacing: '-0.5px',
+                }}>
+                  It is a long established fact that a reader will be
+                  <span>distracted by the readable content of a page...</span>
+                </p>
+
+                {/* 채널명 박스 */}
+                <div style={{
+                  width: '78px',
+                  height: '16px',
+                  }}>
+
+                  {/* 채널명 */}
+                  <p style={{
+                    display: 'flex',
+                    width: '78px',
+                    height: '16px',
+                    flexDirection: 'column',
+                    justifyContent: 'center',
+                    color: '#01030D',
+                    fontFamily: 'Roboto',
+                    fontSize: '12px',
+                    fontStyle: 'normal',
+                    fontWeight: '400',
+                    lineHeight: '20px', /* 166.667% */
+                    letterSpacing: '-0.5px',
+                  }}>
+                    Adventure Time
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-      {/* 나가는 박스 */}
-      <div>
-        <button
-        onClick={onGoHome}
-        style={{}}>
-          홈으로 돌아가기
-        </button>
-    </div>
-
     </div>
   );
 }
