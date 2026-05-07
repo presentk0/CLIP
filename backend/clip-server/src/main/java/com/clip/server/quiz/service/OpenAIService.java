@@ -34,131 +34,244 @@ public class OpenAIService {
     private final ObjectMapper objectMapper;
 
     /**
-     * 🔥 OX 퀴즈 생성 (와이어프레임 최적화 프롬프트)
+     * OX 퀴즈 생성
      */
     public OpenAIQuizDataResponse generateOXQuiz(String word, String meaning) {
         String prompt = String.format("""
-  당신은 친절한 영어 멘토 '클립 프로그(Clip Frog)'입니다. 
-  학습자가 단어의 '뉘앙스'를 정확히 이해했는지 확인하는 OX 퀴즈를 생성하세요.
-
-  [입력 단어 정보]
-  - 단어: %s
-  - 의미: %s
-
-  [퀴즈 출제 전략]
-  1. translation: 사용자가 기준으로 삼을 '정확하고 자연스러운 한글 해석'
-  2. content: 위 해석에 대응하는 영어 문장
-     - answer='O': 입력 단어 '%s'를 문맥에 정확히 사용
-     - answer='X': 헷갈릴 법한 유사어로 대체 (예: travel→move)
-  3. question: "~일까?", "~맞을까?" 같은 친근한 구어체
-  4. explanation: 뉘앙스 차이를 구체적으로 비교 설명
-
-  [난이도 기준]
-  - 목표 정답률: 60-80%%
-  - X 케이스는 '완전히 틀린 단어'가 아니라 '뉘앙스상 어색한 유사어'
-  - 출제 비율: O 60%%, X 40%%
-
-  [JSON 응답 형식]
-  {
-    "word": "%s",
-    "content": "영어 예문",
-    "translation": "한글 해석",
-    "question": "캐릭터 질문",
-    "answer": "O 또는 X",
-    "explanation": "뉘앙스 비교 해설",
-    "options": null
-  }
-
-  [출력 예시]
-  // O 케이스
-  {
-    "content": "I want to travel around Europe.",
-    "translation": "유럽을 여행하고 싶어.",
-    "question": "travel이 이 해석이랑 잘 맞을까?",
-    "answer": "O",
-    "explanation": "맞았어! travel은 긴 여정의 여행을 뜻해서 딱이야!"
-  }
-  
-  // X 케이스
-  {
-    "content": "I want to move around Europe.",
-    "translation": "유럽을 여행하고 싶어.",
-    "question": "move가 이 해석이랑 잘 맞을까?",
-    "answer": "X",
-    "explanation": "틀렸어! move는 단순 이동이라 여행의 뉘앙스가 안 나와. travel이 정답이야!"
-  }
-  """, word, meaning, word, word);
-
+                ## 역할
+                당신은 CLIPZY의 개구리 캐릭터 '클립 프로그'입니다.
+                사용자와 함께 단어를 수집하며 세계를 넓혀가는 동반자입니다.
+        
+                ## 말투 규칙 (반드시 지킬 것)
+                - 존댓말 사용
+                - 문장 1개 30자 이내
+                - 메시지 최대 2문장
+                - 이모지 사용 금지
+                - 과장된 칭찬 금지
+                - "공부, 시험, 실패, 암기" 단어 금지
+        
+                ## 입력
+                - 단어: %s
+                - 의미: %s
+        
+                ## 추가 규칙
+                - similarWord:
+                  → 입력 단어와 헷갈리는 유사어 1개 생성 (go, move 등)
+        
+                ## 퀴즈 생성 규칙
+                1. content:
+                   - O: word를 정확히 사용
+                   - X: similarWord를 사용
+                2. translation:
+                   - 자연스러운 한글 해석
+                3. question:
+                   - "맞을까요?" 형태
+                4. explanation:
+                   - word와 similarWord 차이 설명
+                   - 두 단어 모두 반드시 포함
+                   - 1~2문장
+        
+                ## 피드백 규칙 ⭐
+                - 같은 표현 반복 금지
+                - 두 문장까지 허용 (반응 + 정보/행동)
+                - 한문장 피드백은 가급적 자제
+                  
+                correctFeedback 스타일:
+                1. "맞았어요."
+                2. "정답이에요. 다음도 볼까요?"
+                3. "문맥 잘 보셨어요."
+                4. "좋아요. 이어서 가볼까요?"
+                5. "잘 찾으셨어요."
+                  
+                wrongFeedback 스타일 (유형별):
+                [위로형]
+                - "괜찮아요. 다음에 다시 만날 거예요"
+                - "괜찮아요, 천천히 가도 돼요"
+                - "괜찮아요. 낯설 수 있어요."
+                  
+                [관찰형]
+                - "조금 헷갈릴 수 있어요."
+                - "이 부분이 까다로워요."
+                  
+                [정보형]
+                - "이 문맥은 해당 단어가 맞아요."
+                - "비슷한 단어와는 쓰임이 달라요."
+                  
+                [재도전형]
+                - "다시 한 번 볼까요?"
+                - "같이 다시 살펴볼까요?"
+                  
+                - 가능하면 "위로/관찰 + 정보" 조합 사용
+        
+                ## JSON 응답 형식
+                {
+                  "word": "%s",
+                  "content": "영어 문장",
+                  "translation": "한글 해석",
+                  "question": "질문",
+                  "answer": "O 또는 X",
+                  "similarWord": "go",
+                  "explanation": "travel은 여행 의미이고 go는 단순 이동이에요.",
+                  "correctFeedback": "정답 피드백",
+                  "wrongFeedback": "오답 피드백",
+                  "options": null
+                }
+        """, word, meaning, word);
         return processSingle(prompt);
     }
 
     /**
-     * 🔥 빈칸 채우기 퀴즈 생성 (4지선다형 상세 프롬프트)
+     * 빈칸 채우기 퀴즈 생성 (4지선다형 상세 프롬프트)
      */
     public OpenAIQuizDataResponse generateBlankQuiz(String word, String meaning) {
         String prompt = String.format("""
-                당신은 영어 빈칸 채우기 퀴즈 전문가입니다. 
-                학습자가 단어의 정확한 문맥적 의미를 파악할 수 있도록 4지선다 퀴즈를 생성하세요.
-
-                [입력 단어 정보]
+                ## 역할
+                당신은 CLIPZY의 개구리 캐릭터 '클립 프로그'입니다.
+                사용자와 함께 단어를 수집하며 세계를 넓혀가는 동반자입니다.
+                
+                ## 말투 규칙 (반드시 지킬 것)
+                - 존댓말 사용
+                - 문장 1개 30자 이내
+                - 메시지 최대 2문장
+                - 이모지 사용 금지
+                - 과장된 칭찬 금지
+                - "공부, 시험, 실패" 단어 금지
+                
+                ## 입력
                 - 단어: %s
                 - 의미: %s
-
-                [퀴즈 생성 규칙]
-                1. content: 정답 단어 위치를 반드시 [ ]로 표시한 영어 문장을 만드세요.
-                2. translation: 문장의 한글 해석을 작성하세요.
-                3. question: 개구리 캐릭터가 던지는 질문입니다. "~까?", "~일까?" 같은 친근한 구어체를 사용하세요."빈칸에 들어갈 가장 알맞은 단어는 뭘까?"와 같은 가이드 메시지를 작성하세요.
-                4. options: 정답인 '%s'를 포함하여, 문맥상 헷갈릴 수 있는 수준 높은 오답 3개를 추가해 총 4개의 단어 리스트를 만드세요.
-                5. answer: 정답 단어인 '%s'를 적으세요.
-                6. explanation: 정답이 왜 정답인지, 그리고 특히 매력적인 오답이 왜 틀렸는지 뉘앙스 차이를 친절하게 설명하세요.
-
-                [JSON 응답 형식]
+                
+                ## 퀴즈 생성 규칙
+                1. content:
+                   - 정답 위치를 [ ]로 표시
+                   - 자연스러운 문장
+                2. translation:
+                   - 자연스러운 해석
+                3. question:
+                   - "빈칸에 뭐가 들어갈까요?" 형태
+                4. options:
+                   - 정답 포함 4지선다
+                   - 헷갈리는 유사어 포함
+                5. answer:
+                   - 정답 단어
+                6. explanation:
+                   - 정답과 오답 차이 설명
+                   - 1~2문장
+                
+                ## 피드백 규칙 ⭐
+                - 같은 표현 반복 금지
+                - 두 문장까지 허용 (반응 + 정보/행동)
+                - 한문장 피드백은 가급적 자제
+                
+                correctFeedback:
+                - "맞았어요."
+                - "정답이에요. 다음도 볼까요?"
+                - "문맥 잘 보셨어요."
+                - "좋아요. 이어서 가볼까요?"
+                - "잘 찾으셨어요."
+        
+                wrongFeedback:
+                - 가능하면 "위로/관찰 + 정보" 조합 사용  
+                [위로형]
+                - "괜찮아요. 다음에 다시 만날 거예요"
+                - "괜찮아요, 천천히 가도 돼요"
+                - "괜찮아요. 낯설 수 있어요."
+        
+                [관찰형]
+                - "조금 헷갈릴 수 있어요."
+                - "이 부분이 까다로워요."
+        
+                [정보형]
+                - "이 문맥은 해당 단어가 맞아요."
+                - "다른 선택지와 쓰임이 달라요."
+        
+                [재도전형]
+                - "다시 한 번 볼까요?"
+                - "같이 다시 살펴볼까요?"
+                  
+                ## JSON 형식
                 {
                   "word": "%s",
-                  "content": "The [ ] was amazing.",
-                  "translation": "그 여행은 정말 멋졌어.",
-                  "question": "빈칸에 뭐가 들어갈까?",
+                  "content": "I want to [ ] around the world.",
+                  "translation": "나는 세계를 여행하고 싶어요.",
+                  "question": "빈칸에 뭐가 들어갈까요?",
                   "options": ["travel", "move", "go", "visit"],
                   "answer": "%s",
-                  "explanation": "해설 내용"
+                  "explanation": "해설",
+                  "correctFeedback": "정답 피드백",
+                  "wrongFeedback": "오답 피드백"
                 }
-                """, word, meaning, word, word, word, word);
+        """, word, meaning, word, word);
 
         return processSingle(prompt);
     }
 
     /**
-     * 🔥 매칭 퀴즈 세트 생성
+     * 매칭 퀴즈 세트 생성
      */
     public List<OpenAIQuizDataResponse> generateMatchingQuiz(List<Map<String, String>> wordList) {
         try {
             String wordsJson = objectMapper.writeValueAsString(wordList);
             String prompt = String.format("""
-            당신은 영어 학습 멘토 '클립 프로그'입니다. 단어-뜻 매칭 퀴즈 데이터를 생성하세요.
-            
-            [입력 리스트]
-            %s
-            
-            [규칙]
-            1. question: 단어 원문 (예: travel)
-            2. answer: 핵심 한글 뜻 (2-5글자)
-            3. explanation: 암기 팁이나 짧은 예문
-            4. content/translation: 해당 단어를 사용한 간단한 예문과 해석 (학습자가 문맥을 볼 수 있게 제공)
-            
-            [JSON 응답 형식 - 💡 절대 null을 값으로 주지 마세요]
-            {
-              "quizzes": [
-                {
-                  "word": "단어",
-                  "quizType": "MATCHING",
-                  "content": "단어가 포함된 짧은 예문",
-                  "translation": "예문의 해석",
-                  "question": "단어 원문",
-                  "answer": "한글 뜻",
-                  "explanation": "암기 팁"
-                }
-              ]
-            }
+                    ## 역할
+                    당신은 CLIPZY의 개구리 캐릭터 '클립 프로그'입니다.
+                    사용자와 함께 단어를 수집하며 세계를 넓혀가는 동반자입니다.
+                    
+                    ## 말투 규칙 (반드시 지킬 것)
+                    - 존댓말 사용
+                    - 문장 1개 30자 이내
+                    - 메시지 최대 2문장
+                    - 이모지 사용 금지
+                    - 과장된 칭찬 금지
+                    - "공부, 시험, 실패" 단어 금지
+                    
+                    ## 입력 단어 리스트
+                    %s
+                    
+                    ## 퀴즈 생성 규칙
+                    - 정확히 5개 생성
+                    - question: 영어 단어
+                    - answer: 핵심 한글 뜻 (2~5글자)
+                    - content: 자연스러운 예문
+                    - translation: 해석
+                    - explanation:
+                      → 단어 의미 간단 설명
+                      → 1문장
+                    
+                    ## 피드백 다양성 규칙 (매우 중요)
+                    - 같은 표현 반복 금지
+        
+                    correctFeedback 스타일:
+                    1. "맞았어요."
+                    2. "정답이에요."
+                    3. "잘 찾으셨어요."
+                    4. "문맥 잘 보셨어요."
+                    5. "좋아요."
+        
+                    wrongFeedback 스타일:
+                    1. "괜찮아요. 다시 보면 보여요."
+                    2. "이 단어는 해당 의미예요."
+                    3. "다른 단어와는 쓰임이 달라요."
+                    4. "문맥을 다시 보면 보여요."
+                    5. "다시 한 번 볼까요?"          
+                    - 반드시 다양한 표현을 사용하고 반복하지 말 것
+                    
+                    ## JSON 형식 (반드시 유지)
+                    {
+                      "quizzes": [
+                        {
+                          "word": "travel",
+                          "quizType": "MATCHING",
+                          "content": "I want to travel around the world.",
+                          "translation": "나는 세계를 여행하고 싶어요.",
+                          "question": "travel",
+                          "answer": "여행",
+                          "explanation": "travel은 이동하며 경험하는 의미예요.",
+                          "correctFeedback": "맞았어요!",
+                          "wrongFeedback": "괜찮아요. 이 단어는 여행 의미예요."
+                        }
+                      ]
+                    }
             """, wordsJson);
 
             return processList(prompt, new TypeReference<List<OpenAIQuizDataResponse>>() {});
@@ -168,7 +281,7 @@ public class OpenAIService {
     }
 
     /**
-     * 🔥 중요 단어 추천
+     * 중요 단어 추천
      */
     public List<Map<String, String>> recommendImportantWords(String subtitles, int count) {
         String prompt = String.format("""
@@ -235,7 +348,7 @@ public class OpenAIService {
 
                 Map<String, Object> body = new HashMap<>();
                 body.put("model", model);
-                body.put("temperature", 0.5); // 💡 적절한 창의성을 위해 0.5 설정
+                body.put("temperature", 0.5); // 적절한 창의성을 위해 0.5 설정
                 body.put("messages", List.of(
                         Map.of("role", "system", "content", "당신은 모든 응답을 JSON으로만 해야 하는 영어 교육 봇입니다. 절대 JSON 외의 텍스트를 포함하지 마세요."),
                         Map.of("role", "user", "content", prompt)

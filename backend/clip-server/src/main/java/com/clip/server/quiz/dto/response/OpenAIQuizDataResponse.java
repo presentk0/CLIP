@@ -1,18 +1,15 @@
 package com.clip.server.quiz.dto.response;
 
-import com.clip.server.quiz.entity.QuizType;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.*;
 
 import java.util.List;
 
 @Getter
-@NoArgsConstructor
-@AllArgsConstructor
 @Builder
+@NoArgsConstructor  // Jackson 역직렬화용
+@AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class OpenAIQuizDataResponse {
 
@@ -24,4 +21,8 @@ public class OpenAIQuizDataResponse {
     private String answer;      // 정답
     private String explanation; // 뉘앙스 차이를 포함한 친절한 해설
     private List<String> options; // 빈칸 채우기용 4지선다 보기 리스트
+    @JsonProperty("correctFeedback")
+    private String correctFeedback; // 정답시 피드백
+    @JsonProperty("wrongFeedback")
+    private String wrongFeedback; // 오답시 피드백
 }

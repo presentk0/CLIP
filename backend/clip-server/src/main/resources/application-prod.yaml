@@ -1,12 +1,15 @@
 spring:
   config:
-    import: "aws-secretsmanager:MVP/spring-app/env"
+    import:
+      - "aws-secretsmanager:MVP/spring-app/env"
+      - "aws-secretsmanager:MVP/spring-app/OpenAI"
+      - "aws-secretsmanager:MVP/spring-app/DeepL"
 
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: ${spring.datasource.url}
-    username: ${spring.datasource.username}
-    password: ${spring.datasource.password}
+    username: ${username}
+    password: ${password}
 
 
   jpa:
@@ -23,8 +26,16 @@ spring:
       credentials:
         instance-profile: true
 
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
 openai:
   api:
     key: ${openai.api.key}
     url: https://api.openai.com/v1/chat/completions
   model: gpt-5.4-mini
+
+deepl:
+  api:
+    key: ${deepl.api.key}

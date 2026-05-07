@@ -79,11 +79,12 @@ public class WordService {
                 .timestamp(collectedWordRequest.getTimestamp())
                 .translation(collectedWordRequest.getTranslation())
                 .build();
-        collectedWordRepository.save(collectedWord);
+        CollectedWord saved = collectedWordRepository.save(collectedWord);
         // 5. 총 저장 단어수 계산
         long totalCount = collectedWordRepository.countByUser(user);
 
-        return mapToCollectedWordResponse(collectedWord, totalCount);
+
+        return mapToCollectedWordResponse(saved, totalCount);
     }
 
     // 사용자의 전체 수집 단어 조회 메서드
@@ -119,7 +120,7 @@ public class WordService {
                 .build();
     }
 
-    public CollectedWordResponse mapToCollectedWordResponse(CollectedWord collectedWord, long totalCount) {
+    private CollectedWordResponse mapToCollectedWordResponse(CollectedWord collectedWord, long totalCount) {
         return CollectedWordResponse.builder()
                 .wordId(collectedWord.getId())
                 .collectedAt(collectedWord.getCollectedAt())
@@ -127,7 +128,7 @@ public class WordService {
                 .build();
     }
 
-    public WordResponse mapToWordResponse(CollectedWord collectedWord) {
+    private WordResponse mapToWordResponse(CollectedWord collectedWord) {
         return WordResponse.builder()
                 .id(collectedWord.getId())
                 .videoId(collectedWord.getVideo().getVideoId())

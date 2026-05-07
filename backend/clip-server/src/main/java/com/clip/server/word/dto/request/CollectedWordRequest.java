@@ -6,9 +6,8 @@ import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 @Getter
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
-@Builder
 public class CollectedWordRequest {
 
     @NotBlank(message = "영상 Id는 필수입니다.")
@@ -29,7 +28,6 @@ public class CollectedWordRequest {
     @NotBlank(message = "영상 타임스탬프는 필수입니다.")
     private String timestamp; // 수집하려는 단어의 영상 타임스탬프
 
-    @NotBlank(message = "문장 번역은 필수입니다.")
     private String translation; // 수집하려는 단어가 포함된 문장 번역
 
     @NotNull(message = "수집 타입은 필수입니다.")

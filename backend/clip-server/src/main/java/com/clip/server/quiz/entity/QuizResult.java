@@ -62,11 +62,16 @@ public class QuizResult {
     private Boolean isCorrect ; // 정답 여부
 
     @Column(name = "earned_exp")
-    @ColumnDefault("0")
-    private Integer earnedExp;
+    private Integer earnedExp = 0;
 
     @Column(name = "video_timestamp")
     private String videoTimestamp; // 다시 듣기용 타임 스탬프
+
+    @Column(name = "correct_feedback")
+    private String correctFeedback; // 정답시 피드백
+
+    @Column(name = "wrong_feedback")
+    private String wrongFeedback; // 오답시 피드백
 
     @CreatedDate
     @Column(name = "answered_at")
@@ -74,7 +79,8 @@ public class QuizResult {
 
     @Builder
     public QuizResult(QuizSession quizSession, User user, String word, QuizType quizType,
-                      String question, String correctAnswer, String explanation, String videoTimestamp, String content, String translation) {
+                      String question, String correctAnswer, String explanation, String videoTimestamp,
+                      String content, String translation, String correctFeedback, String wrongFeedback) {
         this.quizSession = quizSession;
         this.user = user;
         this.word = word;
@@ -85,6 +91,8 @@ public class QuizResult {
         this.videoTimestamp = videoTimestamp;
         this.content = content;
         this.translation = translation;
+        this.correctFeedback = correctFeedback;
+        this.wrongFeedback = wrongFeedback;
     }
 
     // 사용자가 퀴즈를 풀었을 때 호출

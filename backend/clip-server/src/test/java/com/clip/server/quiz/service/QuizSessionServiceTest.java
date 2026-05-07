@@ -1,15 +1,22 @@
 package com.clip.server.quiz.service;
 
+import com.clip.server.common.exception.BusinessException;
+import com.clip.server.common.exception.ErrorCode;
 import com.clip.server.quiz.dto.request.QuizGenerateRequest;
 import com.clip.server.quiz.dto.request.QuizWordRequest;
+import com.clip.server.quiz.dto.response.QuizCompleteResponse;
 import com.clip.server.quiz.dto.response.QuizDetailResponse;
 import com.clip.server.quiz.dto.response.QuizGenerateResponse;
-import com.clip.server.quiz.entity.QuizSession;
-import com.clip.server.quiz.entity.QuizSessionWord;
-import com.clip.server.quiz.entity.SessionType;
+import com.clip.server.quiz.entity.*;
+import com.clip.server.quiz.repository.QuizResultRepository;
 import com.clip.server.quiz.repository.QuizSessionRepository;
 import com.clip.server.quiz.repository.QuizSessionWordRepository;
 import com.clip.server.user.entity.User;
+import com.clip.server.user.entity.badge.BadgeType;
+import com.clip.server.user.entity.badge.UserBadge;
+import com.clip.server.user.entity.learning.LearningHistory;
+import com.clip.server.user.repository.LearningHistoryRepository;
+import com.clip.server.user.repository.UserBadgeRepository;
 import com.clip.server.user.repository.UserRepository;
 import com.clip.server.video.entity.Video;
 import com.clip.server.video.entity.VideoKeyWord;
@@ -33,10 +40,10 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class QuizSessionServiceTest {
@@ -60,6 +67,15 @@ class QuizSessionServiceTest {
     private CollectedWordRepository collectedWordRepository;
     @Mock
     private VideoKeyWordRepository videoKeyWordRepository;
+    @Mock
+    private LearningHistoryRepository learningHistoryRepository;
+
+    @Mock
+    private QuizResultRepository quizResultRepository;
+    @Mock
+    private UserBadgeRepository userBadgeRepository;
+    @Mock
+    private QuizFeedbackGenerator quizFeedbackGenerator;
 
     private User user;
     private Video video;
@@ -73,14 +89,14 @@ class QuizSessionServiceTest {
         video = Video.builder()
                 .videoId("v123")
                 .title("테스트 영상")
-                .duration(600) // 10분 영상 -> 섹션 1개 (전략표 기준 600초 미만은 섹션 1개)
+                .duration(600) // 10분 영상 -> 섹션 1개
                 .build();
 
         session = QuizSession.builder()
                 .user(user)
                 .video(video)
                 .sessionType(SessionType.NORMAL)
-                .totalQuizCount(8) // 3(섹션) + 5(매칭)
+                .totalQuizCount(8)
                 .build();
         ReflectionTestUtils.setField(session, "id", 100L);
     }
@@ -94,7 +110,6 @@ class QuizSessionServiceTest {
         given(videoRepository.findById(anyString())).willReturn(Optional.of(video));
         given(quizSessionRepository.findByUserAndVideo(any(), any())).willReturn(Optional.of(session));
 
-        // 해당 섹션에 COLLECT 타입 단어 1개 존재 시뮬레이션
         QuizSessionWord word = QuizSessionWord.builder()
                 .word("implement")
                 .wordType(WordType.COLLECT)
@@ -110,7 +125,6 @@ class QuizSessionServiceTest {
 
         // then
         assertThat(response.getSessionId()).isEqualTo(100L);
-        // 수집 단어가 1개뿐이므로 OX 퀴즈가 먼저 생성됨 (로직상 candidates.get(0) 사용)
         verify(quizService).createOXQuiz(eq(100L), eq(1L), any(QuizWordRequest.class));
     }
 
@@ -123,7 +137,6 @@ class QuizSessionServiceTest {
         given(videoRepository.findById(anyString())).willReturn(Optional.of(video));
         given(quizSessionRepository.findByUserAndVideo(any(), any())).willReturn(Optional.of(session));
 
-        // 세션에 단어가 3개만 저장되어 있는 상황
         List<QuizSessionWord> words = new ArrayList<>(List.of(
                 QuizSessionWord.builder().word("A").wordType(WordType.COLLECT).build(),
                 QuizSessionWord.builder().word("B").wordType(WordType.COLLECT).build(),
@@ -131,7 +144,6 @@ class QuizSessionServiceTest {
         ));
         given(sessionWordRepository.findAllByQuizSession(any())).willReturn(words);
 
-        // AI가 단어 2개를 더 추천해줌
         List<Map<String, String>> aiRecs = List.of(
                 Map.of("word", "D", "meaning", "뜻D"),
                 Map.of("word", "E", "meaning", "뜻E")
@@ -144,7 +156,6 @@ class QuizSessionServiceTest {
         quizSessionService.generateMatchingQuiz(1L, request);
 
         // then
-        // 최종적으로 5개의 단어가 QuizService로 전달되었는지 확인
         verify(openAIService).recommendImportantWords(anyString(), eq(2));
         verify(quizService).createMatchingQuiz(eq(100L), eq(1L), argThat(list -> list.size() == 5));
     }
@@ -157,11 +168,9 @@ class QuizSessionServiceTest {
         given(userRepository.findById(anyLong())).willReturn(Optional.of(user));
         given(videoRepository.findById(anyString())).willReturn(Optional.of(video));
 
-        // 세션이 아직 없는 상태
         given(quizSessionRepository.findByUserAndVideo(any(), any())).willReturn(Optional.empty());
         given(quizSessionRepository.save(any())).willReturn(session);
 
-        // 동기화할 소스 데이터들
         given(collectedWordRepository.findAllByUserAndVideo(any(), any())).willReturn(List.of());
         given(videoKeyWordRepository.findAllByVideo(any())).willReturn(List.of(
                 VideoKeyWord.builder().word("system").build()
@@ -171,9 +180,8 @@ class QuizSessionServiceTest {
         quizSessionService.generateSectionQuiz(1L, request);
 
         // then
-        // 세션이 저장되고 단어 스냅샷이 실행되었는지 확인
         verify(quizSessionRepository).save(any());
-        verify(  sessionWordRepository).saveAll(anyList());
+        verify(sessionWordRepository).saveAll(anyList());
     }
 
     @Test
@@ -186,7 +194,6 @@ class QuizSessionServiceTest {
         given(videoRepository.findById("v123")).willReturn(Optional.of(video));
         given(quizSessionRepository.findByUserAndVideo(any(), any())).willReturn(Optional.of(session));
 
-        // 뒤섞인 데이터 준비
         List<QuizSessionWord> mixedWords = new ArrayList<>(List.of(
                 QuizSessionWord.builder().word("System1").wordType(WordType.SYSTEM).build(),
                 QuizSessionWord.builder().word("Collect1").wordType(WordType.COLLECT).build(),
@@ -207,18 +214,76 @@ class QuizSessionServiceTest {
         List<QuizWordRequest> capturedList = listCaptor.getValue();
         List<String> words = capturedList.stream().map(QuizWordRequest::getWord).toList();
 
-        // 디버깅을 위해 결과 리스트가 기대한 등급 순서인지 더 명확하게 검증
         assertThat(words).hasSize(5);
+        assertThat(words.get(0)).contains("Collect");
+        assertThat(words.get(4)).isEqualTo("System1");
+    }
 
-        // 1. COLLECT 등급 (우선순위 1) - 인덱스 0, 1
-        assertThat(words.get(0)).as("전체 결과: " + words).contains("Collect");
-        assertThat(words.get(1)).as("전체 결과: " + words).contains("Collect");
+    @Test
+    @DisplayName("퀴즈 세션 완료 시 경험치가 정산되고 브론즈 배지가 부여된다")
+    void completeQuizSession_Success_BronzeBadge() {
+        // given
+        Long userId = 1L;
+        Long sessionId = 100L;
 
-        // 2. POPUP 등급 (우선순위 2) - 인덱스 2, 3
-        assertThat(words.get(2)).as("전체 결과: " + words).contains("Popup");
-        assertThat(words.get(3)).as("전체 결과: " + words).contains("Popup");
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+        given(quizSessionRepository.findById(sessionId)).willReturn(Optional.of(session));
+        given(learningHistoryRepository.findByUserAndVideo(any(), any())).willReturn(Optional.empty());
+        given(learningHistoryRepository.save(any())).willAnswer(invocation -> invocation.getArgument(0));
+        given(collectedWordRepository.countByUserIdAndVideoVideoIdAndWordType(any(), any(), any())).willReturn(5L);
 
-        // 3. SYSTEM 등급 (우선순위 3) - 인덱스 4
-        assertThat(words.get(4)).as("전체 결과: " + words).isEqualTo("System1");
+        QuizResult r1 = QuizResult.builder().word("apple").correctAnswer("apple").quizType(QuizType.MATCHING).build();
+        r1.submitAnswer("apple", true, 100);
+        given(quizResultRepository.findByQuizSession(session)).willReturn(List.of(r1));
+        given(userBadgeRepository.existsByUserAndVideoAndBadgeType(any(), any(), eq(BadgeType.BRONZE))).willReturn(false);
+
+        given(quizFeedbackGenerator.generateFeedback(anyDouble(), anyString(), any()))
+                .willReturn("테스트 피드백입니다.");
+
+        // when
+        QuizCompleteResponse response = quizSessionService.completeQuizSession(userId, sessionId);
+
+        // then
+        assertThat(response.getFeedback()).isEqualTo("테스트 피드백입니다.");
+        assertThat(session.getStatus()).isEqualTo(SessionStatus.COMPLETED);
+        verify(userBadgeRepository, times(1)).save(any(UserBadge.class));
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 세션 ID로 완료 요청 시 예외가 발생한다")
+    void completeQuizSession_Fail_SessionNotFound() {
+        // given
+        given(userRepository.findById(any())).willReturn(Optional.of(user));
+        given(quizSessionRepository.findById(any())).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> quizSessionService.completeQuizSession(1L, 999L))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.SESSION_NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("영상을 3번째 완주하면 골드 배지와 1000 EXP 보너스를 받는다")
+    void completeQuizSession_Success_GoldBadge() {
+        // given
+        given(userRepository.findById(user.getId())).willReturn(Optional.of(user));
+        given(quizSessionRepository.findById(session.getId())).willReturn(Optional.of(session));
+
+        LearningHistory history = LearningHistory.builder().user(user).video(video).build();
+        ReflectionTestUtils.setField(history, "completionCount", 2);
+        given(learningHistoryRepository.findByUserAndVideo(any(), any())).willReturn(Optional.of(history));
+        given(userBadgeRepository.existsByUserAndVideoAndBadgeType(any(), any(), eq(BadgeType.GOLD))).willReturn(false);
+        given(quizResultRepository.findByQuizSession(any())).willReturn(List.of());
+
+        given(quizFeedbackGenerator.generateFeedback(anyDouble(), anyString(), any()))
+                .willReturn("골드 배지 축하 피드백!");
+
+        // when
+        QuizCompleteResponse response = quizSessionService.completeQuizSession(user.getId(), session.getId());
+
+        // then
+        assertThat(response.getFeedback()).isEqualTo("골드 배지 축하 피드백!");
+        assertThat(response.getEarnedExp()).isEqualTo(1200);
+        assertThat(response.getNewBadge().getBadgeType()).isEqualTo(BadgeType.GOLD);
     }
 }

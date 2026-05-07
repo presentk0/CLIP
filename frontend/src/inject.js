@@ -9,6 +9,7 @@
   // url = 'https://youtube.com/api/timedtext'
   // open()을 호출한 객체의 method(순서 때문에 가져오기)와 url을 가져오기
   XMLHttpRequest.prototype.open = function(method, url) {
+    // this = XMLHttpRequest 객체
     // this에는 url이 없으니 open()을 호출한 url을 저장
     this.clipzyUrl = url;
     // 백업해둔 원본 함수를 수동으로 같은 상황(this)에서 같은 값(arguments)으로 실행하는 조건을 설정하기
@@ -28,12 +29,12 @@
       // 유튜브 자막 URL에는 'timedtext'와 'lang'이 포함됨
       if (url && url.includes('timedtext') && url.includes('lang=en')) {
         // 같은 페이지 안에서 서로 다른 환경 간 데이터 주고받기(유튜브 환경 -> 크롬 확장프로그램 환경으로 데이터 전달)
-        window.postMessage({
-          type: 'CLIPZY_SUBTITLE_DATA',
-          // 보낼 데이터(events 안에 tStartMs, dDurationMs, segs가 있는 객체들이 담겨있음)
-          response: this.responseText
-          // 받을 수 있는 출처 유튜브로 제한
-        }, 'https://www.youtube.com');
+        // document.dispatchEvent()로 document에 이벤트를 발생시키고 커스텀 이벤트를 생성 후 CLIPZY_SUBTITLE_DATA라는 이벤트 이름을 설정
+        document.dispatchEvent(new CustomEvent('CLIPZY_SUBTITLE_DATA', {
+          // detail 안의 전달할 데이터를 보내기
+          // this.responseText = 서버 응답 데이터 (문자열)
+          detail: { response: this.responseText }
+        }));
       }
     });
 

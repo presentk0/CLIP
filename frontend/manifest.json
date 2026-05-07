@@ -1,10 +1,10 @@
 {
   "manifest_version": 3,
-  "name": "CLIP",
+  "name": "CLIPZY",
   "version": "1.0.0",
   "description": "유튜브 영어 학습 도우미",
   "action": {
-    "default_title": "CLIP 열기"
+    "default_title": "CLIPZY 열기"
   },
   "background": {
     "service_worker": "src/background.js",
