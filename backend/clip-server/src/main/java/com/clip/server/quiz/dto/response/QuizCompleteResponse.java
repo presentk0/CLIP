@@ -20,6 +20,7 @@ public class QuizCompleteResponse {
     private Integer currentLevel; // 현재 레벌
     private BadgeInfo newBadge; // 영상 배지
     private LocalDateTime completedAt; // 세션 만료 시각
+    private String feedback; // 최종 정산 피드백
 
     @Builder
     @Getter
