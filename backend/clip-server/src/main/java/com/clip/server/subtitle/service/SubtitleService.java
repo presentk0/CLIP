@@ -20,6 +20,7 @@ import com.clip.server.video.repository.VideoKeyWordRepository;
 import com.clip.server.video.repository.VideoRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -51,13 +52,18 @@ public class SubtitleService {
                                   List<String> translatedTexts) {
 
         // 비디오 조회 또는 생성
-        Video video = videoRepository.findById(videoId)
-                .orElseGet(() -> videoRepository.save(Video.builder()
-                        .videoId(videoId)
-                        .title(title)
-                        .duration(duration)
-                        .build())
-                );
+        Video video;
+        try {
+            video = videoRepository.findById(videoId)
+                    .orElseGet(() -> videoRepository.save(Video.builder()
+                            .videoId(videoId)
+                            .title(title)
+                            .duration(duration)
+                            .build()));
+        } catch (DataIntegrityViolationException e) {
+            video = videoRepository.findById(videoId)
+                    .orElseThrow(() -> new BusinessException(VIDEO_NOT_FOUND));
+        }
 
         for (int i = 0; i < requests.size(); i++) {
             TranslationRequest.SubtitleDetail req = requests.get(i);
@@ -78,16 +84,22 @@ public class SubtitleService {
         User user = userRepository.findById(userId).orElseThrow(() -> new BusinessException(USER_NOT_FOUND));
 
         // 영상 정보 확인
-        Video video = videoRepository.findById(videoId).
-                orElseGet(()->{
-                            Video newVideo = Video.builder()
-                                    .videoId(videoId)
-                                    .title(subtitleRequest.getTitle())
-                                    .duration(subtitleRequest.getDuration())
-                                    .build();
-                            return videoRepository.save(newVideo);
-                        }
-                );
+        Video video;
+        try {
+            video = videoRepository.findById(videoId)
+                    .orElseGet(() -> {
+                        Video newVideo = Video.builder()
+                                .videoId(videoId)
+                                .title(subtitleRequest.getTitle())
+                                .duration(subtitleRequest.getDuration())
+                                .build();
+                        return videoRepository.save(newVideo);
+                    });
+        } catch (DataIntegrityViolationException e) {
+            // 다른 요청이 먼저 저장한 경우, 다시 조회
+            video = videoRepository.findById(videoId)
+                    .orElseThrow(() -> new BusinessException(VIDEO_NOT_FOUND));
+        }
 
         // 유저 진행도 조회 없으면 생성
         UserVideoProgress progress = userVideoProgressRepository.findByUserAndVideo(user, video)
