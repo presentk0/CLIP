@@ -145,6 +145,11 @@ public class OpenAIService {
                 1. content:
                    - 정답 위치를 [ ]로 표시
                    - 자연스러운 문장
+                   - 정답 위치를 반드시 [ ] 로 표시
+                   - [ ] 내부에는 아무 단어도 넣지 말 것
+                   - 정답 단어를 content에 직접 작성 금지
+                   - 잘못된 예시: [travel], [apple]
+                   - 올바른 예시: [ ]                   
                 2. translation:
                    - 자연스러운 해석
                 3. question:
@@ -286,7 +291,7 @@ public class OpenAIService {
     public List<Map<String, String>> recommendImportantWords(String subtitles, int count) {
         String prompt = String.format("""
                 다음 자막에서 영어 학습자가 꼭 알아야 할 핵심 단어 %d개를 추출하세요.
-                추출 기준: 실생활 빈도수가 높거나 토익/수능 필수 단어 위주.
+                추출 기준: 실생활 빈도수가 높거나 토익/수능/회화 필수 단어 위주.
 
                 [자막 내용]
                 %s

@@ -14,6 +14,8 @@ import com.clip.server.quiz.entity.SessionType;
 import com.clip.server.quiz.repository.QuizResultRepository;
 import com.clip.server.quiz.repository.QuizSessionRepository;
 import com.clip.server.quiz.repository.QuizSessionWordRepository;
+import com.clip.server.subtitle.entity.Subtitle;
+import com.clip.server.subtitle.repository.SubtitleRepository;
 import com.clip.server.user.dto.response.BadgeAwardResponse;
 import com.clip.server.user.entity.User;
 import com.clip.server.user.entity.badge.BadgeType;
@@ -60,6 +62,7 @@ public class QuizSessionService {
     private final QuizResultRepository quizResultRepository;
     private final LearningHistoryRepository learningHistoryRepository;
     private final UserBadgeRepository userBadgeRepository;
+    private final SubtitleRepository subtitleRepository;
 
     private final QuizService quizService;
     private final OpenAIService openAIService;
@@ -83,17 +86,19 @@ public class QuizSessionService {
         int duration = (video.getDuration() != null) ? video.getDuration() : 0;
 
         // 전체 섹션 수
-        int totalSecCount = totalSections(video.getDuration());
+        int totalSecCount = totalSections(duration);
         // 섹션별 퀴즈 수
-        int quizPerSection = countQuizPerSection(video.getDuration());
+        int quizPerSection = countQuizPerSection(duration);
 
         // 전체 학습 시간(보정값 적용)
         double calDuration = duration * DENSITY_FACTOR;
 
+        int sectionNum = Math.max(request.getSectionNumber(), 1);
+
         // 섹션 시간 및 범위 계산
         double range = (double) calDuration / Math.max(totalSecCount, 1);
-        double start = range * (request.getSectionNumber() - 1);
-        double end = range * request.getSectionNumber();
+        double start = range * (sectionNum - 1);
+        double end = range * sectionNum;
 
         // 해당 구간 단어 조회 및 우선순위(1~3순위) 정렬
         List<QuizSessionWord> candidates = quizSessionWordRepository.findWordsBySection(quizSession.getId(), start, end);
@@ -112,9 +117,29 @@ public class QuizSessionService {
         // 단어 부족 시 AI 보충
         if (quizWordRequests.size() < quizPerSection) {
             int needCount = quizPerSection - quizWordRequests.size();
-            List<Map<String, String>> aiRecommended = openAIService.recommendImportantWords(video.getTitle(), needCount);
+
+            // 특정 시간대 자막 추출
+            List<Subtitle> sectionSubtitles = subtitleRepository.findByVideoAndStartTimeBetween(video, start, end);
+            String combinedSubtitles = sectionSubtitles.stream()
+                    .map(Subtitle::getText)
+                    .collect(Collectors.joining(" "));
+
+            // 자막이 너무 비어있을 경우를 대비해 제목을 백업으로 활용
+            String aiInputText = combinedSubtitles.isBlank() ? video.getTitle() : combinedSubtitles;
+
+            log.info("### AI 단어 추출 요청 - 입력 텍스트 요약: {}",
+                    aiInputText.substring(0, Math.min(aiInputText.length(), 50)) + "...");
+
+            List<Map<String, String>> aiRecommended = openAIService.recommendImportantWords(aiInputText, needCount);
+
             for (Map<String, String> rec : aiRecommended) {
-                quizWordRequests.add(new QuizWordRequest(rec.get("word"), rec.get("meaning"), "00:00"));
+                // AI가 추천한 단어가 이미 목록에 없는 경우에만 추가 (중복 방지)
+                boolean isDuplicate = quizWordRequests.stream()
+                        .anyMatch(q -> q.getWord().equalsIgnoreCase(rec.get("word")));
+
+                if (!isDuplicate) {
+                    quizWordRequests.add(new QuizWordRequest(rec.get("word"), rec.get("meaning"), "00:00"));
+                }
             }
         }
 
@@ -183,9 +208,34 @@ public class QuizSessionService {
         // 3순위 AI 판단: 5개 미만인 경우 OpenAI 호출
         if (finalCandidates.size() < 5) {
             int needCount = 5 - finalCandidates.size();
-            List<Map<String, String>> aiRecommended = openAIService.recommendImportantWords(video.getTitle(), needCount);
-            for (Map<String, String> rec : aiRecommended) {
-                finalCandidates.add(new QuizWordRequest(rec.get("word"), rec.get("meaning"), "00:00"));
+
+            // 1. 해당 영상의 모든 자막을 가져와 합칩니다.
+            List<Subtitle> sampleSubtitles = subtitleRepository.findAllByVideo(video);
+
+            StringBuilder sb = new StringBuilder();
+            for (Subtitle s : sampleSubtitles) {
+                sb.append(s.getText()).append(" ");
+                // 글자수 3000자 제한
+                if (sb.length() > 3000) {
+                    sb.append("..."); // 내용이 더 있음을 표시
+                    break;
+                }
+            }
+
+            String aiInput = sb.length() == 0 ? video.getTitle() : sb.toString();
+
+            log.info("### [Matching Quiz AI] 최적화된 자막(약 {}자) 기반 단어 추천 요청", aiInput.length());
+
+            try {
+                List<Map<String, String>> aiRecommended = openAIService.recommendImportantWords(aiInput, needCount);
+                for (Map<String, String> rec : aiRecommended) {
+                    String word = rec.get("word");
+                    if (finalCandidates.stream().noneMatch(c -> c.getWord().equalsIgnoreCase(word))) {
+                        finalCandidates.add(new QuizWordRequest(word, rec.get("meaning"), "00:00"));
+                    }
+                }
+            } catch (Exception e) {
+                log.error("매칭 퀴즈 AI 단어 보충 실패: {}", e.getMessage());
             }
         }
 
