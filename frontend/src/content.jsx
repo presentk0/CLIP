@@ -72,7 +72,7 @@ let thumbnailObserver = null;
 
 let isQuiz = false;
 // 현재 요청한 퀴즈 섹션 수
-let quizSectionCount = 0;
+let quizSectionCount = 1;
 // 현재 요청한 매칭 퀴즈 수
 let matchingQuizCount = 0;
 
@@ -133,7 +133,7 @@ chrome.runtime.onMessage.addListener((message) => {
 
     // ========== 퀴즈/영상 상태 리셋 ==========
     isQuiz = false;
-    quizSectionCount = 0;
+    quizSectionCount = 1;
     matchingQuizCount = 0;
     quizRequested = false;
     lastVideoId = '';
@@ -370,7 +370,7 @@ function resetAllState() {
     quizRequested = false;
     isQuiz = false;
     // 현재 퀴즈 섹션 수 리셋
-    quizSectionCount = 0;
+    quizSectionCount = 1;
     // 매칭 퀴즈 요청 횟수 리셋
     matchingQuizCount = 0;
 
@@ -864,7 +864,7 @@ function handleTimeUpdate(e) {
 
 
       // 0초가 아니고 && n초가 지났고 && 섹션 수를 초과하지 않고, 서버에서 퀴즈 요청 허용받으면 (빈칸 / ox) 퀴즈 요청
-      if (quizIntervalCount > 0 && sectionCount > quizSectionCount && totalWatchTime - lastQuizTime >= quizIntervalCount && isQuizMode) {
+      if (quizIntervalCount > 0 && sectionCount >= quizSectionCount && totalWatchTime - lastQuizTime >= quizIntervalCount && isQuizMode) {
         startQuizSession();
         lastQuizTime = totalWatchTime;
         console.log('성공하면 퀴즈 요청하기', video.duration, quizIntervalCount, sectionCount);
@@ -1631,7 +1631,7 @@ function init() {
   // 영상 제목과 아이디, 채널명 전송 횟수 리셋
   isQuiz = false;
   // 현재 퀴즈 섹션 수 리셋
-  quizSectionCount = 0;
+  quizSectionCount = 1;
   // 매칭 퀴즈 요청 횟수 리셋
   matchingQuizCount = 0;
 
