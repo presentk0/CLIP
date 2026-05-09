@@ -79,23 +79,31 @@ public class QuizSessionService {
         // 세션 정보 확인 및 생성
         QuizSession quizSession = getOrCreateSession(user, video, request.getSessionType());
 
-        // 전체 학습 시간(보정값 적용)
-        double calDuration = video.getDuration() * DENSITY_FACTOR;
+        // NPE 방지
+        int duration = (video.getDuration() != null) ? video.getDuration() : 0;
+
         // 전체 섹션 수
         int totalSecCount = totalSections(video.getDuration());
         // 섹션별 퀴즈 수
         int quizPerSection = countQuizPerSection(video.getDuration());
+
+        // 전체 학습 시간(보정값 적용)
+        double calDuration = duration * DENSITY_FACTOR;
+
         // 섹션 시간 및 범위 계산
-        double range = (double)calDuration/totalSecCount;
-        double start = range * (request.getSectionNumber()-1);
+        double range = (double) calDuration / Math.max(totalSecCount, 1);
+        double start = range * (request.getSectionNumber() - 1);
         double end = range * request.getSectionNumber();
 
-       // 해당 구간 단어 조회 및 우선순위(1~3순위) 정렬
+        // 해당 구간 단어 조회 및 우선순위(1~3순위) 정렬
         List<QuizSessionWord> candidates = quizSessionWordRepository.findWordsBySection(quizSession.getId(), start, end);
         // 전체 리스트를 무작위로 섞음
         Collections.shuffle(candidates);
         // 그 상태에서 우선순위대로 정렬 (셔플된 결과 내에서 등급순 정렬됨)
         candidates.sort(Comparator.comparingInt(this::getPriority));
+
+        boolean hasUserWords = candidates.stream()
+                .anyMatch(c -> c.getWordType() == WordType.COLLECT || c.getWordType() == WordType.POPUP);
 
         List<QuizWordRequest> quizWordRequests = candidates.stream()
                 .map(this::mapToRequest)
@@ -127,24 +135,24 @@ public class QuizSessionService {
 
         // 출제 전략 적용
         if (!finalWords.isEmpty()) {
-            // 수집/호버 단어 존재: OX 1, 빈칸 1 보장 + 나머지 랜덤
-            quizzes.add(quizService.createOXQuiz(quizSession.getId(), user.getId(), mapToRequest(candidates.get(0))));
-            if (candidates.size() > 1 && quizPerSection > 1) {
-                quizzes.add(quizService.createBlankQuiz(quizSession.getId(), user.getId(), mapToRequest(candidates.get(1))));
-            }
-            for (int i = 2; i < Math.min(candidates.size(), quizPerSection); i++) {
-                quizzes.add(quizService.createBlankQuiz(quizSession.getId(), user.getId(), mapToRequest(candidates.get(i))));
-            }
-        } else {
-            // 수집 단어 없음: 빈칸 1 + 나머지 OX (SYSTEM 단어 위주)
-            if (!candidates.isEmpty()) {
-                quizzes.add(quizService.createBlankQuiz(quizSession.getId(), user.getId(), mapToRequest(candidates.get(0))));
-                for (int i = 1; i < Math.min(candidates.size(), quizPerSection); i++) {
-                    quizzes.add(quizService.createOXQuiz(quizSession.getId(), user.getId(), mapToRequest(candidates.get(i))));
+            if (hasUserWords) {
+                // [전략 A] 수집/호버 단어 존재: OX 1, 빈칸 1 보장 + 나머지 빈칸
+                quizzes.add(quizService.createOXQuiz(quizSession.getId(), user.getId(), finalWords.get(0)));
+                if (finalWords.size() > 1) {
+                    quizzes.add(quizService.createBlankQuiz(quizSession.getId(), user.getId(), finalWords.get(1)));
+                }
+                for (int i = 2; i < finalWords.size(); i++) {
+                    quizzes.add(quizService.createBlankQuiz(quizSession.getId(), user.getId(), finalWords.get(i)));
                 }
             } else {
-                log.warn("섹션 {}에 사용할 단어가 없습니다.", request.getSectionNumber());
+                // [전략 B] 수집 단어 없음: 빈칸 1 + 나머지 OX (SYSTEM/AI 단어 위주)
+                quizzes.add(quizService.createBlankQuiz(quizSession.getId(), user.getId(), finalWords.get(0)));
+                for (int i = 1; i < finalWords.size(); i++) {
+                    quizzes.add(quizService.createOXQuiz(quizSession.getId(), user.getId(), finalWords.get(i)));
+                }
             }
+        } else {
+            log.warn("videoId: {}, 섹션 {}에 사용할 단어가 전혀 없습니다.", request.getVideoId(), request.getSectionNumber());
         }
 
         return mapToQuizStartResponse(quizSession, quizzes);
@@ -251,10 +259,6 @@ public class QuizSessionService {
         log.info("세션 {}에 대해 {}개의 단어 스냅샷 생성 완료", quizSession.getId(), sessionWords.size());
     }
 
-    private boolean hasUserActionWords(List<QuizSessionWord> words) {
-        return words.stream().anyMatch(w -> w.getWordType() == WordType.COLLECT || w.getWordType() == WordType.POPUP);
-    }
-
     private QuizWordRequest mapToRequest(QuizSessionWord word) {
         return new QuizWordRequest(word.getWord(), word.getTranslation(), formatTimestamp(word.getTimestamp()));
     }
@@ -266,10 +270,14 @@ public class QuizSessionService {
     }
 
     private Double convertToSeconds(String timestamp) {
-        String[] parts = timestamp.split(":");
-        int minutes = Integer.parseInt(parts[0]);
-        int seconds = Integer.parseInt(parts[1]);
-        return (double) (minutes * 60 + seconds);
+        if (timestamp == null || !timestamp.contains(":")) return 0.0;
+        try {
+            String[] parts = timestamp.split(":");
+            return (double) (Integer.parseInt(parts[0]) * 60 + Integer.parseInt(parts[1]));
+        } catch (Exception e) {
+            log.error("타임스탬프 변환 실패: {}", timestamp);
+            return 0.0;
+        }
     }
 
     // 섹션당 퀴즈 수 계산
@@ -335,7 +343,7 @@ public class QuizSessionService {
                 .orElseThrow(()-> new BusinessException(ErrorCode.SESSION_NOT_FOUND));
 
         Video video = quizSession.getVideo();
-        
+
         LearningHistory learningHistory = learningHistoryRepository.findByUserAndVideo(user, video)
                 .orElseGet(()->{
                     LearningHistory newLearningHistory = LearningHistory.builder()
@@ -409,34 +417,34 @@ public class QuizSessionService {
                 .build();
     }
 
-   private BadgeAwardResponse awardBadgeAndBonusExp(User user, Video video, int currentCount) {
-       BadgeType badgeType = null;
-       int bonusExp = 0;
+    private BadgeAwardResponse awardBadgeAndBonusExp(User user, Video video, int currentCount) {
+        BadgeType badgeType = null;
+        int bonusExp = 0;
 
-       if(currentCount == 1) {
-           badgeType = BadgeType.BRONZE;
-           bonusExp = 300;
-       } else if (currentCount == 2) {
-           badgeType = BadgeType.SILVER;
-           bonusExp = 500;
-       } else if (currentCount == 3) {
-           badgeType = BadgeType.GOLD;
-           bonusExp = 1000;
-       }
+        if(currentCount == 1) {
+            badgeType = BadgeType.BRONZE;
+            bonusExp = 300;
+        } else if (currentCount == 2) {
+            badgeType = BadgeType.SILVER;
+            bonusExp = 500;
+        } else if (currentCount == 3) {
+            badgeType = BadgeType.GOLD;
+            bonusExp = 1000;
+        }
 
-       if(badgeType !=null && !userBadgeRepository.existsByUserAndVideoAndBadgeType(user, video, badgeType)) {
-           UserBadge userBadge = UserBadge.builder()
-                   .badgeType(badgeType)
-                   .user(user)
-                   .video(video)
-                   .build();
-           userBadgeRepository.save(userBadge);
-       }
-       return BadgeAwardResponse.builder()
-               .badgeType(badgeType)
-               .bonusExp(bonusExp)
-               .build();
-   }
+        if(badgeType !=null && !userBadgeRepository.existsByUserAndVideoAndBadgeType(user, video, badgeType)) {
+            UserBadge userBadge = UserBadge.builder()
+                    .badgeType(badgeType)
+                    .user(user)
+                    .video(video)
+                    .build();
+            userBadgeRepository.save(userBadge);
+        }
+        return BadgeAwardResponse.builder()
+                .badgeType(badgeType)
+                .bonusExp(bonusExp)
+                .build();
+    }
 
     private QuizCompleteResponse.BadgeInfo toBadgeInfo(String videoId, BadgeType badgeType) {
         if (badgeType == null) {

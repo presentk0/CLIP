@@ -6,6 +6,8 @@ import frog from '../imgs/image_710.png';
 import frog1 from '../imgs/image_712.png';
 import { apiFetch } from '../utils/api';
 import bulb from '../imgs/image_62.png';
+import frog2 from '../imgs/image_750.png';
+// import undo_stroke from '../imgs/undo_stroke';
 
 // 렌더링해도 1번만 셔플 (비교값을 -0.5 ~ 0.5으로 설정)
 const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
@@ -69,8 +71,12 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
   const [isLooping, setIsLooping] = useState(false);
 
 
-  // 이미 조회한 단어 저장
-  const [cache, setCache] = useState({});
+  // // 이미 조회한 단어 저장
+  // const [cache, setCache] = useState({});
+  // 수집한 단어 목록 상태 저장
+  const [collectedWords, setCollectedWords] = useState([]);
+
+
   // 팝업이 고정되어 있는지 여부
   const [isPinned, setIsPinned] = useState(false);
   // 현재 팝업에 표시할 단어 정보
@@ -79,43 +85,54 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
   const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
   // 단어 클릭 시점의 자막 정보 (단어 수집용)
   const [clickedSubtitle, setClickedSubtitle] = useState(null);
+  // 단어 수집 버튼 누름 여부
+  const [isCollected, setIsCollected] = useState(false);
 
   // 다음 목표 뱃지 저장
   const [nextBadge, setNextBadge] = useState(null);
 
-  // videoId 바뀌면 자막 조회
-  useEffect(() => {
-    console.log('자막조회전', Date.now());
-    // videoId가 다르면 미실행
-    if (!videoId) return;
-    console.log('현재 영상', Date.now(), videoId);
-    const fetchSubtitles = async () => {
-      try {
-        // 서버에서 자막 조회
-        const response = await apiFetch(`/videos/${videoId}/subtitles`, {
-          method: 'GET'
-        });
-        console.log(Date.now(), `GET /videos/${videoId}/subtitles`, response);
-        // 자막이 있으면 시간순 정렬 후 저장
-        if (response?.data?.subtitles?.length > 0) {
-          console.log('자막있음:', response.data.subtitles.length, '개', Date.now());
-          const sorted = response.data.subtitles.sort((a, b) => a.startTime - b.startTime);
-          setSubtitles(sorted);
-          setSubtitleIndex(sorted.length - 1);
-          setCurrentSubtitle(sorted[sorted.length - 1]);
-        }
-      } catch (error) {
-        console.log('자막 조회 실패:', Date.now(), error);
-      }
-    };
-    fetchSubtitles();
-  }, [videoId])
+  // // videoId 바뀌면 자막 조회
+  // useEffect(() => {
+  //   console.log('자막조회전', Date.now());
+  //   // videoId가 다르면 미실행
+  //   if (!videoId) return;
+  //   console.log('현재 영상', Date.now(), videoId);
+  //   const fetchSubtitles = async () => {
+  //     try {
+  //       // 서버에서 자막 조회
+  //       const response = await apiFetch(`/videos/${videoId}/subtitles`, {
+  //         method: 'GET'
+  //       });
+  //       console.log(Date.now(), `GET /videos/${videoId}/subtitles`, response);
+  //       // 자막이 있으면 시간순 정렬 후 저장
+  //       if (response?.data?.subtitles?.length > 0) {
+  //         console.log('자막있음:', response.data.subtitles.length, '개', Date.now());
+  //         const sorted = response.data.subtitles.sort((a, b) => a.startTime - b.startTime);
+  //         setSubtitles(sorted);
+  //         setSubtitleIndex(sorted.length - 1);
+  //         setCurrentSubtitle(sorted[sorted.length - 1]);
+  //       }
+  //     } catch (error) {
+  //       console.log('자막 조회 실패:', Date.now(), error);
+  //     }
+  //   };
+  //   fetchSubtitles();
+  // }, [videoId])
 
 
   // content.jsx에서 자막 수신
   useEffect(() => {
     const listener = (message) => {
       console.log('퀴즈 받음1:', message.type, Date.now());
+
+      // 전체 자막 수신
+      if (message.type === 'SUBTITLES_LOADED') {
+        const sorted = message.subtitles.sort((a, b) => a.startTime - b.startTime);
+        setSubtitles(sorted);
+        setSubtitleIndex(sorted.length - 1);
+        setCurrentSubtitle(sorted[sorted.length - 1]);
+      }
+
       // 새 자막 도착
       if (message.type === 'SUBTITLE_UPDATE') {
         console.log('퀴즈 페이지 자막 받음', Date.now());
@@ -150,6 +167,24 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
     // 페이지 벗어날 때 리스너 제거
     return () => chrome.runtime.onMessage.removeListener(listener);
   }, []);
+
+
+  // 수집한 단어 목록 조회
+  useEffect(() => {
+    const fetchCollectedWords = async () => {
+      try {
+        const response = await apiFetch('/words/my-collection?page=0&size=100', {
+          method: 'GET'
+        });
+        if (response?.data?.words) {
+          setCollectedWords(response.data.words);
+        }
+        console.log('GET /words/my-collection', response);
+      } catch (error) {console.log('단어 목록 조회 에러', error)}
+    };
+    fetchCollectedWords();
+  }, []);
+
 
 
   // 이전 자막 스크립트 이동
@@ -251,6 +286,10 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
       setIsPinned(false);
       setDictionaryData(null);
       setClickedSubtitle(null);
+
+          // 나중에 조회해서 이미 수집했는지 확인 후 대응하기 (오류)
+    setIsCollected(false);
+
       // return 없으면 다른 단어 클릭 시 즉시 이동
       // return;
     }
@@ -267,6 +306,13 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
     const rect = e.target.getBoundingClientRect();
     // 팝업 너비
     const popupWidth = 270;
+
+    // 팝업 left 계산
+    let popupLeft = rect.left + (rect.width / 2) - popupWidth / 2;
+
+    // 화살표가 단어를 가리키는 위치 계산
+    const arrowLeft = rect.left + (rect.width / 2) - popupLeft;
+
     let left = rect.left + (rect.width / 2);
 
     // 화면 왼쪽 밖으로 나가면 조정
@@ -283,16 +329,28 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
       // 단어 위쪽에 표시
       top: rect.top - 210,
       // 중앙 정렬
-      left: left - popupWidth / 2
+      left: left - popupWidth / 2,
+      arrowLeft: arrowLeft,
     });
 
-    // 이미 조회한 단어면 캐시에서 가져오기
-    if (cache[word]) {
-      console.log('캐시:', cache[word]);
-      setDictionaryData(cache[word]);
+    // 서버에서 조회한 단어에서 찾기
+    const collected = collectedWords.find(w => w.word === word);
+    if (collected) {
+      setDictionaryData({
+        word: collected.word,
+        meaningTranslation: collected.translation,
+      });
       setIsPinned(true);
       return;
     }
+
+    // // 이미 조회한 단어면 캐시에서 가져오기
+    // if (cache[word]) {
+    //   console.log('캐시:', cache[word]);
+    //   setDictionaryData(cache[word]);
+    //   setIsPinned(true);
+    //   return;
+    // }
 
     // 사전 API 호출
     try {
@@ -357,13 +415,13 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
         //   result.exampleTranslation = await fetchTranslation(result.example) || '';
         // }
 
-        // 캐시에 저장
-        setCache(prev => ({ ...prev, [word]: result }));
+        // // 캐시에 저장
+        // setCache(prev => ({ ...prev, [word]: result }));
         setDictionaryData(result);
         setIsPinned(true);
 
         // 팝업 열 때 서버에 타입 POPUP으로 보내기
-        await apiFetch('/words/collect', {
+        const popupResponse = await apiFetch('/words/collect', {
           method: 'POST',
           body: JSON.stringify({
             wordType: 'POPUP',
@@ -379,9 +437,11 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
             // translation: result.translation,
             title: videoTitle
           })
-        }).then((response) => {
-          console.log('POST /words/collect', response);
-        }).catch((error) => {console.log('이거 에러11:', error)});
+        });
+        console.log('POST /words/collect', 'POPUP', videoId, word, result.meaningTranslation, savedSubtitle.text, formatTime(savedSubtitle.startTime), savedSubtitle.translation, videoTitle, popupResponse);
+        // .then((response) => {
+        //   console.log('POST /words/collect', body, response);
+        // }).catch((error) => {console.log('이거 에러11:', error)});
       }
     } catch (error) {
       console.log('사전 조회 실패:', error);
@@ -398,6 +458,9 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
     setIsPinned(false);
     setDictionaryData(null);
     setClickedSubtitle(null);
+
+    // 나중에 조회해서 이미 수집했는지 확인 후 대응하기 (오류)
+    setIsCollected(false);
   };
 
 
@@ -432,8 +495,8 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
           title: videoTitle
         })
       });
-      console.log('POST /words/collect', response);
-      alert('수집함');
+      setIsCollected(true);
+      console.log('POST /words/collect', 'COLLECT', videoId, dictionaryData.word, dictionaryData.meaningTranslation, clickedSubtitle.text, formatTime(currentSubtitle.startTime), clickedSubtitle.translation, videoTitle, response);
     } catch (error) {
       console.log('단어 수집 실패:', error);
     }
@@ -1589,25 +1652,57 @@ const handleMatchingComplete = async () => {
                         gap: '8px',
                       }}>
 
-                        {/* 왼쪽 네모 */}
-                        <div style={{
+                        {/* 이전 페이지로 돌아가기 */}
+                        <button
+                        onClick={() => {
+                          if (currentQuiz) {
+                            // 퀴즈 중이면 확인 팝업
+                            setExitModal(true);
+                          } else {
+                            // 퀴즈 없으면 바로 디폴트로 (나중에 기능 추가하기)
+                            onExitPage(); 
+                          }
+                        }}
+                        style={{
                         display: 'flex',
                         width: '24px',
                         height: '24px',
                         alignItems: 'center',
-                        background: '#E1E1E1'
+                        justifyContent: 'center',
+                        background: 'transparent',
+                        border: 'none', 
+                        // background: '#E1E1E1'
                         }}>
-                        </div>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                              <path d="M7.84 13.75L9.17 12.26L6.64 10.01H15.01C17.22 10.01 19.01 11.8 19.01 14.01C19.01 16.22 17.22 18.01 15.01 18.01H12.01V20.01H15.01C18.32 20.01 21.01 17.32 21.01 14.01C21.01 10.7 18.32 8.01 15.01 8.01H6.63L9.16 5.76L7.83 4.27L2.49 9.02L7.83 13.77L7.84 13.75Z" fill="black"/>
+                            </svg>
+                        </button>
 
-                        {/* 오른쪽 네모 */}
-                        <div style={{
+                        {/* 디폴트 페이지로 이동 */}
+                        <button
+                        onClick={() => {
+                          if (currentQuiz) {
+                            // 퀴즈 중이면 확인 팝업
+                            setExitModal(true);
+                          } else {
+                            // 퀴즈 없으면 바로 디폴트로
+                            onExitPage(); 
+                          }
+                        }}
+                        style={{
                           display: 'flex',
                           width: '24px',
                           height: '24px',
                           alignItems: 'center',
-                          background: '#E1E1E1'
+                          justifyContent: 'center',
+                          // background: '#E1E1E1'
+                        background: 'transparent',
+                        border: 'none',
                         }}>
-                        </div>
+                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                            <path d="M12.71 2.29C12.6175 2.1973 12.5076 2.12375 12.3866 2.07357C12.2657 2.02339 12.136 1.99756 12.005 1.99756C11.874 1.99756 11.7444 2.02339 11.6234 2.07357C11.5024 2.12375 11.3925 2.1973 11.3 2.29L3.29 10.29C3.19732 10.3834 3.12399 10.4943 3.07423 10.6161C3.02447 10.7379 2.99924 10.8684 3 11V20C3 21.1 3.9 22 5 22H9C9.55 22 10 21.55 10 21V15H14V21C14 21.55 14.45 22 15 22H19C20.1 22 21 21.1 21 20V11C21 10.73 20.89 10.48 20.71 10.29L12.71 2.29ZM16 20V15C16 13.9 15.1 13 14 13H10C8.9 13 8 13.9 8 15V20H5V11.41L12 4.41L19 11.41V20H16Z" fill="black"/>
+                          </svg>
+                        </button>
                       </div>
 
 
@@ -1695,6 +1790,7 @@ const handleMatchingComplete = async () => {
                       width: '274px',
                       flexDirection: 'column',  // 가로 배치로 변경
                       alignItems: 'center',  // 세로 가운데 정렬로 변경
+                      position: 'relative',
                     }}>
 
                       <div style={{
@@ -1702,7 +1798,8 @@ const handleMatchingComplete = async () => {
                         width: '274px',
                         flexDirection: 'column',
                         alignItems: 'flex-start',
-                        alignSelf: 'stretch'
+                        alignSelf: 'stretch',
+                        position: 'relative',
                       }}>
 
                         {/* 전체 회색 진행바 */}
@@ -1727,34 +1824,41 @@ const handleMatchingComplete = async () => {
                           alignItems: 'flex-start',
                           borderRadius: '999px',
                           background: '#9B87E8', 
+                          position: 'relative',
+                          zIndex: 1,
                         }}>
-                        </div>
-                      </div>
 
-                      {/* 개구리 이미지 넣기? */}
-                      <div style={{
-                        width: '36px',
-                        height: '36px',
-                        aspectRatio: '1/1',
-                        position: 'absolute',
-                        left: '75px',
-                        top: '-14px',
-                        // background: url(<path-to-image>) lightgray -42.788px -1.005px / 228.637% 225.776% no-repeat;
-                        }}>
+                          {/* 개구리 이미지 넣기? */}
+                          <div style={{
+                            width: '36px',
+                            height: '36px',
+                            aspectRatio: '1/1',
+                            position: 'absolute',
+                            right: '-18px',
+                            top: '-11px',
+                            background: `url(${frog2}) transparent -42.788px -1.005px / 228.637% 225.776% no-repeat`
+                            }}>
+                          </div>
+                        </div>
                       </div>
                     </div>
 
-                  {/* 상단 나가기 버튼 */}
-                  <button
-                  onClick={() => setExitModal(true)}
+                  {/* 완주 표시 아이콘 */}
+                  <div
                   style={{
                     display: 'flex',
                     width: '36px',
                     height: '36px',
                     alignItems: 'center',
-                    background: '#E1E1E1'
+                    // background: '#E1E1E1'
+                        background: 'transparent',
+                        border: 'none',
                   }}>
-                  </button>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                      <path d="M8.00415 2.05813C9.47139 2.09829 10.9059 2.50116 12.1799 3.23C14.0199 4.28 16.2099 4.43991 18.1799 3.64993L19.6301 3.06985C19.7819 3.00944 19.9463 2.98768 20.1086 3.00539C20.271 3.02314 20.4267 3.07971 20.5618 3.17141C20.6969 3.26317 20.8076 3.38736 20.884 3.53176C20.9602 3.67592 21.0003 3.83648 21.0002 3.99953V14.9995C21.0004 15.1998 20.9407 15.3962 20.8284 15.562C20.7161 15.7278 20.5563 15.8561 20.3704 15.9302L18.9202 16.5103C17.8402 16.9403 16.7199 17.1499 15.5999 17.1499C14.0699 17.1499 12.5499 16.7502 11.1799 15.9702C9.28314 14.8821 7.00757 14.7701 5.01001 15.6353V21.9898H3.01001V3.98977C3.01061 3.80518 3.06238 3.62434 3.15942 3.46731C3.25646 3.31031 3.39501 3.18321 3.55981 3.10012L3.76978 2.99953C5.08184 2.34136 6.53681 2.018 8.00415 2.05813ZM11.1799 4.97024C9.27995 3.88025 7.00023 3.76042 5.00024 4.63039H5.01001V13.4995C5.89997 13.2096 6.83006 13.0601 7.76001 13.0601C9.31063 13.0639 10.8337 13.4702 12.1799 14.2398C13.0821 14.7616 14.0915 15.0712 15.1311 15.1441C16.1709 15.2168 17.2138 15.0508 18.1799 14.6597L19.0002 14.3296V5.48L18.9202 5.51028C16.3702 6.52027 13.5499 6.33021 11.1799 4.97024Z" fill="black"/>
+                      <path d="M8.00415 2.05813C9.47139 2.09829 10.9059 2.50116 12.1799 3.23C14.0199 4.28 16.2099 4.43991 18.1799 3.64993L19.6301 3.06985C19.7819 3.00944 19.9463 2.98768 20.1086 3.00539C20.271 3.02314 20.4267 3.07971 20.5618 3.17141C20.6969 3.26317 20.8076 3.38736 20.884 3.53176C20.9602 3.67592 21.0003 3.83648 21.0002 3.99953V14.9995C21.0004 15.1998 20.9407 15.3962 20.8284 15.562C20.7161 15.7278 20.5563 15.8561 20.3704 15.9302L18.9202 16.5103C17.8402 16.9403 16.7199 17.1499 15.5999 17.1499C14.0699 17.1499 12.5499 16.7502 11.1799 15.9702C9.28314 14.8821 7.00757 14.7701 5.01001 15.6353V21.9898H3.01001V3.98977C3.01061 3.80518 3.06238 3.62434 3.15942 3.46731C3.25646 3.31031 3.39501 3.18321 3.55981 3.10012L3.76978 2.99953C5.08184 2.34136 6.53681 2.018 8.00415 2.05813ZM11.1799 4.97024C9.27995 3.88025 7.00023 3.76042 5.00024 4.63039H5.01001V13.4995C5.89997 13.2096 6.83006 13.0601 7.76001 13.0601C9.31063 13.0639 10.8337 13.4702 12.1799 14.2398C13.0821 14.7616 14.0915 15.0712 15.1311 15.1441C16.1709 15.2168 17.2138 15.0508 18.1799 14.6597L19.0002 14.3296V5.48L18.9202 5.51028C16.3702 6.52027 13.5499 6.33021 11.1799 4.97024Z" stroke="black"/>
+                    </svg>
+                  </div>
                 </div>
                   )}
               </div>
@@ -1931,8 +2035,13 @@ const handleMatchingComplete = async () => {
                           justifyContent: 'center',
                           alignItems: 'center',
                           borderRadius: '999px',
-                          background: '#E1E1E1',
+                          // background: '#E1E1E1',
+                        background: 'transparent',
+                        border: 'none',
                         }}>
+                          <svg xmlns="http://www.w3.org/2000/svg" width="35" height="35" viewBox="0 0 35 35" fill="none">
+                            <path d="M25.4625 8.91042C24.9812 8.6625 24.3979 8.70625 23.9458 9.02708L13.7375 16.3187C13.3583 16.5958 13.125 17.0333 13.125 17.5C13.125 17.9667 13.3583 18.4188 13.7375 18.6813L23.9458 25.9729C24.1938 26.1479 24.5 26.25 24.7917 26.25C25.025 26.25 25.2437 26.1917 25.4625 26.0896C25.9437 25.8417 26.25 25.3458 26.25 24.7917V10.2083C26.25 9.66875 25.9437 9.15833 25.4625 8.91042ZM23.3333 21.9625L17.0917 17.5L23.3333 13.0375V21.9479V21.9625ZM8.75 8.75H11.6667V26.25H8.75V8.75Z" fill="black"/>
+                          </svg>
                         </button>
 
                         {/* 현재 스크립트 구간 반복 */}
@@ -1944,8 +2053,13 @@ const handleMatchingComplete = async () => {
                           height: '32px',
                           justifyContent: 'center',
                           alignItems: 'center',
-                          background: '#E1E1E1',
+                          // background: '#E1E1E1',
+                        background: 'transparent',
+                        border: 'none',
                         }}>
+                          <svg xmlns="http://www.w3.org/2000/svg" width="35" height="35" viewBox="0 0 35 35" fill="none">
+                            <path d="M8.75001 26.25H14.5833C15.3854 26.25 16.0417 25.5938 16.0417 24.7917V10.2083C16.0417 9.40625 15.3854 8.75 14.5833 8.75H8.75001C7.94792 8.75 7.29167 9.40625 7.29167 10.2083V24.7917C7.29167 25.5938 7.94792 26.25 8.75001 26.25ZM10.2083 11.6667H13.125V23.3333H10.2083V11.6667ZM20.4167 8.75C19.6146 8.75 18.9583 9.40625 18.9583 10.2083V24.7917C18.9583 25.5938 19.6146 26.25 20.4167 26.25H26.25C27.0521 26.25 27.7083 25.5938 27.7083 24.7917V10.2083C27.7083 9.40625 27.0521 8.75 26.25 8.75H20.4167ZM24.7917 23.3333H21.875V11.6667H24.7917V23.3333Z" fill="black"/>
+                          </svg>
                         </button>
 
                         {/* 다음 스크립트 보기 */}
@@ -1958,8 +2072,13 @@ const handleMatchingComplete = async () => {
                           justifyContent: 'center',
                           alignItems: 'center',
                           borderRadius: '999px',
-                          background: '#E1E1E1',
+                          // background: '#E1E1E1',
+                        background: 'transparent',
+                        border: 'none',
                         }}>
+                          <svg xmlns="http://www.w3.org/2000/svg" width="35" height="35" viewBox="0 0 35 35" fill="none">
+                            <path d="M21.2625 16.3187L11.0542 9.02708C10.6021 8.70625 10.0187 8.6625 9.5375 8.91042C9.05625 9.15833 8.75 9.65417 8.75 10.2083V24.7917C8.75 25.3313 9.05625 25.8417 9.5375 26.0896C9.74167 26.1917 9.975 26.25 10.2083 26.25C10.5 26.25 10.8062 26.1625 11.0542 25.9729L21.2625 18.6813C21.6417 18.4042 21.875 17.9667 21.875 17.5C21.875 17.0333 21.6417 16.5812 21.2625 16.3187ZM11.6667 21.9625V13.0521L17.9083 17.5146L11.6667 21.9771V21.9625ZM23.3333 8.75H26.25V26.25H23.3333V8.75Z" fill="black"/>
+                          </svg>
                         </button>
                       </div>
                     </div>
@@ -2408,6 +2527,7 @@ const handleMatchingComplete = async () => {
 
 
       {/* 하단 고정 바 */}
+      {currentQuiz && (
       <div style={{
         display: 'flex',
         padding: '10px 16px',
@@ -2546,6 +2666,7 @@ const handleMatchingComplete = async () => {
           )}
         </div>
       </div>
+      )}
     </div>
 
         {/* 사전 팝업 */}
@@ -2557,23 +2678,39 @@ const handleMatchingComplete = async () => {
             top: popupPosition.top,
             left: popupPosition.left,
             width: '270px',
-            height: '188.212px',
+            minHeight: '188px',
+            // height: '188.212px',
             borderRadius: '15.979px',
             border: '0.799px solid #E7E6EB',
             background: '#FFF',
             boxShadow: '0 3.196px 3.196px 0 rgba(206, 210, 223, 0.16)',
             zIndex: '999',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+            padding: '16px',
           }}>
+
+            {/* 상단 버튼 영역 - 가로 배치 */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              width: '100%',
+            }}>
 
             {/* 수집 기능 넣기 */}
             <button 
             onClick={() => collectWord()}
             style={{
-              position: 'absolute',
-              top: '23.65px',
-              bottom: '132.6px',
-              left: '15.77px',
-              right: '167.94px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              // position: 'absolute',
+              // top: '23.65px',
+              // bottom: '132.6px',
+              // left: '15.77px',
+              // right: '167.94px',
               width: '86.289px',
               height: '31.959px',
               zIndex: '999',
@@ -2585,30 +2722,44 @@ const handleMatchingComplete = async () => {
 
               {/* 사전 아이콘 들어갈 자리 */}
               <div style={{
-                position: 'absolute',
-                top: '5.59x',
-                bottom: '7.19px',
-                left: '9.59px',
-                right: '57.53px',
+                // position: 'absolute',
+                // top: '5.59x',
+                // bottom: '7.19px',
+                // left: '9.59px',
+                // right: '57.53px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
                 width: '19.175px',
                 height: '19.175px',
-                background: '#CFCFD7',
+                // background: '#CFCFD7',
+                        background: 'transparent',
+                        border: 'none',
                 zIndex: '999',
-                boxSizing: 'border-box'
+                // boxSizing: 'border-box'
               }}>
+                {isCollected ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="9" height="11" viewBox="0 0 9 11" fill="none">
+                    <path d="M7.58301 0C8.17884 0 8.66602 0.488151 8.66602 1.08398V10.292C8.66602 10.487 8.56342 10.6662 8.39551 10.7637C8.31439 10.8123 8.22231 10.8339 8.125 10.834C8.0275 10.834 7.93477 10.8124 7.85352 10.7637L4.33301 8.74805L0.8125 10.7637C0.644639 10.8611 0.438394 10.8611 0.270508 10.7637C0.102591 10.6662 0 10.487 0 10.292V1.08398C0 0.488158 0.487184 1.11154e-05 1.08301 0H7.58301Z" fill="#7C3AED"/>
+                  </svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="9" height="11" viewBox="0 0 9 11" fill="none">
+                    <path d="M7.58333 0H1.08333C0.4875 0 0 0.4875 0 1.08333V10.2917C0 10.4867 0.102917 10.6654 0.270833 10.7629C0.43875 10.8604 0.644583 10.8604 0.8125 10.7629L4.33333 8.74792L7.85417 10.7629C7.93542 10.8117 8.0275 10.8333 8.125 10.8333C8.2225 10.8333 8.31458 10.8117 8.39583 10.7629C8.56375 10.6654 8.66667 10.4867 8.66667 10.2917V1.08333C8.66667 0.4875 8.17917 0 7.58333 0ZM7.58333 4.33333V9.36L4.60417 7.65917C4.52283 7.61156 4.43028 7.58647 4.33604 7.58647C4.2418 7.58647 4.14925 7.61156 4.06792 7.65917L1.08875 9.36V1.08333H7.58875V4.33333H7.58333Z" fill="black"/>
+                  </svg>
+                )}
               </div>
 
-              <p style={{
-                position: 'absolute',
-                top: '9.59x',
-                bottom: '11.19px',
-                left: '35.16px',
-                right: '9.59px',
-                display: 'flex',
-                width: '41.547px',
-                height: '11.186px',
-                flexDirection: 'column',
-                justifyContent: 'center',
+              <span style={{
+                // position: 'absolute',
+                // top: '9.59x',
+                // bottom: '11.19px',
+                // left: '35.16px',
+                // right: '9.59px',
+                // display: 'flex',
+                // width: '41.547px',
+                // height: '11.186px',
+                // flexDirection: 'column',
+                // justifyContent: 'center',
                 color: '#01030D',
                 fontFamily: 'Pretendard',
                 fontSize: '11.186px',
@@ -2618,41 +2769,48 @@ const handleMatchingComplete = async () => {
                 lineHeight: 'normal'
               }}>
                 단어 수집
-              </p>
+              </span>
             </button>
 
             {/* 닫기 버튼 */}
             <button 
             onClick= {() => closePopup()}
             style={{
-              position: 'absolute',
-              top: '23.65px',
-              bottom: '135.8px',
-              left: '224.67px',
-              right: '16.57px',
+              // position: 'absolute',
+              // top: '23.65px',
+              // bottom: '135.8px',
+              // left: '224.67px',
+              // right: '16.57px',
               width: '28.763px',
               height: '28.763px',
               zIndex: '999',
+                        background: 'transparent',
+                        border: 'none',
             }}>
 
 
-              <svg
+              {/* <svg
               xmlns="http://www.w3.org/2000/svg"
               width="29"
               height="29"
               viewBox="0 0 29 29"
               fill="none">
                 <rect width="28.7631" height="28.7631" rx="14.3815" fill="#E1E1E1"/>
+              </svg> */}
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M14.83 7.76001L12 10.59L9.17001 7.76001L7.76001 9.17001L10.59 12L7.76001 14.83L9.17001 16.24L12 13.41L14.83 16.24L16.24 14.83L13.41 12L16.24 9.17001L14.83 7.76001Z" fill="black"/>
+                <path d="M12 2.00001C9.33 2.00001 6.82 3.04001 4.93 4.93001C3.04 6.82001 2 9.33001 2 12C2 14.67 3.04 17.18 4.93 19.07C6.88 21.02 9.44 21.99 12 21.99C14.56 21.99 17.12 21.02 19.07 19.07C21.02 17.12 22 14.67 22 12C22 9.33001 20.96 6.82001 19.07 4.93001C18.1439 3.99824 17.0422 3.25949 15.8286 2.75654C14.615 2.25359 13.3137 1.99645 12 2.00001ZM17.66 17.66C14.54 20.78 9.47 20.78 6.35 17.66C4.84 16.15 4.01 14.14 4.01 12C4.01 9.86001 4.84 7.85001 6.35 6.34001C7.86 4.83001 9.87 4.00001 12.01 4.00001C14.15 4.00001 16.16 4.83001 17.67 6.34001C19.18 7.85001 20.01 9.86001 20.01 12C20.01 14.14 19.18 16.15 17.67 17.66H17.66Z" fill="black"/>
               </svg>
             </button>
+          </div>
 
             {/* 해당하는 품사 반환 */}
             <p style={{
-              position: 'absolute',
-              top: '71.75px',
-              bottom: '105.46px',
-              left: '15.95px',
-              right: '237.05px',
+              // position: 'absolute',
+              // top: '71.75px',
+              // bottom: '105.46px',
+              // left: '15.95px',
+              // right: '237.05px',
               zIndex: '999',
               color: '#9198A3',
               fontFamily: 'Pretendard',
@@ -2666,11 +2824,11 @@ const handleMatchingComplete = async () => {
 
             {/* 단어 */}
             <p style={{
-              position: 'absolute',
-              top: '82.93x',
-              bottom: '77.28px',
-              left: '15.95px',
-              right: '166.05px',
+              // position: 'absolute',
+              // top: '82.93x',
+              // bottom: '77.28px',
+              // left: '15.95px',
+              // right: '166.05px',
               zIndex: '999',
               color: '#7C3AED',
               fontFamily: 'Pretendard',
@@ -2685,11 +2843,11 @@ const handleMatchingComplete = async () => {
 
             {/* 미국식 발음 */}
             <p style={{
-              position: 'absolute',
-              top: '117.29px',
-              bottom: '57.92px',
-              left: '15.95px',
-              right: '147.05px',
+              // position: 'absolute',
+              // top: '117.29px',
+              // bottom: '57.92px',
+              // left: '15.95px',
+              // right: '147.05px',
               color: '#9198A3',
               fontFamily: 'Pretendard',
               fontSize: '11.186px',
@@ -2704,11 +2862,11 @@ const handleMatchingComplete = async () => {
 
             {/* 줄? */}
             <div style={{
-              position: 'absolute',
-              top: '143.66px',
-              bottom: '43.74px',
-              left: '15.95px',
-              right: '15.95px',
+              // position: 'absolute',
+              // top: '143.66px',
+              // bottom: '43.74px',
+              // left: '15.95px',
+              // right: '15.95px',
               width: '238.094px',
               height: '0.799px',
               background: '#E7E6EB',
@@ -2718,11 +2876,12 @@ const handleMatchingComplete = async () => {
 
             {/* 단어 뜻 번역 */}
             <p style={{
-              position: 'absolute',
-              top: '157.24px',
-              bottom: '15.97px',
-              left: '15.95px',
-              right: '195.05px',
+              // position: 'absolute',
+              // top: '157.24px',
+              // bottom: '15.97px',
+              // left: '15.95px',
+              // // 양쪽 여백 동일하게 변경
+              // right: '15.95px',
               color: '#01030D',
               fontFamily: 'Pretendard',
               fontSize: '12.784px',
@@ -2730,6 +2889,8 @@ const handleMatchingComplete = async () => {
               fontWeight: '700',
               lineHeight: 'normal',
               zIndex: '999',
+              // 자동 줄바꿈 추가
+              wordBreak: 'break-word',
             }}>
               {dictionaryData.meaningTranslation}
             </p>
@@ -2739,7 +2900,7 @@ const handleMatchingComplete = async () => {
               position: 'absolute',
               top: '175.4px',
               bottom: '20.69px',
-              left: '50%',  // 좌우 중앙 정렬로 변경
+              left: `${popupPosition.arrowLeft}px`,   // 동적 위치로 변경
               transform: 'translateX(-50%)',  // 좌우 중앙 정렬로 변경
               width: '29.562px',
               height: '33.504px',
@@ -2747,6 +2908,8 @@ const handleMatchingComplete = async () => {
               strokeWidth: '0.985px',
               stroke: '#E7E6EB',
               zIndex: '999',
+                        background: 'transparent',
+                        border: 'none',
             }}>
 
               <svg
@@ -2830,8 +2993,10 @@ const handleMatchingComplete = async () => {
                 aspectRatio: '46/45',
                 // lightgray 대신 transparent 사용해서 투명처리
                 background: `url(${frog1}) transparent -3.913px -3.002px / 206.475% 210.332% no-repeat`,
-                // backgroundSize: 'contain',  // 비율 유지 + 전체 보이기
-                // backgroundPosition: 'center', // 가운데 정렬
+                // 비율 유지 + 전체 보이기
+                backgroundSize: 'contain',
+                // 가운데 정렬
+                backgroundPosition: 'center',
               }}>
               </div>
 
