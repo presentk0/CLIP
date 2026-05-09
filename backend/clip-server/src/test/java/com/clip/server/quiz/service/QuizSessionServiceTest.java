@@ -11,6 +11,7 @@ import com.clip.server.quiz.entity.*;
 import com.clip.server.quiz.repository.QuizResultRepository;
 import com.clip.server.quiz.repository.QuizSessionRepository;
 import com.clip.server.quiz.repository.QuizSessionWordRepository;
+import com.clip.server.subtitle.repository.SubtitleRepository;
 import com.clip.server.user.entity.User;
 import com.clip.server.user.entity.badge.BadgeType;
 import com.clip.server.user.entity.badge.UserBadge;
@@ -69,6 +70,8 @@ class QuizSessionServiceTest {
     private VideoKeyWordRepository videoKeyWordRepository;
     @Mock
     private LearningHistoryRepository learningHistoryRepository;
+    @Mock
+    private SubtitleRepository subtitleRepository;
 
     @Mock
     private QuizResultRepository quizResultRepository;
@@ -109,6 +112,8 @@ class QuizSessionServiceTest {
         given(userRepository.findById(anyLong())).willReturn(Optional.of(user));
         given(videoRepository.findById(anyString())).willReturn(Optional.of(video));
         given(quizSessionRepository.findByUserAndVideo(any(), any())).willReturn(Optional.of(session));
+        given(subtitleRepository.findByVideoAndStartTimeBetween(any(), anyDouble(), anyDouble()))
+                .willReturn(List.of());
 
         QuizSessionWord word = QuizSessionWord.builder()
                 .word("implement")
@@ -136,6 +141,7 @@ class QuizSessionServiceTest {
         given(userRepository.findById(anyLong())).willReturn(Optional.of(user));
         given(videoRepository.findById(anyString())).willReturn(Optional.of(video));
         given(quizSessionRepository.findByUserAndVideo(any(), any())).willReturn(Optional.of(session));
+        given(subtitleRepository.findAllByVideo(any())).willReturn(List.of());
 
         List<QuizSessionWord> words = new ArrayList<>(List.of(
                 QuizSessionWord.builder().word("A").wordType(WordType.COLLECT).build(),
@@ -175,6 +181,8 @@ class QuizSessionServiceTest {
         given(videoKeyWordRepository.findAllByVideo(any())).willReturn(List.of(
                 VideoKeyWord.builder().word("system").build()
         ));
+        given(subtitleRepository.findByVideoAndStartTimeBetween(any(), anyDouble(), anyDouble()))
+                .willReturn(List.of());
 
         // when
         quizSessionService.generateSectionQuiz(1L, request);
