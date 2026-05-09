@@ -37,7 +37,7 @@ export const apiFetch = async (endpoint, options = {}) => {
       };
     }
 
-    // 단어 수집 요청 (미사용)
+    // 단어 수집 요청
     if (endpoint === '/words/my-collection') {
       
       return {
