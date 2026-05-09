@@ -178,6 +178,7 @@ function SettlementPage({ data, videoId, videoTitle, channelName, duration , onG
                 width: '274px',
                 flexDirection: 'column',
                 alignItems: 'center',
+                position: 'relative',
               }}>
 
                 {/* 진행도 바 색상 박스 */}
@@ -196,6 +197,8 @@ function SettlementPage({ data, videoId, videoTitle, channelName, duration , onG
                     flexDirection: 'column',
                     alignItems: 'flex-start',
                     position: 'absolute',
+                    top: 0,
+                    left: 0,
                     borderRadius: '999px',
                     background: '#D8D8E2',
                   }}>
@@ -248,6 +251,7 @@ function SettlementPage({ data, videoId, videoTitle, channelName, duration , onG
             width: '370px',
             flexDirection: 'column',
             alignItems: 'flex-end',
+            position: 'relative',
           }}>
 
             {/* 뱃지 진행률 중간 박스 */}
@@ -312,6 +316,7 @@ function SettlementPage({ data, videoId, videoTitle, channelName, duration , onG
                     flexDirection: 'column',
                     alignItems: 'flex-start',
                     alignSelf: 'stretch',
+                    position: 'relative',
                   }}>
 
                     {/* 영상과 제목 사이에 gap추가 */}
@@ -678,6 +683,7 @@ function SettlementPage({ data, videoId, videoTitle, channelName, duration , onG
                         display: 'flex',
                         width: '306px',
                         alignItems: 'flex-start',
+                        position: 'relative',
                       }}>
 
                         {/* 전체 회색 바 */}
@@ -685,6 +691,8 @@ function SettlementPage({ data, videoId, videoTitle, channelName, duration , onG
                           width: '306px',
                           height: '6px',
                           position: 'absolute',
+                          top: 0,
+                          left: 0,
                           borderRadius: '999px',
                           background: '#EDEDF2',
                         }}>
@@ -738,6 +746,8 @@ function SettlementPage({ data, videoId, videoTitle, channelName, duration , onG
                 height: '115px',
                 fill: '#FFF',
                 position: 'absolute',
+                        background: 'transparent',
+                        border: 'none',
               }}>
 
                 <svg xmlns="http://www.w3.org/2000/svg" width="204" height="115" viewBox="0 0 204 115" fill="none">
