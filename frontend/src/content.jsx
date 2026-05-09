@@ -100,6 +100,18 @@ let isQuizMode = false;
 // 이미 자막 가져온 영상 ID
 let translatedVideoId = null;
 
+// infect.js 자막 가져오는 리스너 제거용
+let subtitleDataListener = null;
+
+// 현재 영상Id 저장
+let currentVideoId = null;
+
+// 현재 영상 제목 저장
+let currentVideoTitle = '';
+
+// 현재 영상 전체 길이 저장
+let currentDuration = 0;
+
 // ========== 사이드 패널 신호 수신 ==========
 chrome.runtime.onMessage.addListener((message) => {
   console.log('콘텐츠 받음:', message.type, Date.now());
@@ -133,6 +145,19 @@ chrome.runtime.onMessage.addListener((message) => {
     isSubtitleInterceptorSet = false;
     allSubtitles = [];
     lastSentIndex = -1;
+
+    
+// infect.js 자막 가져오는 리스너 체크 리셋
+subtitleDataListener = null;
+
+// 현재 영상Id 저장 리셋
+currentVideoId = null;
+
+// 현재 영상 제목 리셋
+currentVideoTitle = '';
+
+// 현재 영상 전체 길이 리셋
+currentDuration = 0;
     // ========== 큐/기타 리셋 ==========
     resetQueue();
     retryCount = 0;
@@ -406,6 +431,19 @@ function resetSubtitleSystem() {
   // 시청 시간 감지 및 영상 끝남 감지 리스너 리셋
   isTimeUpdateListenerSet = false;
 
+
+      // infect.js 자막 가져오는 리스너 체크 리셋
+subtitleDataListener = null;
+
+// 현재 영상Id 저장 리셋
+currentVideoId = null;
+
+// 현재 영상 제목 리셋
+currentVideoTitle = '';
+
+// 현재 영상 전체 길이 리셋
+currentDuration = 0;
+
   // 영상 시청 및 영상 끝 감지 이벤트 리스너 강제 종료
   if (eventTimeUpdateListener) {
     eventTimeUpdateListener.removeEventListener('timeupdate', handleTimeUpdate);
@@ -424,6 +462,9 @@ function resetSubtitleSystem() {
     eventTimeUpdateListener.removeEventListener('timeupdate', handleSubtitleSync);
     eventTimeUpdateListener = null;
   }
+
+  // 자막 가져오는 이벤트 리스너 강제 종료
+  document.removeEventListener('CLIPZY_SUBTITLE_DATA', subtitleDataHandler);
 
   // 구간 반복 이벤트 리스너 강제 종료
   if (eventLoop) {
@@ -530,134 +571,177 @@ function setupSubtitleInterceptor(videoId, videoTitle, duration) {
   isSubtitleInterceptorSet = true;
   console.log('최초 1회', Date.now());
 
-  // 자막 이미 켜져있으면 껐다 켜기
-  const btn = document.querySelector('.ytp-subtitles-button');
-  if (btn?.getAttribute('aria-pressed') === 'true') {
-    btn.click();
-    setTimeout(() => btn.click(), 500);
+  // 이전 inject.js 자막 데이터 수신 리스너 제거
+  if (subtitleDataListener) {
+    document.removeEventListener('CLIPZY_SUBTITLE_DATA', subtitleDataHandler);
   }
 
-  // ========== inject.js에서 자막 데이터 수신 ==========
-  // CLIPZY_SUBTITLE_DATA 이벤트를 받기
-  document.addEventListener('CLIPZY_SUBTITLE_DATA', async (event) => {
-    // detail.response가 문자열인지 확인 (타입 검증)
-    if (typeof event.detail?.response !== 'string') return;
+  // 현재 영상Id, 제목, 전체 길이 저장
+  currentVideoId = videoId;
+  currentVideoTitle = videoTitle;
+  currentDuration = duration;
 
+  // 서버에서 자막 먼저 조회
+  apiFetch(`/videos/${videoId}/subtitles`, {
+    method: 'GET'
+  }).then(response => {
+    // 테스트용으로 넣었던 10개 이하의 자막이 아니면 실행 (오류)
+      if (response?.data?.subtitles?.length >= 10) {
+        // 이미 저장된 자막 있으면 사용
+        console.log(`GET /videos/${videoId}/subtitles`, response);
+        allSubtitles = response.data.subtitles;
+        translatedVideoId = videoId;
+        lastSentIndex = -1;
+        setupTimeUpdateListener();
 
-
-    // // 안에 tStartMs, dDurationMs, segs가 있는 객체들이 담겨있는 events 가져오기
-    // const response = event.detail.response;
-
-    // ========== JSON 파싱 ==========
-    let data;
-    try {
-      // 문자열(자막 데이터가 ""로 담김)을 객체로 변환 (JSON 형식 검증)
-      data = JSON.parse(event.detail.response)
-    } catch (error) {
-      console.log('잘못된 데이터1', error);
-    return;
-    }
-
-    // ========== 데이터 구조 검증 ==========
-    // data.events가 (없거나 falsy 또는 배열이 아닌 경우면) 리턴 (데이터 구조 검증)
-    if (!data.events || !Array.isArray(data.events)) {
-      console.log('잘못된 데이터2');
-      return;
-    }
-
-      if (translatedVideoId === videoId) {
-    console.log('이미 번역된 영상, 무시');
-    return;
-  }
-  translatedVideoId = videoId;
-    console.log('자막 발생 빈도',Date.now());
-    try {
-      // ========== 자막 데이터 처리 ==========
-      // 자막 데이터의 이벤트 요소(tStartMs,dDurationMs, segs) 저장
-      allSubtitles = data.events
-      // segs(텍스트 조각)가 있는 이벤트 요소만 가져오기
-      .filter(event => event.segs)
-      .map(event => ({
-        // 각각의 segs에 담긴 텍스트 조각들(utf8) 합치기
-        text: event.segs.map(seg => seg.utf8 || '').join('').trim(),
-        // 시작 시간 초 단위로 저장
-        startTime: event.tStartMs / 1000,
-        // 끝 시간 초 단위로 저장(시작 시간 + 지속 시간)
-        endTime: (event.tStartMs + (event.dDurationMs || 0)) / 1000
-      }))
-      // sub.text가 빈 텍스트이면 해당 데이터 제거(segs가 공백 또는 빈 값인 경우 방지)
-      .filter(sub => sub.text)
-      // 전체가 [...] 형태일 때만 해당 데이터 제거
-      .filter(sub => !/^\[.*\]$/.test(sub.text.trim()));
-
-      // ========== 텍스트 정리 ==========
-      // 자막 데이터에 담긴 텍스트의 줄바꿈을 공백으로 변환
-      allSubtitles = allSubtitles.map(sub => ({
-        ...sub,
-        text: sub.text.replace(/\n/g, ' ').trim()
-      }));
-
-
-      // ========== 서버에 전체 자막 및 번역 저장 ==========
-      const texts = allSubtitles.map(sub => sub.text);
-      console.log(texts, videoId, videoTitle, duration);
-
-
-
-
-
-
-
-      // 번역 요청 전에 현재 영상 저장
-      const requestVideoId = videoId;
-
-      console.log('콘텐츠 번역 요청', Date.now());
-      const translateResponse = await chrome.runtime.sendMessage({
-        type: 'TRANSLATE',
-        endpoint: '/translate/subtitles',
-        options: {
-          method: 'POST',
-          body: JSON.stringify({
-            videoId: videoId,
-            title: videoTitle,
-            duration: duration,
-            subtitleRequests: allSubtitles.map(sub => ({
-              text: sub.text,
-              startTime: sub.startTime,
-              endTime: sub.endTime
-            }))
-          })
-        }
-      });
-
-      console.log('translateResponse:',Date.now(), translateResponse);
-
-      if (requestVideoId !== videoId) {
-        console.log('영상 바뀜');
-        return;
+        console.log('전송 전 자막 개수:', allSubtitles.length);
+        // content.js에서 전체 자막 전달
+chrome.runtime.sendMessage({
+  type: 'SUBTITLES_LOADED',
+  subtitles: allSubtitles
+});
+      } else {
+        // 서버에 없으면 유튜브에서 가져오기
+        registerSubtitleListener();
       }
+    })
+    .catch(error => {
+      console.log('자막 조회 실패:', error);
+      // 조회 실패해도 유튜브에서 가져오기
+      registerSubtitleListener();
+    });
+  
+};
 
 
-      // ========== 번역 결과 합치기 ==========
-      if (translateResponse?.success && translateResponse?.data?.translatedTexts) {
-        const translations = translateResponse.data.translatedTexts;
 
+// 자막 가져오는 리스너 설정
+async function subtitleDataHandler (event) {
+  if (translatedVideoId === currentVideoId && allSubtitles.length > 0) {
+    console.log('이미 자막 있음 무시');
+    return;
+  }
+
+  if (translatedVideoId === currentVideoId) {
+    console.log('이미 번역된 영상 무시');
+    return;
+  }
+
+  // 영상 페이지에서만 처리
+  if (!location.href.includes('/watch')) {
+    console.log('영상 페이지 아님 무시');
+    return;
+  }
+
+  // detail.response가 문자열인지 확인 (타입 검증)
+  if (typeof event.detail?.response !== 'string') return;
+
+  // ========== JSON 파싱 ==========
+  let data;
+  try {
+    // 문자열(자막 데이터가 ""로 담김)을 객체로 변환 (JSON 형식 검증)
+    data = JSON.parse(event.detail.response)
+  } catch (error) {
+    console.log('잘못된 데이터1', error);
+    return;
+  }
+
+  // ========== 데이터 구조 검증 ==========
+  // data.events가 (없거나 falsy 또는 배열이 아닌 경우면) 리턴 (데이터 구조 검증)
+  if (!data.events || !Array.isArray(data.events)) {
+    console.log('잘못된 데이터2');
+    return;
+  }
+
+  translatedVideoId = currentVideoId;
+  console.log('자막 발생 빈도',Date.now());
+  try {
+    // ========== 자막 데이터 처리 ==========
+    // 자막 데이터의 이벤트 요소(tStartMs,dDurationMs, segs) 저장
+    allSubtitles = data.events
+    // segs(텍스트 조각)가 있는 이벤트 요소만 가져오기
+    .filter(event => event.segs)
+    .map(event => ({
+      // 각각의 segs에 담긴 텍스트 조각들(utf8) 합치기
+      text: event.segs.map(seg => seg.utf8 || '').join('').trim(),
+      // 시작 시간 초 단위로 저장
+      startTime: event.tStartMs / 1000,
+      // 끝 시간 초 단위로 저장(시작 시간 + 지속 시간)
+      endTime: (event.tStartMs + (event.dDurationMs || 0)) / 1000
+    }))
+    // sub.text가 빈 텍스트이면 해당 데이터 제거(segs가 공백 또는 빈 값인 경우 방지)
+    .filter(sub => sub.text)
+    // 전체가 [...] 형태일 때만 해당 데이터 제거
+    .filter(sub => !/^\[.*\]$/.test(sub.text.trim()));
+
+    // ========== 텍스트 정리 ==========
+    // 자막 데이터에 담긴 텍스트의 줄바꿈을 공백으로 변환
+    allSubtitles = allSubtitles.map(sub => ({
+      ...sub,
+      text: sub.text.replace(/\n/g, ' ').trim()
+    }));
+
+     // ========== 서버에 전체 자막 및 번역 저장 ==========
+    const texts = allSubtitles.map(sub => sub.text);
+    console.log(texts, currentVideoId, currentVideoTitle, currentDuration);
+
+    // // 번역 요청 전에 현재 영상 저장
+    // const requestVideoId = videoId;
+
+    console.log('콘텐츠 번역 요청', Date.now());
+    // const translateResponse = await chrome.runtime.sendMessage({
+    chrome.runtime.sendMessage({
+      type: 'TRANSLATE',
+      endpoint: '/translate/subtitles',
+      options: {
+        method: 'POST',
+        body: JSON.stringify({
+          videoId: currentVideoId,
+          title: currentVideoTitle,
+          duration: currentDuration,
+          subtitleRequests: allSubtitles.map(sub => ({
+            text: sub.text,
+            startTime: sub.startTime,
+            endTime: sub.endTime
+          }))
+        })
+      }
+    }).then(response => {
+      // 나중에 번역 도착하면 업데이트
+      if (response?.data?.translatedTexts) {
         allSubtitles = allSubtitles.map((sub, index) => ({
           ...sub,
-          translation: translations[index] || ''
+          translation: response.data.translatedTexts[index] || ''
         }));
+
+        // 번역 포함해서 다시 전송
+        chrome.runtime.sendMessage({
+          type: 'SUBTITLES_LOADED',
+          subtitles: allSubtitles
+        });
       }
+    }).catch(error => {
+      console.log('번역 실패:', error);
+    });
 
-      console.log('자막 나옴', allSubtitles.length, '개', Date.now());
+    // ========== 번역 결과 합치기 ==========
+    // if (translateResponse?.success && translateResponse?.data?.translatedTexts) {
+    //   const translations = translateResponse.data.translatedTexts;
 
-      // ========== 리스너 설정 ==========
-      // 인덱스 리셋
-      lastSentIndex = -1;
+    //   allSubtitles = allSubtitles.map((sub, index) => ({
+    //     ...sub,
+    //     translation: translations[index] || ''
+    //   }));
+    // }
 
-      // 영상 시청 시간 감지 및 끝 시간 감지 리스너 설정
-      setupTimeUpdateListener();
+    console.log('자막 나옴', allSubtitles.length, '개', Date.now());
 
+    // ========== 리스너 설정 ==========
+    // 인덱스 리셋
+    lastSentIndex = -1;
 
+    // 영상 시청 시간 감지 및 끝 시간 감지 리스너 설정
+    setupTimeUpdateListener();
 
     } catch (error) {
       console.log('자막 파싱 실패:', error);
@@ -665,8 +749,27 @@ function setupSubtitleInterceptor(videoId, videoTitle, duration) {
       // 다시 요청 가능
       translatedVideoId = null;
     }
-  });
-};
+  };
+
+
+
+
+function registerSubtitleListener() {
+  // 이전 리스너 제거
+  document.removeEventListener('CLIPZY_SUBTITLE_DATA', subtitleDataHandler);
+  
+  // 새 리스너 등록
+  document.addEventListener('CLIPZY_SUBTITLE_DATA', subtitleDataHandler);
+
+  // 자막 버튼 껐다 켜기
+  const btn = document.querySelector('.ytp-subtitles-button');
+  if (btn?.getAttribute('aria-pressed') === 'true') {
+    btn.click();
+    setTimeout(() => btn.click(), 500);
+  }
+}
+
+
 
 
 // 시청 시간 감지 및 영상 끝남 감지 및 자막 감지 리스너 설정
@@ -827,13 +930,13 @@ function handleSubtitleSync(e) {
   const currentTime = video.currentTime;
 
   console.log('5. currentTime:', currentTime);
-  console.log('6. 첫 자막 시간:', allSubtitles[0]?.startTime, '~', allSubtitles[0]?.endTime);
 
   // 현재 시간이 자막의 시작~끝 사이에 있으면 allSubtitles에 맞는 인덱스 반환
   const index = allSubtitles.findIndex(sub =>
     currentTime >= sub.startTime && currentTime <= sub.endTime
   );
     console.log('7. 찾은 index:', index);
+      console.log(' 이번 자막 시간:', allSubtitles[index]?.startTime, '~', allSubtitles[index]?.endTime);
   console.log('8. lastSentIndex:', lastSentIndex);
 
   // 자막 데이터가 있고 && 기존 영상이면 전송(새로고침하면 초기화)
@@ -1024,22 +1127,16 @@ function handleSubtitleSync(e) {
 
 
 
-// 영상 길이에 맞는 퀴즈 타이밍 계산 (n초 마다)
+// 영상 길이에 맞는 퀴즈 간격 계산
 function getQuizCount(duration) {
-  // 1분 미만
-  if (duration < 60) return 0;
-  // 1분~5분 미만
-  if (duration >= 60 && duration < 300) return 30;
-  // 5분~10분 미만
-  if (duration >= 300 && duration < 600) return 30;
-  // 10분~20분 미만
-  if (duration >= 600 && duration < 1200) return 30;
-  // 20분~30분 미만
-  if (duration >= 1200 && duration < 1800) return 30;
-  // 30분 이상
-  if (1800 <= duration) return 30;
+  const sectionCount = getSectionCount(duration);
+  if (sectionCount === 0) return 0;
+  
+  // 총 퀴즈 수 = 섹션 수 + 매칭 1개
+  const totalQuizCount = sectionCount + 1;
+  
+  return duration / totalQuizCount;
 }
-
 
 
 
@@ -1348,7 +1445,21 @@ const hideRecommendations = () => {
     // 나중에 찾기/삭제 위해 ID 부여
     styleTag.id = 'clip-hide-recommendations';
     // CSS 규칙 작성
-    styleTag.textContent = `ytd-watch-flexy #secondary {display: none !important;}`;
+    styleTag.textContent = `
+      ytd-watch-flexy #secondary {
+        display: none !important;
+      }
+
+      ytd-watch-flexy #primary,
+      ytd-watch-flexy #player,
+      ytd-watch-flexy #player-container,
+      ytd-watch-flexy .html5-video-player,
+      ytd-watch-flexy video {
+        max-width: 100% !important;
+        width: 100% !important;
+      }
+    `;
+
     // <head>에 추가
     document.head.appendChild(styleTag);
   }
@@ -1547,6 +1658,19 @@ function init() {
     isSubtitleInterceptorSet = false;
     allSubtitles = [];
     lastSentIndex = -1;
+
+
+    // infect.js 자막 가져오는 리스너 체크 리셋
+subtitleDataListener = null;
+
+// 현재 영상Id 저장 리셋
+currentVideoId = null;
+
+// 현재 영상 제목 리셋
+currentVideoTitle = '';
+
+// 현재 영상 전체 길이 리셋
+currentDuration = 0;
 
   // ========== 큐 리셋 ==========
   resetQueue();
