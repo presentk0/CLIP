@@ -79,15 +79,20 @@ public class QuizSessionService {
         // 세션 정보 확인 및 생성
         QuizSession quizSession = getOrCreateSession(user, video, request.getSessionType());
 
-        // 전체 학습 시간(보정값 적용)
-        double calDuration = video.getDuration() * DENSITY_FACTOR;
+        // NPE 방지
+        int duration = (video.getDuration() != null) ? video.getDuration() : 0;
+
         // 전체 섹션 수
         int totalSecCount = totalSections(video.getDuration());
         // 섹션별 퀴즈 수
         int quizPerSection = countQuizPerSection(video.getDuration());
+
+        // 전체 학습 시간(보정값 적용)
+        double calDuration = duration * DENSITY_FACTOR;
+
         // 섹션 시간 및 범위 계산
-        double range = (double)calDuration/totalSecCount;
-        double start = range * (request.getSectionNumber()-1);
+        double range = (double) calDuration / Math.max(totalSecCount, 1);
+        double start = range * (request.getSectionNumber() - 1);
         double end = range * request.getSectionNumber();
 
         // 해당 구간 단어 조회 및 우선순위(1~3순위) 정렬
