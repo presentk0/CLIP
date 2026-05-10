@@ -577,7 +577,8 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
 
   // 현재 문제 정보
   const currentQuiz = quizzes[currentIndex];
-  const isCorrect = tempChoice === currentQuiz?.correctAnswer;
+  // const isCorrect = tempChoice === currentQuiz?.correctAnswer;
+  const isCorrect = feedback?.correct;
 
 
   // ox퀴즈용 특정 단어 강조하기
@@ -1104,18 +1105,20 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
 
   // 정답 오답 선택 미선택에 따른 border 색상 변화 (빈칸 퀴즈)
   const borderColor = (choice) => {
+    // feedback에서 정답 가져오기
+    const correctAnswer = feedback?.correctAnswer;
     if (!isConfirmed) {
       // 확정 전: 선택한 것 : 선택안한 것 표시
       return tempChoice === choice ? '1px solid #9B87E8' : 'none';
     }
 
     // 확정 후: 정답이면
-    if (choice === currentQuiz?.correctAnswer) {
+    if (choice === correctAnswer) {
       return '1px solid #C1C0FC';
     }
 
     // 확정 후: 내가 선택한 답이 오답이면
-    if (choice === tempChoice && tempChoice !== currentQuiz?.correctAnswer) {
+    if (choice === tempChoice && tempChoice !== correctAnswer) {
       return '1px solid #FFB484';
     }
 
@@ -1126,18 +1129,20 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
 
   // 정답 오답 선택 미선택에 따른 background 색상 변화 (빈칸 퀴즈)
   const backgroundColor = (choice) => {
+    // feedback에서 정답 가져오기
+    const correctAnswer = feedback?.correctAnswer;
     if (!isConfirmed) {
       // 확정 전: 선택한 것 : 선택안한 것 표시
       return tempChoice === choice ? '#F0F3FF' : '#F7F7F7';
     }
 
     // 확정 후: 정답이면
-    if (choice === currentQuiz?.correctAnswer) {
+    if (choice === correctAnswer) {
       return '#F0F3FF';
     }
 
     // 확정 후: 내가 선택한 답이 오답이면
-    if (choice === tempChoice && tempChoice !== currentQuiz?.correctAnswer) {
+    if (choice === tempChoice && tempChoice !== correctAnswer) {
       return '#FFF4EE';
     }
 
@@ -1148,18 +1153,20 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
 
   // 정답 오답 선택 미선택에 따른 color 색상 변화 (빈칸 퀴즈)
   const textColor = (choice) => {
+    // feedback에서 정답 가져오기
+    const correctAnswer = feedback?.correctAnswer;
     if (!isConfirmed) {
       // 확정 전: 선택한 것 : 선택안한 것 표시
       return tempChoice === choice ? '#5559D9' : '#4D525C';
     }
 
     // 확정 후: 정답이면
-    if (choice === currentQuiz?.correctAnswer) {
+    if (choice === correctAnswer) {
       return '#5559D9';
     }
 
     // 확정 후: 내가 선택한 답이 오답이면
-    if (choice === tempChoice && tempChoice !== currentQuiz?.correctAnswer) {
+    if (choice === tempChoice && tempChoice !== correctAnswer) {
       return '#F7731E';
     }
 
@@ -1174,18 +1181,20 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
 
   // 정답 오답 선택 미선택에 따른 border 색상 변화 (ox 퀴즈)
   const oxBorderColor = (choice) => {
+    // feedback에서 정답 가져오기
+    const correctAnswer = feedback?.correctAnswer;
     if (!isConfirmed) {
       // 확정 전: 선택한 것 : 선택안한 것 표시
       return tempChoice === choice ? '1px solid #9B87E8' : 'none';
     }
 
     // 확정 후: 정답이면
-    if (choice === currentQuiz?.correctAnswer) {
+    if (choice ===  correctAnswer) {
       return '1px solid #C1C0FC';
     }
 
     // 확정 후: 내가 선택한 답이 오답이면
-    if (choice === tempChoice && tempChoice !== currentQuiz?.correctAnswer) {
+    if (choice === tempChoice && tempChoice !==  correctAnswer) {
       return '1px solid #F7731E';
     }
 
@@ -1196,18 +1205,20 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
 
     // 정답 오답 선택 미선택에 따른 background 색상 변화 (ox 퀴즈)
   const oxBackgroundColor = (choice) => {
+    // feedback에서 정답 가져오기
+    const correctAnswer = feedback?.correctAnswer;
     if (!isConfirmed) {
       // 확정 전: 선택한 것 : 선택안한 것 표시
       return tempChoice === choice ? '#FFF' : '#F7F7F7';
     }
 
     // 확정 후: 정답이면
-    if (choice === currentQuiz?.correctAnswer) {
+    if (choice ===  correctAnswer) {
       return '#F0F3FF';
     }
 
     // 확정 후: 내가 선택한 답이 오답이면
-    if (choice === tempChoice && tempChoice !== currentQuiz?.correctAnswer) {
+    if (choice === tempChoice && tempChoice !==  correctAnswer) {
       return '#FFF4EE';
     }
 
@@ -1836,7 +1847,8 @@ const handleMatchingComplete = async () => {
                             position: 'absolute',
                             right: '-18px',
                             top: '-11px',
-                            background: `url(${frog2}) transparent -42.788px -1.005px / 228.637% 225.776% no-repeat`
+                            // background: `url(${frog2}) transparent -42.788px -1.005px / 228.637% 225.776% no-repeat`
+                            background: `url(${frog2}) center / contain no-repeat`,
                             }}>
                           </div>
                         </div>
@@ -1880,7 +1892,8 @@ const handleMatchingComplete = async () => {
                   display: 'flex',
                   width: '370px',
                   flexDirection: 'column',
-                  alignItems: 'flex-start',
+                  // alignItems: 'flex-start',
+                  alignItems: 'center',
                 }}>
 
                   {/* 개구리 마스코트1 */}
@@ -1894,6 +1907,7 @@ const handleMatchingComplete = async () => {
                     backgroundSize: 'contain',
                     // 가운데 정렬
                     backgroundPosition: 'center',
+                    alignSelf: 'flex-start',
                   }}>
                   </div>
 
@@ -1901,8 +1915,10 @@ const handleMatchingComplete = async () => {
                   <div style={{
                     display: 'flex',
                     flexDirection: 'column',
-                    alignItems: 'flex-start',
-                    alignSelf: 'stretch'
+                    // alignItems: 'flex-start',
+                    // alignSelf: 'stretch',
+                    alignItems: 'center',
+                    alignSelf: 'stretch',
                   }}>
 
                     {/* 전체 문제 박스 */}
@@ -2143,7 +2159,8 @@ const handleMatchingComplete = async () => {
                   <div style={{
                     display: 'flex',
                     width: '370px',
-                    height: '68px',
+                    // height: '68px',
+                    minHeight: '68px',
                     padding: '16px 24px 16px 16px',
                     flexDirection: 'column',
                     alignItems: 'flex-start',
@@ -2184,7 +2201,7 @@ const handleMatchingComplete = async () => {
                         fontWeight: '700',
                         lineHeight: '18px', /* 150% */
                       }}>
-                        {feedback?.correctAnswer}이 정답인 이유!<br/>
+                        {/* {feedback?.correctAnswer}이 정답인 이유!<br/> */}
                         {feedback?.explanation}
                       </div>
                     </div>
@@ -2194,7 +2211,8 @@ const handleMatchingComplete = async () => {
                   <div style={{
                     display: 'flex',
                     width: '370px',
-                    height: '68px',
+                    // height: '68px',
+                    minHeight: '68px',
                     padding: '16px 24px 16px 16px',
                     flexDirection: 'column',
                     alignItems: 'flex-start',
@@ -2234,7 +2252,7 @@ const handleMatchingComplete = async () => {
                         fontWeight: '700',
                         lineHeight: '18px', /* 150% */
                       }}>
-                        {feedback?.correctAnswer}이 정답인 이유!<br/>
+                        {/* {feedback?.correctAnswer}이 정답인 이유!<br/> */}
                         {feedback?.explanation}
                       </div>
                     </div>
@@ -2396,7 +2414,7 @@ const handleMatchingComplete = async () => {
 
 
               {/* 럭키 미스테이크 전체 배경 박스 */}
-              {currentQuiz?.quizType === 'BLANK' && isConfirmed && !feedback?.isCorrect && (
+              {currentQuiz?.quizType === 'BLANK' && isConfirmed && !feedback?.correct && (
                 <div style={{ 
                   display: 'flex',
                   width: '370px',
