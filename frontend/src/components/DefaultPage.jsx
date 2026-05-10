@@ -140,6 +140,7 @@ function DefaultPage() {
                 display: 'flex',
                 padding: '6px 8px',
                 alignItems: 'center',
+                justifyContent: 'center',
                 gap: '4px',
                 borderRadius: '999px',
                 background: '#FFE8D6',
@@ -147,11 +148,11 @@ function DefaultPage() {
 
                 {/* 7일 연속 칭호 아이콘 */}
                 <div style={{
-                  display: 'flex',
+                  // display: 'flex',
                   width: '12px',
                   height: '12px',
-                  alignItems: 'center',
-                  gap: '10px',
+                  // alignItems: 'center',
+                  // gap: '10px',
                 }}>
                 </div>
 
@@ -171,18 +172,21 @@ function DefaultPage() {
 
             {/* 로그아웃 전체 박스 */}
             <div style={{
+              display: 'flex',
               width: '66px',
               height: '32px',
               borderRadius: '999px',
               border: '1px solid #E7E6EB',
+              justifyContent: 'center',
+              alignItems: 'center',
             }}>
 
               {/* 로그아웃 문구 */}
               <p style={{
                 display: 'flex',
-                width: '42px',
-                height: '12.444px',
-                flexDirection: 'column',
+                // width: '42px',
+                // height: '12.444px',
+                // flexDirection: 'column',
                 justifyContent: 'center',
                 color: '#01030D',
                 fontFamily: 'Pretendard',
@@ -551,23 +555,23 @@ function DefaultPage() {
       }}>
 
         {/* 추천하는 영상 하위 박스 */}
-        <div style={{
+        {/* <div style={{
           display: 'flex',
           width: '338px',
           flexDirection: 'column',
           alignItems: 'flex-start',
           gap: '16px',
           flexShrink: '0',
-        }}>
+        }}> */}
 
           {/* 추천하는 영상 하위 하위 박스 */}
-          <div style={{
+          {/* <div style={{
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'flex-start',
             gap: '28px',
             alignSelf: 'stretch',
-          }}>
+          }}> */}
 
             {/* 추천하는 영상 문구 박스
             <div style={{
@@ -593,8 +597,8 @@ function DefaultPage() {
             </div> */}
 
             {/* 추천하는 영상 전체 */}
-          </div>
-        </div>
+          {/* </div> */}
+        {/* </div> */}
       </div>
     </div>
   );

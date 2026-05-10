@@ -195,13 +195,36 @@ public class QuizSessionService {
 
         QuizSession quizSession = getOrCreateSession(user, video, request.getSessionType());
 
-        List<QuizSessionWord> allWords = quizSessionWordRepository.findAllByQuizSession(quizSession);
+        List<QuizSessionWord> allWords =
+                quizSessionWordRepository.findAllByQuizSession(quizSession);
 
-        Collections.shuffle(allWords);
-        allWords.sort(Comparator.comparingInt(this::getPriority));
+        // 우선순위별 그룹 분리
+        List<QuizSessionWord> collectWords = allWords.stream()
+                .filter(w -> w.getWordType() == WordType.COLLECT)
+                .collect(Collectors.toList());
 
+        List<QuizSessionWord> popupWords = allWords.stream()
+                .filter(w -> w.getWordType() == WordType.POPUP)
+                .collect(Collectors.toList());
 
-        List<QuizWordRequest> finalCandidates = allWords.stream()
+        List<QuizSessionWord> systemWords = allWords.stream()
+                .filter(w -> w.getWordType() == WordType.SYSTEM)
+                .collect(Collectors.toList());
+
+        // 각 그룹 내부만 랜덤 셔플
+        Collections.shuffle(collectWords);
+        Collections.shuffle(popupWords);
+        Collections.shuffle(systemWords);
+
+        // 우선순위 순서대로 병합
+        List<QuizSessionWord> prioritizedWords = new ArrayList<>();
+
+        prioritizedWords.addAll(collectWords);
+        prioritizedWords.addAll(popupWords);
+        prioritizedWords.addAll(systemWords);
+
+        // QuizWordRequest 변환
+        List<QuizWordRequest> finalCandidates = prioritizedWords.stream()
                 .map(this::mapToRequest)
                 .collect(Collectors.toList());
 
@@ -251,7 +274,25 @@ public class QuizSessionService {
                 .stream()
                 .limit(5)
                 .collect(Collectors.toList());
-        List<QuizDetailResponse> quizzes = quizService.createMatchingQuiz(quizSession.getId(), user.getId(), finalFive);
+
+        if (finalFive.size() < 5) {
+            log.warn(
+                    "매칭 퀴즈 5개 확보 실패 - 현재 개수={}, videoId={}, sessionId={}",
+                    finalFive.size(),
+                    video.getVideoId(),
+                    quizSession.getId()
+            );
+        }
+
+        List<QuizDetailResponse> quizzes;
+        try {
+            // 1차 시도: AI를 통한 매칭 퀴즈 생성
+            quizzes = quizService.createMatchingQuiz(quizSession.getId(), user.getId(), finalFive);
+        } catch (Exception e) {
+            // 2차 시도 (Fallback): AI 실패 시 서버 내부 데이터로 즉시 생성
+            log.warn("AI 매칭 퀴즈 생성 실패, 자체 생성 로직(Local Fallback) 가동. 사유: {}", e.getMessage());
+            quizzes = quizService.createLocalMatchingQuiz(quizSession.getId(), user.getId(), finalFive);
+        }
 
         return mapToQuizStartResponse(quizSession, quizzes);
     }
@@ -259,11 +300,14 @@ public class QuizSessionService {
     private QuizSession getOrCreateSession(User user, Video video, SessionType type) {
         return quizSessionRepository.findByUserAndVideo(user, video)
                 .orElseGet(() -> {
+
+                    int duration = (video.getDuration() != null) ? video.getDuration() : 0;
+
                     QuizSession newSession = QuizSession.builder()
                             .user(user)
                             .video(video)
                             .sessionType(type)
-                            .totalQuizCount(calculateTotalQuizCount(video.getDuration()))
+                            .totalQuizCount(calculateTotalQuizCount(duration))
                             .build();
                     QuizSession savedSession = quizSessionRepository.save(newSession);
 
