@@ -18,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.concurrent.ThreadLocalRandom;
 
 import java.util.List;
 import java.util.Map;
@@ -37,6 +38,29 @@ public class QuizService {
 
     private static final int CORRECT_EXP = 100;
     private static final int MATCHING_QUIZ_COUNT = 5;
+
+    private static final List<String> CORRECT_FEEDBACKS = List.of(
+            "맞았어요.",
+            "정답이에요. 다음도 볼까요?",
+            "문맥 잘 보셨어요.",
+            "좋아요. 이어서 가볼까요?",
+            "잘 찾으셨어요."
+    );
+
+    private static final List<String> WRONG_SOFT = List.of(
+            "괜찮아요. 다시 보면 보여요.",
+            "조금 헷갈릴 수 있어요.",
+            "이 부분이 까다로워요.",
+            "괜찮아요. 낯설 수 있어요."
+    );
+
+    private static final List<String> WRONG_GUIDE = List.of(
+            "다시 한 번 볼까요?",
+            "같이 다시 살펴볼까요?",
+            "문맥을 다시 보면 힌트가 있어요.",
+            "다른 선택지와 쓰임이 달라요."
+    );
+
     /**
      * OX 퀴즈 생성 및 저장
      */
@@ -57,14 +81,14 @@ public class QuizService {
                 .user(user)
                 .word(aiData.getWord() != null ? aiData.getWord() : request.getWord())
                 .quizType(QuizType.OX)
-                .content(aiData.getContent())       // 영어 예문
-                .translation(aiData.getTranslation()) // 한글 해석
-                .question(aiData.getQuestion())     // 캐릭터 가이드 질문
-                .correctAnswer(aiData.getAnswer())
-                .explanation(aiData.getExplanation()) // 친절한 뉘앙스 해설
+                .content(safe(aiData.getContent()))       // 영어 예문
+                .translation(safe(aiData.getTranslation())) // 한글 해석
+                .question(safe(aiData.getQuestion()))     // 캐릭터 가이드 질문
+                .correctAnswer(safe(aiData.getAnswer()))
+                .explanation(safe(aiData.getExplanation())) // 친절한 뉘앙스 해설
                 .videoTimestamp(request.getVideoTimeStamp())
-                .correctFeedback(aiData.getCorrectFeedback())
-                .wrongFeedback(aiData.getWrongFeedback())
+                .correctFeedback(safeFeedback(aiData.getCorrectFeedback(), true))
+                .wrongFeedback(safeFeedback(aiData.getWrongFeedback(), false))
                 .build();
 
         QuizResult saved = quizResultRepository.save(result);
@@ -93,14 +117,14 @@ public class QuizService {
                 .user(user)
                 .word(aiData.getWord() != null ? aiData.getWord() : request.getWord())
                 .quizType(QuizType.BLANK)
-                .content(aiData.getContent())
-                .translation(aiData.getTranslation())
-                .question(aiData.getQuestion())
-                .correctAnswer(aiData.getAnswer())
-                .explanation(aiData.getExplanation())
+                .content(safe(aiData.getContent()))
+                .translation(safe(aiData.getTranslation()))
+                .question(safe(aiData.getQuestion()))
+                .correctAnswer(safe(aiData.getAnswer()))
+                .explanation(safe(aiData.getExplanation()))
                 .videoTimestamp(request.getVideoTimeStamp())
-                .correctFeedback(aiData.getCorrectFeedback())
-                .wrongFeedback(aiData.getWrongFeedback())
+                .correctFeedback(safeFeedback(aiData.getCorrectFeedback(), true))
+                .wrongFeedback(safeFeedback(aiData.getWrongFeedback(), false))
                 .build();
 
         QuizResult saved = quizResultRepository.save(result);
@@ -126,45 +150,97 @@ public class QuizService {
 
         // 2. OpenAI를 통한 매칭 데이터 세트 생성
         List<OpenAIQuizDataResponse> aiDataList = openAIService.generateMatchingQuiz(wordList);
+
+        log.info(
+                "매칭 퀴즈 생성 완료 - requestSize={}, aiResponseSize={}",
+                requests.size(),
+                aiDataList != null ? aiDataList.size() : 0
+        );
+
         if (aiDataList == null || aiDataList.isEmpty()) {
+            log.error(
+                    "매칭 퀴즈 AI 생성 실패 - sessionId={}, userId={}, requestSize={}",
+                    sessionId,
+                    userId,
+                    requests.size()
+            );
             throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
 
-        // 3. 인덱스를 활용하여 원본 데이터와 AI 데이터를 동기화하며 저장
-        int quizCount = Math.min(aiDataList.size(), MATCHING_QUIZ_COUNT);
-        return IntStream.range(0, aiDataList.size()).mapToObj(i -> {
-            OpenAIQuizDataResponse data = aiDataList.get(i);
+        int quizLimit = Math.min(requests.size(), MATCHING_QUIZ_COUNT);
 
-            // AI 응답에 word가 누락된 경우, 순서상 동일한 위치의 요청 단어로 보정
-            String finalWord = (data.getWord() != null && !data.getWord().isBlank())
-                    ? data.getWord()
-                    : requests.get(i).getWord();
+        return IntStream.range(0, quizLimit).mapToObj(i -> {
+            QuizWordRequest req = requests.get(i);
 
+            // AI가 해당 인덱스의 데이터를 줬는지 확인
+            OpenAIQuizDataResponse aiData = (i < aiDataList.size()) ? aiDataList.get(i) : null;
+
+            QuizResult result;
+            if (aiData != null
+                    && aiData.getWord() != null
+                    && !aiData.getWord().isBlank()) {
+                // AI 데이터가 존재할 때
+                result = QuizResult.builder()
+                        .quizSession(session).user(user).word(aiData.getWord())
+                        .quizType(QuizType.MATCHING).question(safe(aiData.getQuestion()))
+                        .content(safe(aiData.getContent())).translation(safe(aiData.getTranslation()))
+                        .correctAnswer(safe(aiData.getAnswer())).explanation(safe(aiData.getExplanation()))
+                        .videoTimestamp(req.getVideoTimeStamp())
+                        .correctFeedback(safeFeedback(aiData.getCorrectFeedback(), true))
+                        .wrongFeedback(safeFeedback(aiData.getWrongFeedback(), false)).build();
+            } else {
+
+                // AI 데이터가 누락되었을 때 (로컬 데이터 보충)
+                log.warn("매칭 퀴즈 인덱스 {} 데이터 누락 - 로컬 보충 가동", i);
+                result = QuizResult.builder()
+                        .quizSession(session).user(user).word(req.getWord())
+                        .quizType(QuizType.MATCHING).question(req.getWord())
+                        .correctAnswer(req.getMeaning()).explanation(req.getWord() + "의 뜻은 '" + req.getMeaning() + "'입니다.")
+                        .videoTimestamp(req.getVideoTimeStamp())
+                        .correctFeedback(getRandom(CORRECT_FEEDBACKS))
+                        .wrongFeedback(generateWrongFallback()).build();
+            }
+
+            QuizResult saved = quizResultRepository.save(result);
+            return QuizDetailResponse.builder()
+                    .quizId(saved.getId()).quizType(saved.getQuizType())
+                    .content(saved.getContent()).translation(saved.getTranslation())
+                    .question(saved.getQuestion()).answer(saved.getCorrectAnswer())
+                    .videoTimeStamp(saved.getVideoTimestamp()).build();
+        }).collect(Collectors.toList());
+    }
+
+    @Transactional
+    public List<QuizDetailResponse> createLocalMatchingQuiz(Long sessionId, Long userId, List<QuizWordRequest> requests) {
+
+        QuizSession session = quizSessionRepository.findById(sessionId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.SESSION_NOT_FOUND));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        log.info("### 매칭 퀴즈 자체 생성을 시작합니다. (단어 수: {})", requests.size());
+
+        return requests.stream().map(req -> {
             QuizResult result = QuizResult.builder()
                     .quizSession(session)
                     .user(user)
-                    .word(finalWord)
+                    .word(req.getWord())
                     .quizType(QuizType.MATCHING)
-                    .question(data.getQuestion())      // 예: "effort"
-                    .content(data.getContent())       // 예: "It takes effort."
-                    .translation(data.getTranslation()) // 예: "노력이 필요해."
-                    .correctAnswer(data.getAnswer())   // 예: "노력"
-                    .explanation(data.getExplanation()) // 예: "힘을 쓰는 이미지!"
-                    .videoTimestamp(requests.get(i).getVideoTimeStamp())
-                    .correctFeedback(data.getCorrectFeedback())
-                    .wrongFeedback(data.getWrongFeedback())
+                    .question(req.getWord())       // 질문은 영어 단어
+                    .correctAnswer(req.getMeaning()) // 정답은 한글 뜻
+                    .content("")                   // 자체 생성 시 예문은 비워둠 (혹은 DB에서 가져옴)
+                    .translation("")
+                    .explanation(req.getWord() + "는 '" + req.getMeaning() + "'라는 뜻입니다.")
+                    .videoTimestamp(req.getVideoTimeStamp())
                     .build();
 
             QuizResult saved = quizResultRepository.save(result);
 
-            // 매칭 퀴즈 응답 시 뜻(answer)을 포함하여 반환해야 프론트에서 표시 가능
             return QuizDetailResponse.builder()
                     .quizId(saved.getId())
                     .quizType(saved.getQuizType())
-                    .content(saved.getContent())
-                    .translation(saved.getTranslation())
                     .question(saved.getQuestion())
-                    .answer(saved.getCorrectAnswer()) // 뜻 데이터를 answer에 담음
+                    .answer(saved.getCorrectAnswer())
                     .videoTimeStamp(saved.getVideoTimestamp())
                     .build();
         }).collect(Collectors.toList());
@@ -196,12 +272,15 @@ public class QuizService {
 
     // 퀴즈 정답 체크
     private boolean checkAnswer(String correctAnswer, String userAnswer) {
-        if (correctAnswer == null || userAnswer == null) return false;
-        return correctAnswer.equals(userAnswer);
+        if (correctAnswer == null || userAnswer == null) {
+            return false;
+        }
+        return correctAnswer.trim()
+                .equalsIgnoreCase(userAnswer.trim());
     }
 
     /**
-     * 🔥 엔티티 -> 응답 DTO 변환 유틸리티
+     *  엔티티 -> 응답 DTO 변환 유틸리티
      */
     private QuizDetailResponse mapToQuizDetailResponse(QuizResult result, List<String> options) {
         return QuizDetailResponse.builder()
@@ -225,4 +304,33 @@ public class QuizService {
                 .currentExp(currentExp)
                 .build();
     }
+
+    private String safe(String s) {
+        return (s == null || s.isBlank()) ? "" : s;
+    }
+
+    private String safeFeedback(String feedback, boolean isCorrect) {
+
+        if (feedback != null && !feedback.isBlank()) {
+            return feedback.trim();
+        }
+
+        if (isCorrect) {
+            return getRandom(CORRECT_FEEDBACKS);
+        }
+
+        return generateWrongFallback();
+    }
+
+    private String generateWrongFallback() {
+        return getRandom(WRONG_SOFT) + " " + getRandom(WRONG_GUIDE);
+    }
+
+    private String getRandom(List<String> list) {
+        return list.get(
+                ThreadLocalRandom.current().nextInt(list.size())
+        );
+
+    }
+
 }
