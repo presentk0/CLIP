@@ -291,7 +291,7 @@ public class QuizSessionService {
         } catch (Exception e) {
             // 2차 시도 (Fallback): AI 실패 시 서버 내부 데이터로 즉시 생성
             log.warn("AI 매칭 퀴즈 생성 실패, 자체 생성 로직(Local Fallback) 가동. 사유: {}", e.getMessage());
-            quizzes = quizService.createLocalMatchingQuiz(quizSession.getId(), user.getId(), finalFive);
+            quizzes = quizService.createLocalMatchingQuizNewTx(quizSession.getId(), user.getId(), finalFive);
         }
 
         return mapToQuizStartResponse(quizSession, quizzes);
