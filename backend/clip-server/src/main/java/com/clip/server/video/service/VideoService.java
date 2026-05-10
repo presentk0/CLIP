@@ -19,19 +19,22 @@ public class VideoService {
 
     private final VideoRepository videoRepository;
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     public Video getOrCreateVideo(String videoId, String title, Integer duration) {
+        // 1. 먼저 조회
         return videoRepository.findById(videoId)
                 .orElseGet(() -> {
                     try {
+                        // 2. 없으면 저장 시도
                         Video newVideo = Video.builder()
                                 .videoId(videoId)
                                 .title(title)
                                 .duration(duration)
                                 .build();
-                        return videoRepository.save(newVideo);
+                        return videoRepository.saveAndFlush(newVideo);
                     } catch (DataIntegrityViolationException e) {
-                        log.warn("Video 동시 저장 감지 - videoId: {}, 재조회 시도", videoId);
+                        // 3. 동시 요청으로 이미 저장됐으면 재조회
+                        log.warn("Video 동시 저장 감지 - videoId: {}, 재조회", videoId);
                         return videoRepository.findById(videoId)
                                 .orElseThrow(() -> new BusinessException(VIDEO_NOT_FOUND));
                     }
