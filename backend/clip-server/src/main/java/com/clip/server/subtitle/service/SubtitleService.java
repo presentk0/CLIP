@@ -72,9 +72,10 @@ public class SubtitleService {
             TranslationRequest.SubtitleDetail req = requests.get(i);
             String translation = translatedTexts.get(i); // 리스트에서 번역본 추출
 
+            String safeTranslation = (translation != null) ? translation : "";
             // 중복 체크 후 저장
             if (subtitleRepository.findByVideoAndStartTimeAndText(finalVideo, req.getStartTime(), req.getText()).isEmpty()) {
-                saveSubtitleAndKeywordsInternal(finalVideo, req.getText(), translation, req.getStartTime(), req.getEndTime());
+                saveSubtitleAndKeywordsInternal(finalVideo, req.getText(), safeTranslation, req.getStartTime(), req.getEndTime());
             }
         }
     }
@@ -124,12 +125,14 @@ public class SubtitleService {
             isQuizGenerate = checkoutQuizTrigger(progress, finalVideo.getDuration());
         }
 
+        String safeTranslation = (subtitleRequest.getTranslation() != null) ? subtitleRequest.getTranslation() : "";
+
         // 자막 저장 체크
         Subtitle subtitle = subtitleRepository.findByVideoAndStartTimeAndText(finalVideo, subtitleRequest.getStartTime(), subtitleRequest.getText())
                 .orElseGet(() -> saveSubtitleAndKeywordsInternal(
                         finalVideo,
                         subtitleRequest.getText(),
-                        subtitleRequest.getTranslation(),
+                        safeTranslation,
                         subtitleRequest.getStartTime(),
                         subtitleRequest.getEndTime()
                 ));
