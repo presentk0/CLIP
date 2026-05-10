@@ -18,6 +18,7 @@ import com.clip.server.video.entity.Video;
 import com.clip.server.video.entity.VideoKeyWord;
 import com.clip.server.video.repository.VideoKeyWordRepository;
 import com.clip.server.video.repository.VideoRepository;
+import com.clip.server.video.service.VideoService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -44,6 +45,7 @@ public class SubtitleService {
     private final UserVideoProgressRepository userVideoProgressRepository;
     private final VideoKeyWordRepository videoKeyWordRepository;
     private final KeywordExtractionService extractionService;
+    private final VideoService videoService;
 
     // 번역 후 자막 전체 저장 메서드
     @Transactional
@@ -52,21 +54,9 @@ public class SubtitleService {
                                   List<String> translatedTexts) {
 
         // 비디오 조회 또는 생성
-        Video video;
-        try {
-            video = videoRepository.findById(videoId)
-                    .orElseGet(() -> videoRepository.save(Video.builder()
-                            .videoId(videoId)
-                            .title(title)
-                            .duration(duration)
-                            .build()));
-        } catch (DataIntegrityViolationException e) {
-            video = videoRepository.findById(videoId)
-                    .orElseThrow(() -> new BusinessException(VIDEO_NOT_FOUND));
-        }
-
-        // final 변수로 복사
+        Video video = videoService.getOrCreateVideo(videoId, title, duration);
         final Video finalVideo = video;
+
 
         for (int i = 0; i < requests.size(); i++) {
             TranslationRequest.SubtitleDetail req = requests.get(i);
@@ -88,23 +78,7 @@ public class SubtitleService {
         User user = userRepository.findById(userId).orElseThrow(() -> new BusinessException(USER_NOT_FOUND));
 
         // 영상 정보 확인
-        Video video;
-        try {
-            video = videoRepository.findById(videoId)
-                    .orElseGet(() -> {
-                        Video newVideo = Video.builder()
-                                .videoId(videoId)
-                                .title(subtitleRequest.getTitle())
-                                .duration(subtitleRequest.getDuration())
-                                .build();
-                        return videoRepository.save(newVideo);
-                    });
-        } catch (DataIntegrityViolationException e) {
-            video = videoRepository.findById(videoId)
-                    .orElseThrow(() -> new BusinessException(VIDEO_NOT_FOUND));
-        }
-
-        // final 변수로 복사
+        Video video = videoService.getOrCreateVideo(videoId, subtitleRequest.getTitle(), subtitleRequest.getDuration());
         final Video finalVideo = video;
 
         // 유저 진행도 조회 없으면 생성
