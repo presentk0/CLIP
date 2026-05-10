@@ -60,8 +60,8 @@ let eventLoop = null;
 // let eventSubtitleListener = null;
 
 
-// 영상 페이지에서 영상 가져오기 실패 시 재시도 횟수 카운트용
-let retryCount = 0;
+// // 영상 페이지에서 영상 가져오기 실패 시 재시도 횟수 카운트용
+// let retryCount = 0;
 // 영상 페이지에서 영상 가져오기 (실패 시 최대 15번까지 재시도)
 const MAX_RETRY = 15;
 
@@ -160,7 +160,9 @@ currentVideoTitle = '';
 currentDuration = 0;
     // ========== 큐/기타 리셋 ==========
     resetQueue();
-    retryCount = 0;
+    // retryCount = 0;
+    videoRetryCount = 0;
+    infoRetryCount = 0;
 
         // ========== 페이지 감지 옵저버 리셋 ==========
   if (titleObserver) {
@@ -480,13 +482,17 @@ currentDuration = 0;
 
 // 채널명 가져오기
 const getChannelName = () => {
-  return document.querySelector('ytd-channel-name yt-formatted-string')?.getAttribute('title')
+  const name = document.querySelector('ytd-channel-name yt-formatted-string')?.getAttribute('title')
     || document.querySelector('ytd-channel-name a')?.textContent?.trim()
     || document.querySelector('#channel-name a')?.textContent?.trim()
-    || document.querySelector('#channel-name yt-formatted-string')?.textContent?.trim();
-};
+    || document.querySelector('#channel-name yt-formatted-string')?.textContent?.trim()
+    || '';
 
+    return name || null;
+  };
 
+let videoRetryCount = 0;
+let infoRetryCount = 0;
 
 // 영상 시청 페이지면 자막 감지 함수 실행하고 아니면 자막 감지 중지 함수 실행
 function observeSubtitles() {
@@ -507,15 +513,15 @@ function observeSubtitles() {
   // 현재 영상 가져오기
   const video = document.querySelector('video');
   if (!video) {
-    if (retryCount < MAX_RETRY) {
-      retryCount++;
+    if (videoRetryCount < MAX_RETRY) {
+      videoRetryCount++;
       // DOM이 렌더링 안 됐으면 1초 후 재시도
       setTimeout(observeSubtitles, 1000);
     }
     return;
   }
-  // 성공하면 리셋
-  retryCount = 0;
+  // video 찾으면 리셋
+  videoRetryCount = 0;
 
 
   // 영상 정보 가져오기
@@ -524,18 +530,19 @@ function observeSubtitles() {
   const channelName = getChannelName();
   const duration = video.duration;
 
-  console.log('GO_TO_QUIZ 체크:', { isQuiz, videoId, videoTitle, channelName });
+  console.log('GO_TO_QUIZ 체크:', { isQuiz, videoId, videoTitle, channelName, infoRetryCount });
   // 아직 로딩 안 됐으면 재시도
   if (!videoTitle || !channelName) {
-    if (retryCount < MAX_RETRY) {
+    if (infoRetryCount < MAX_RETRY) {
       console.log('퀴즈이동 재시도');
-      retryCount++;
+      infoRetryCount++;
       setTimeout(observeSubtitles, 1000);
       return;
     }
-    // 성공하면 리셋
-    retryCount = 0;
+    console.log('최대 재시도 초과');
   }
+    // 성공하면 리셋
+    infoRetryCount = 0;
 
   // 퀴즈 페이지 이동(최초 1회)
   if (!isQuiz && videoId && videoTitle && channelName) {
@@ -543,7 +550,7 @@ function observeSubtitles() {
       type: 'GO_TO_QUIZ',
       videoId: videoId,
       videoTitle: videoTitle,
-      channelName: channelName,
+      channelName: channelName || '',
       duration: duration
     }).catch((error) => console.log('에러:', error));
     isQuiz = true;
@@ -763,9 +770,25 @@ function registerSubtitleListener() {
 
   // 자막 버튼 껐다 켜기
   const btn = document.querySelector('.ytp-subtitles-button');
-  if (btn?.getAttribute('aria-pressed') === 'true') {
-    btn.click();
-    setTimeout(() => btn.click(), 500);
+  console.log('자막 버튼 상태:', btn?.getAttribute('aria-pressed'));
+  if (btn) {
+    if (btn.getAttribute('aria-pressed') === 'true') {
+      // 켜져 있으면 껐다 켜기
+      console.log('자막 껐다 켜기');
+      // 끄기
+      btn.click();
+      setTimeout(() => {
+        console.log('자막 다시 켜기');
+        // 켜기
+        btn.click();
+      }, 1000);
+    } else {
+      // 꺼져 있으면 → 그냥 켜기
+      console.log('자막 켜기');
+      btn.click();
+    }
+  } else {
+    console.log('자막 버튼 없음');
   }
 }
 
@@ -1623,7 +1646,10 @@ function removeBadges() {
 function init() {
   console.log('콘텐츠 리셋1:', Date.now());
   // 재시도 횟수 리셋
-  retryCount = 0;
+  // retryCount = 0;
+  videoRetryCount = 0;
+  infoRetryCount = 0;
+
   // 퀴즈 요청 상태 리셋
   quizRequested = false;
   // 저장된 영상ID 리셋

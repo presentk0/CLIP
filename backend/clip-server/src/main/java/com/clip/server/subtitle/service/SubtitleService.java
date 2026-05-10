@@ -20,6 +20,7 @@ import com.clip.server.video.repository.VideoKeyWordRepository;
 import com.clip.server.video.repository.VideoRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -51,21 +52,29 @@ public class SubtitleService {
                                   List<String> translatedTexts) {
 
         // 비디오 조회 또는 생성
-        Video video = videoRepository.findById(videoId)
-                .orElseGet(() -> videoRepository.save(Video.builder()
-                        .videoId(videoId)
-                        .title(title)
-                        .duration(duration)
-                        .build())
-                );
+        Video video;
+        try {
+            video = videoRepository.findById(videoId)
+                    .orElseGet(() -> videoRepository.save(Video.builder()
+                            .videoId(videoId)
+                            .title(title)
+                            .duration(duration)
+                            .build()));
+        } catch (DataIntegrityViolationException e) {
+            video = videoRepository.findById(videoId)
+                    .orElseThrow(() -> new BusinessException(VIDEO_NOT_FOUND));
+        }
+
+        // final 변수로 복사
+        final Video finalVideo = video;
 
         for (int i = 0; i < requests.size(); i++) {
             TranslationRequest.SubtitleDetail req = requests.get(i);
             String translation = translatedTexts.get(i); // 리스트에서 번역본 추출
 
             // 중복 체크 후 저장
-            if (subtitleRepository.findByVideoAndStartTimeAndText(video, req.getStartTime(), req.getText()).isEmpty()) {
-                saveSubtitleAndKeywordsInternal(video, req.getText(), translation, req.getStartTime(), req.getEndTime());
+            if (subtitleRepository.findByVideoAndStartTimeAndText(finalVideo, req.getStartTime(), req.getText()).isEmpty()) {
+                saveSubtitleAndKeywordsInternal(finalVideo, req.getText(), translation, req.getStartTime(), req.getEndTime());
             }
         }
     }
@@ -78,23 +87,31 @@ public class SubtitleService {
         User user = userRepository.findById(userId).orElseThrow(() -> new BusinessException(USER_NOT_FOUND));
 
         // 영상 정보 확인
-        Video video = videoRepository.findById(videoId).
-                orElseGet(()->{
-                            Video newVideo = Video.builder()
-                                    .videoId(videoId)
-                                    .title(subtitleRequest.getTitle())
-                                    .duration(subtitleRequest.getDuration())
-                                    .build();
-                            return videoRepository.save(newVideo);
-                        }
-                );
+        Video video;
+        try {
+            video = videoRepository.findById(videoId)
+                    .orElseGet(() -> {
+                        Video newVideo = Video.builder()
+                                .videoId(videoId)
+                                .title(subtitleRequest.getTitle())
+                                .duration(subtitleRequest.getDuration())
+                                .build();
+                        return videoRepository.save(newVideo);
+                    });
+        } catch (DataIntegrityViolationException e) {
+            video = videoRepository.findById(videoId)
+                    .orElseThrow(() -> new BusinessException(VIDEO_NOT_FOUND));
+        }
+
+        // final 변수로 복사
+        final Video finalVideo = video;
 
         // 유저 진행도 조회 없으면 생성
-        UserVideoProgress progress = userVideoProgressRepository.findByUserAndVideo(user, video)
+        UserVideoProgress progress = userVideoProgressRepository.findByUserAndVideo(user, finalVideo)
                 .orElseGet(()->{
                     UserVideoProgress newProgress = UserVideoProgress.builder()
                             .user(user)
-                            .video(video)
+                            .video(finalVideo)
                             .build();
                     return userVideoProgressRepository.save(newProgress);
                 });
@@ -104,13 +121,13 @@ public class SubtitleService {
         if (!subtitleRequest.getStartTime().equals(progress.getLastAddedStartTime())) {
             double userWatchDuration = subtitleRequest.getEndTime() - subtitleRequest.getStartTime();
             progress.addProgress(userWatchDuration, subtitleRequest.getStartTime());
-            isQuizGenerate = checkoutQuizTrigger(progress, video.getDuration());
+            isQuizGenerate = checkoutQuizTrigger(progress, finalVideo.getDuration());
         }
 
         // 자막 저장 체크
-        Subtitle subtitle = subtitleRepository.findByVideoAndStartTimeAndText(video, subtitleRequest.getStartTime(), subtitleRequest.getText())
+        Subtitle subtitle = subtitleRepository.findByVideoAndStartTimeAndText(finalVideo, subtitleRequest.getStartTime(), subtitleRequest.getText())
                 .orElseGet(() -> saveSubtitleAndKeywordsInternal(
-                        video,
+                        finalVideo,
                         subtitleRequest.getText(),
                         subtitleRequest.getTranslation(),
                         subtitleRequest.getStartTime(),

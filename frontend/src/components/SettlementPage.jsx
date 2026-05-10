@@ -1,10 +1,23 @@
 import happy from '../imgs/image_703.png';
 import frog2 from '../imgs/image_750.png';
+import { apiFetch } from '../utils/api';
+import { useState, useEffect } from 'react';
 
-function SettlementPage({ data, videoId, videoTitle, channelName, duration , onGoBackToQuiz }) {
+function SettlementPage({ data, videoId, videoTitle, channelName, duration, onExitPage , onGoBackToQuiz }) {
   // 영상 전체 길이를 00:00:00 형태로 바꿔야 함(오류)
   // 해당 영상의 썸네일 이미지
   const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+  
+  const [wordCount, setWordCount] = useState(0);
+
+  useEffect(() => {
+    const fetchWordCount = async () => {
+      const result = await apiFetch('/words/my-collection');
+      setWordCount(result.data.pagination.totalCount);
+    };
+    fetchWordCount();
+  }, []);
+  
   return (
     // 전체 박스
     <div style={{
@@ -72,25 +85,44 @@ function SettlementPage({ data, videoId, videoTitle, channelName, duration , onG
                   gap: '8px',
                 }}>
 
-                  {/* 왼쪽 회색 박스 */}
-                  <div style={{
+                  {/* 이전페이지로 돌아가기 */}
+                  <button
+                  // 나중에 페이지별로 고치기 (오류)
+                  onClick={() => onGoBackToQuiz()}
+                  style={{
                     display: 'flex',
                     width: '24px',
                     height: '24px',
                     alignItems: 'center',
-                    background: '#E1E1E1',
+                    // background: '#E1E1E1',
+                    background: 'transparent',
+                    border: 'none',
                   }}>
-                  </div>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                      <path d="M7.84 13.75L9.17 12.26L6.64 10.01H15.01C17.22 10.01 19.01 11.8 19.01 14.01C19.01 16.22 17.22 18.01 15.01 18.01H12.01V20.01H15.01C18.32 20.01 21.01 17.32 21.01 14.01C21.01 10.7 18.32 8.01 15.01 8.01H6.63L9.16 5.76L7.83 4.27L2.49 9.02L7.83 13.77L7.84 13.75Z" fill="black"/>
+                    </svg>
+                  </button>
 
-                  {/* 오른쪽 회색 박스 */}
-                  <div style={{
+                  {/* 디폴트페이지로 이동 */}
+                  <button
+                  onClick={() => {
+                        console.log('1. 클릭됨');
+    console.log('2. onExitPage:', onExitPage);
+    console.log('3. typeof:', typeof onExitPage);
+                    onExitPage()}}
+                  style={{
                     display: 'flex',
                     width: '24px',
                     height: '24px',
                     alignItems: 'center',
-                    background: '#E1E1E1',
+                    // background: '#E1E1E1',
+                    background: 'transparent',
+                    border: 'none',
                   }}>
-                  </div>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                      <path d="M12.71 2.29C12.6175 2.1973 12.5076 2.12375 12.3866 2.07357C12.2657 2.02339 12.136 1.99756 12.005 1.99756C11.874 1.99756 11.7444 2.02339 11.6234 2.07357C11.5024 2.12375 11.3925 2.1973 11.3 2.29L3.29 10.29C3.19732 10.3834 3.12399 10.4943 3.07423 10.6161C3.02447 10.7379 2.99924 10.8684 3 11V20C3 21.1 3.9 22 5 22H9C9.55 22 10 21.55 10 21V15H14V21C14 21.55 14.45 22 15 22H19C20.1 22 21 21.1 21 20V11C21 10.73 20.89 10.48 20.71 10.29L12.71 2.29ZM16 20V15C16 13.9 15.1 13 14 13H10C8.9 13 8 13.9 8 15V20H5V11.41L12 4.41L19 11.41V20H16Z" fill="black"/>
+                    </svg>
+                  </button>
                 </div>
 
                 {/* 페이지 제목 박스 */}
@@ -130,45 +162,53 @@ function SettlementPage({ data, videoId, videoTitle, channelName, duration , onG
 
               {/* 푼 문제 / 전체 문제 박스 */}
               <div style={{
-                width: '36px',
-                height: '14px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                // width: '36px',
+                // height: '14px',
               }}>
 
                 {/* 푼 문제 */}
                 <p style={{
-                  display: 'flex',
-                  width: '36px',
-                  height: '14px',
-                  flexDirection: 'column',
-                  justifyContent: 'center',
+                  // display: 'flex',
+                  // width: '36px',
+                  // height: '14px',
+                  // flexDirection: 'column',
+                  // justifyContent: 'center',
                   color: '#0D0C34',
                   textAlign: 'center',
                   fontFamily: 'Pretendard',
-                  fontSize: '16px',
+                  // 16에서 12로 변경
+                  fontSize: '12px',
                   fontStyle: 'normal',
                   fontWeight: '700',
                   lineHeight: 'normal',
                   letterSpacing: '-0.032px',
+                  whiteSpace: 'nowrap',
                 }}>
-                  푼 문제
+                  {data.correctCount + data.wrongCount}
                 </p>
 
                 {/* /전체 문제 */}
                 <p style={{
-                  display: 'flex',
-                  width: '36px',
-                  height: '14px',
-                  flexDirection: 'column',
-                  justifyContent: 'center',
+                  // display: 'flex',
+                  // width: '36px',
+                  // height: '14px',
+                  // flexDirection: 'column',
+                  // justifyContent: 'center',
                   color: '#9F9EB0',
                   fontFamily: 'Pretendard',
-                  fontSize: '16px',
+                  // 16에서 12로 변경
+                  fontSize: '12px',
                   fontStyle: 'normal',
                   fontWeight: '500',
                   lineHeight: 'normal',
                   letterSpacing: '-0.032px',
+                  whiteSpace: 'nowrap',
+                  textAlign: 'center',
                 }}>
-                  /전체 문제
+                  /{data.totalQuizCount}
                 </p>
               </div>
 
@@ -177,7 +217,9 @@ function SettlementPage({ data, videoId, videoTitle, channelName, duration , onG
                 display: 'flex',
                 width: '274px',
                 flexDirection: 'column',
-                alignItems: 'center',
+                alignItems: 'flex-start',
+                // alignItems: 'center',
+                alignSelf: 'stretch',
                 position: 'relative',
               }}>
 
@@ -197,8 +239,8 @@ function SettlementPage({ data, videoId, videoTitle, channelName, duration , onG
                     flexDirection: 'column',
                     alignItems: 'flex-start',
                     position: 'absolute',
-                    top: 0,
-                    left: 0,
+                    // top: 0,
+                    // left: 0,
                     borderRadius: '999px',
                     background: '#D8D8E2',
                   }}>
@@ -207,12 +249,14 @@ function SettlementPage({ data, videoId, videoTitle, channelName, duration , onG
                   {/* 보라색 현재 진행도 바 */}
                   <div style={{
                     display: 'flex',
-                    width: '96px',
+                    width: `${274 * ((data.correctCount + data.wrongCount) / data.totalQuizCount)}px`,
                     height: '14px',
                     flexDirection: 'column',
                     alignItems: 'flex-start',
                     borderRadius: '999px',
                     background: '#9B87E8',
+                    position: 'relative',
+                    zIndex: 1,
                   }}>
                   </div>
                 </div>
@@ -223,25 +267,29 @@ function SettlementPage({ data, videoId, videoTitle, channelName, duration , onG
                   height: '36px',
                   aspectRatio: '1/1',
                   position: 'absolute',
-                  left: '75px',
-                  top: '-14px',
+                  right: '-18px',
+                  top: '-11px',
                   background: `url(${frog2}) transparent -42.788px -1.005px / 228.637% 225.776% no-repeat`,
                 }}>
                 </div>
               </div>
 
-              {/* 우측 나가기 버튼 */}
-              <button
-              onClick={() => onGoBackToQuiz()}
+              {/* 완주 표시 아이콘 */}
+              <div
               style={{
                 display: 'flex',
                 width: '36px',
                 height: '36px',
                 alignItems: 'center',
-                background: '#E1E1E1',
+                // background: '#E1E1E1',
+                        background: 'transparent',
+                        border: 'none',
               }}>
-                홈
-              </button>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                      <path d="M8.00415 2.05813C9.47139 2.09829 10.9059 2.50116 12.1799 3.23C14.0199 4.28 16.2099 4.43991 18.1799 3.64993L19.6301 3.06985C19.7819 3.00944 19.9463 2.98768 20.1086 3.00539C20.271 3.02314 20.4267 3.07971 20.5618 3.17141C20.6969 3.26317 20.8076 3.38736 20.884 3.53176C20.9602 3.67592 21.0003 3.83648 21.0002 3.99953V14.9995C21.0004 15.1998 20.9407 15.3962 20.8284 15.562C20.7161 15.7278 20.5563 15.8561 20.3704 15.9302L18.9202 16.5103C17.8402 16.9403 16.7199 17.1499 15.5999 17.1499C14.0699 17.1499 12.5499 16.7502 11.1799 15.9702C9.28314 14.8821 7.00757 14.7701 5.01001 15.6353V21.9898H3.01001V3.98977C3.01061 3.80518 3.06238 3.62434 3.15942 3.46731C3.25646 3.31031 3.39501 3.18321 3.55981 3.10012L3.76978 2.99953C5.08184 2.34136 6.53681 2.018 8.00415 2.05813ZM11.1799 4.97024C9.27995 3.88025 7.00023 3.76042 5.00024 4.63039H5.01001V13.4995C5.89997 13.2096 6.83006 13.0601 7.76001 13.0601C9.31063 13.0639 10.8337 13.4702 12.1799 14.2398C13.0821 14.7616 14.0915 15.0712 15.1311 15.1441C16.1709 15.2168 17.2138 15.0508 18.1799 14.6597L19.0002 14.3296V5.48L18.9202 5.51028C16.3702 6.52027 13.5499 6.33021 11.1799 4.97024Z" fill="black"/>
+                      <path d="M8.00415 2.05813C9.47139 2.09829 10.9059 2.50116 12.1799 3.23C14.0199 4.28 16.2099 4.43991 18.1799 3.64993L19.6301 3.06985C19.7819 3.00944 19.9463 2.98768 20.1086 3.00539C20.271 3.02314 20.4267 3.07971 20.5618 3.17141C20.6969 3.26317 20.8076 3.38736 20.884 3.53176C20.9602 3.67592 21.0003 3.83648 21.0002 3.99953V14.9995C21.0004 15.1998 20.9407 15.3962 20.8284 15.562C20.7161 15.7278 20.5563 15.8561 20.3704 15.9302L18.9202 16.5103C17.8402 16.9403 16.7199 17.1499 15.5999 17.1499C14.0699 17.1499 12.5499 16.7502 11.1799 15.9702C9.28314 14.8821 7.00757 14.7701 5.01001 15.6353V21.9898H3.01001V3.98977C3.01061 3.80518 3.06238 3.62434 3.15942 3.46731C3.25646 3.31031 3.39501 3.18321 3.55981 3.10012L3.76978 2.99953C5.08184 2.34136 6.53681 2.018 8.00415 2.05813ZM11.1799 4.97024C9.27995 3.88025 7.00023 3.76042 5.00024 4.63039H5.01001V13.4995C5.89997 13.2096 6.83006 13.0601 7.76001 13.0601C9.31063 13.0639 10.8337 13.4702 12.1799 14.2398C13.0821 14.7616 14.0915 15.0712 15.1311 15.1441C16.1709 15.2168 17.2138 15.0508 18.1799 14.6597L19.0002 14.3296V5.48L18.9202 5.51028C16.3702 6.52027 13.5499 6.33021 11.1799 4.97024Z" stroke="black"/>
+                    </svg>
+              </div>
             </div>
           </div>
 
@@ -332,16 +380,27 @@ function SettlementPage({ data, videoId, videoTitle, channelName, duration , onG
                         display: 'flex',
                         width: '156.279px',
                         height: '88px',
-                        padding: '65px 6px 6px 121px',
+                        // padding: '65px 6px 6px 121px',
                         flexDirection: 'column',
                         alignItems: 'flex-start',
                         gap: '10px',
                         borderRadius: '10px',
                         background: '#CCC',
+                        overflow: 'hidden',
+                        position: 'relative',
                       }}>
 
                         {/* 실제 영상 썸네일 */}
-                        <img src={thumbnailUrl} />
+                        <img 
+                          src={thumbnailUrl} 
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            // 비율 유지하며 채우기
+                            objectFit: 'cover',
+                            borderRadius: '10px',
+                            }}
+                          />
 
                         {/* 영상의 길이 */}
                         <div style={{
@@ -354,6 +413,9 @@ function SettlementPage({ data, videoId, videoTitle, channelName, duration , onG
                           flexShrink: '0',
                           borderRadius: '4px',
                           background: 'rgba(15, 15, 15, 0.50)',
+                          position: 'absolute',
+                          bottom: '6px', 
+                          right: '6px',
                           }}>
                             {duration}
                         </div>
@@ -408,7 +470,7 @@ function SettlementPage({ data, videoId, videoTitle, channelName, duration , onG
                     </div>
 
                     {/* 이건 뭐지? */}
-                    <div style={{
+                    {/* <div style={{
                       display: 'flex',
                       width: '20px',
                       height: '20px',
@@ -419,7 +481,7 @@ function SettlementPage({ data, videoId, videoTitle, channelName, duration , onG
                       background: '#B0B0B0',
                       
                     }}>
-                    </div>
+                    </div> */}
                   </div>
                 </div>
 
@@ -595,7 +657,7 @@ function SettlementPage({ data, videoId, videoTitle, channelName, duration , onG
                             lineHeight: 'normal',
                             letterSpacing: '-0.032px',
                           }}>
-                            실제 수치 12개
+                            {wordCount}개
                           </p>
                         </div>
                       </div>
@@ -740,7 +802,7 @@ function SettlementPage({ data, videoId, videoTitle, channelName, duration , onG
               top: '-55px',
             }}>
 
-              {/* 말풍선 */}
+              {/* 말풍선
               <div style={{
                 width: '204px',
                 height: '115px',
@@ -748,13 +810,28 @@ function SettlementPage({ data, videoId, videoTitle, channelName, duration , onG
                 position: 'absolute',
                         background: 'transparent',
                         border: 'none',
-              }}>
+              }}> */}
 
-                <svg xmlns="http://www.w3.org/2000/svg" width="204" height="115" viewBox="0 0 204 115" fill="none">
-                  <path fill-rule="evenodd" clip-rule="evenodd" d="M188 0C196.836 3.2327e-05 204 7.16346 204 16V99C204 107.837 196.836 115 188 115H4.12495C0.904592 115 -1.0301 111.19 0.576121 107.871L0.743113 107.554C3.27766 104.348 4.54453 102.743 5.57905 100.995C7.88033 97.106 9.39327 92.6025 9.99995 87.8564V16C9.99995 7.16344 17.1634 0 25.9999 0H188Z" fill="white"/>
+                <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="204"
+                height="115"
+                viewBox="0 0 204 115"
+                fill="none"
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                }}>
+                  <path
+                  fill-rule="evenodd"
+                  clip-rule="evenodd"
+                  d="M188 0C196.836 3.2327e-05 204 7.16346 204 16V99C204 107.837 196.836 115 188 115H4.12495C0.904592 115 -1.0301 111.19 0.576121 107.871L0.743113 107.554C3.27766 104.348 4.54453 102.743 5.57905 100.995C7.88033 97.106 9.39327 92.6025 9.99995 87.8564V16C9.99995 7.16344 17.1634 0 25.9999 0H188Z"
+                  fill="white"
+                  />
                 </svg>
-
-                {/* 네모 말풍선 */}
+{/* 
+                네모 말풍선
                 <div style={{
                   // position: 'absolute', // 추가
                   // top: '16px',  // 추가
@@ -764,9 +841,9 @@ function SettlementPage({ data, videoId, videoTitle, channelName, duration , onG
                   borderRadius: '16px 16px 16px 0',
                   background: '#FFF',
                 }}>
-                </div>
+                </div> */}
 
-                {/* 말풍선 꼬리 */}
+                {/* 말풍선 꼬리
                 <div style={{
                   // position: 'absolute', // 추가
                   // top: '16px',  // 추가
@@ -775,8 +852,8 @@ function SettlementPage({ data, videoId, videoTitle, channelName, duration , onG
                   height: '32.882px',
                   fill: '#FFF',
                 }}>
-                </div>
-              </div>
+                </div> */}
+              {/* </div> */}
 
               {/* 말풍선 글 박스 */}
               <div style={{
@@ -785,6 +862,8 @@ function SettlementPage({ data, videoId, videoTitle, channelName, duration , onG
                 justifyContent: 'center',
                 alignItems: 'center',
                 alignSelf: 'stretch',
+                position: 'relative',
+                zIndex: 1,
               }}>
 
                 {/* 말풍선 글 */}
