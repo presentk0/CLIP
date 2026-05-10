@@ -17,6 +17,7 @@ import com.clip.server.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -244,6 +245,11 @@ public class QuizService {
                     .videoTimeStamp(saved.getVideoTimestamp())
                     .build();
         }).collect(Collectors.toList());
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public List<QuizDetailResponse> createLocalMatchingQuizNewTx(Long sessionId, Long userId, List<QuizWordRequest> requests) {
+        return createLocalMatchingQuiz(sessionId, userId, requests);
     }
 
     // 퀴즈 제출 로직
