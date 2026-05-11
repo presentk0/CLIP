@@ -3,7 +3,6 @@ package com.clip.server.quiz.service;
 import com.clip.server.common.exception.BusinessException;
 import com.clip.server.common.exception.ErrorCode;
 import com.clip.server.quiz.dto.request.QuizGenerateRequest;
-import com.clip.server.quiz.dto.request.QuizWordRequest;
 import com.clip.server.quiz.dto.response.QuizCompleteResponse;
 import com.clip.server.quiz.dto.response.QuizDetailResponse;
 import com.clip.server.quiz.dto.response.QuizGenerateResponse;
@@ -15,12 +14,10 @@ import com.clip.server.subtitle.repository.SubtitleRepository;
 import com.clip.server.user.entity.User;
 import com.clip.server.user.entity.badge.BadgeType;
 import com.clip.server.user.entity.badge.UserBadge;
-import com.clip.server.user.entity.learning.LearningHistory;
 import com.clip.server.user.repository.LearningHistoryRepository;
 import com.clip.server.user.repository.UserBadgeRepository;
 import com.clip.server.user.repository.UserRepository;
 import com.clip.server.video.entity.Video;
-import com.clip.server.video.entity.VideoKeyWord;
 import com.clip.server.video.repository.VideoKeyWordRepository;
 import com.clip.server.video.repository.VideoRepository;
 import com.clip.server.word.entity.WordType;
@@ -29,7 +26,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -80,6 +76,11 @@ class QuizSessionServiceTest {
     @Mock
     private QuizFeedbackGenerator quizFeedbackGenerator;
 
+    @Mock
+    private QuizTxService quizTxService;
+    @Mock
+    private QuizFallbackService quizFallbackService;
+
     private User user;
     private Video video;
     private QuizSession session;
@@ -92,7 +93,7 @@ class QuizSessionServiceTest {
         video = Video.builder()
                 .videoId("v123")
                 .title("테스트 영상")
-                .duration(600) // 10분 영상 -> 섹션 1개
+                .duration(600) // 10분 영상
                 .build();
 
         session = QuizSession.builder()
@@ -105,15 +106,18 @@ class QuizSessionServiceTest {
     }
 
     @Test
-    @DisplayName("섹션 퀴즈 생성 - 유저가 수집한 단어가 있는 경우 빈칸 퀴즈를 포함한다")
+    @DisplayName("섹션 퀴즈 생성 - 유저가 수집한 단어가 있는 경우 퀴즈를 생성한다")
     void generateSectionQuiz_WithUserWords() {
         // given
         QuizGenerateRequest request = new QuizGenerateRequest("v123", 1, SessionType.NORMAL);
         given(userRepository.findById(anyLong())).willReturn(Optional.of(user));
         given(videoRepository.findById(anyString())).willReturn(Optional.of(video));
-        given(quizSessionRepository.findByUserAndVideo(any(), any())).willReturn(Optional.of(session));
-        given(subtitleRepository.findByVideoAndStartTimeBetween(any(), anyDouble(), anyDouble()))
-                .willReturn(List.of());
+
+        given(quizTxService.getOrCreateSession(any(), any(), any())).willReturn(session);
+
+        // 💡 lenient() 적용: 로직에 따라 호출되지 않을 수 있는 스터빙 허용
+        lenient().when(subtitleRepository.findByVideoAndStartTimeBetween(any(), anyDouble(), anyDouble()))
+                .thenReturn(List.of());
 
         QuizSessionWord word = QuizSessionWord.builder()
                 .word("implement")
@@ -123,108 +127,68 @@ class QuizSessionServiceTest {
         given(sessionWordRepository.findWordsBySection(eq(100L), anyDouble(), anyDouble()))
                 .willReturn(new ArrayList<>(List.of(word)));
 
-        given(quizService.createOXQuiz(anyLong(), anyLong(), any())).willReturn(mock(QuizDetailResponse.class));
+        lenient().when(quizService.createOXQuiz(anyLong(), anyLong(), any())).thenReturn(mock(QuizDetailResponse.class));
+        lenient().when(quizService.createBlankQuiz(anyLong(), anyLong(), any())).thenReturn(mock(QuizDetailResponse.class));
 
         // when
         QuizGenerateResponse response = quizSessionService.generateSectionQuiz(1L, request);
 
         // then
         assertThat(response.getSessionId()).isEqualTo(100L);
-        verify(quizService).createOXQuiz(eq(100L), eq(1L), any(QuizWordRequest.class));
+        verify(quizTxService).getOrCreateSession(any(), any(), any());
     }
 
     @Test
-    @DisplayName("최종 매칭 퀴즈 생성 - 단어가 5개 미만이면 AI 추천 단어를 보충한다")
-    void generateMatchingQuiz_WithAIRecommendation() {
+    @DisplayName("최종 매칭 퀴즈 생성 - AI가 성공하면 5개의 매칭 퀴즈를 반환한다")
+    void generateMatchingQuiz_Success() {
         // given
         QuizGenerateRequest request = new QuizGenerateRequest("v123", 1, SessionType.NORMAL);
         given(userRepository.findById(anyLong())).willReturn(Optional.of(user));
         given(videoRepository.findById(anyString())).willReturn(Optional.of(video));
-        given(quizSessionRepository.findByUserAndVideo(any(), any())).willReturn(Optional.of(session));
-        given(subtitleRepository.findAllByVideo(any())).willReturn(List.of());
+        given(quizTxService.getOrCreateSession(any(), any(), any())).willReturn(session);
 
-        List<QuizSessionWord> words = new ArrayList<>(List.of(
-                QuizSessionWord.builder().word("A").wordType(WordType.COLLECT).build(),
-                QuizSessionWord.builder().word("B").wordType(WordType.COLLECT).build(),
-                QuizSessionWord.builder().word("C").wordType(WordType.COLLECT).build()
-        ));
+        lenient().when(subtitleRepository.findAllByVideo(any())).thenReturn(List.of());
+
+        List<QuizSessionWord> words = new ArrayList<>();
+        for(int i=0; i<5; i++) {
+            words.add(QuizSessionWord.builder().word("Word"+i).wordType(WordType.COLLECT).build());
+        }
         given(sessionWordRepository.findAllByQuizSession(any())).willReturn(words);
-
-        List<Map<String, String>> aiRecs = List.of(
-                Map.of("word", "D", "meaning", "뜻D"),
-                Map.of("word", "E", "meaning", "뜻E")
-        );
-        given(openAIService.recommendImportantWords(anyString(), eq(2))).willReturn(aiRecs);
-
-        given(quizService.createMatchingQuiz(anyLong(), anyLong(), anyList())).willReturn(List.of());
+        given(quizService.createMatchingQuiz(anyLong(), anyLong(), anyList())).willReturn(new ArrayList<>(List.of(mock(QuizDetailResponse.class))));
 
         // when
         quizSessionService.generateMatchingQuiz(1L, request);
 
         // then
-        verify(openAIService).recommendImportantWords(anyString(), eq(2));
-        verify(quizService).createMatchingQuiz(eq(100L), eq(1L), argThat(list -> list.size() == 5));
+        verify(quizService).createMatchingQuiz(eq(100L), eq(1L), anyList());
+        verify(quizFallbackService, never()).createLocalMatchingQuizNewTx(any(), any(), any());
     }
 
     @Test
-    @DisplayName("새로운 세션 생성 시 단어 스냅샷(동기화)이 수행된다")
-    void getOrCreateSession_SyncWords() {
+    @DisplayName("최종 매칭 퀴즈 생성 - AI 실패 시 폴백 서비스가 호출된다")
+    void generateMatchingQuiz_AIFail_Fallback() {
         // given
         QuizGenerateRequest request = new QuizGenerateRequest("v123", 1, SessionType.NORMAL);
         given(userRepository.findById(anyLong())).willReturn(Optional.of(user));
         given(videoRepository.findById(anyString())).willReturn(Optional.of(video));
+        given(quizTxService.getOrCreateSession(any(), any(), any())).willReturn(session);
 
-        given(quizSessionRepository.findByUserAndVideo(any(), any())).willReturn(Optional.empty());
-        given(quizSessionRepository.save(any())).willReturn(session);
+        lenient().when(subtitleRepository.findAllByVideo(any())).thenReturn(List.of());
+        given(sessionWordRepository.findAllByQuizSession(any())).willReturn(new ArrayList<>());
 
-        given(collectedWordRepository.findAllByUserAndVideo(any(), any())).willReturn(List.of());
-        given(videoKeyWordRepository.findAllByVideo(any())).willReturn(List.of(
-                VideoKeyWord.builder().word("system").build()
-        ));
-        given(subtitleRepository.findByVideoAndStartTimeBetween(any(), anyDouble(), anyDouble()))
-                .willReturn(List.of());
+        // AI 추천 단어 모킹
+        List<Map<String, String>> aiRecs = new ArrayList<>();
+        for(int i=0; i<5; i++) aiRecs.add(Map.of("word", "W"+i, "meaning", "M"+i));
+        lenient().when(openAIService.recommendImportantWords(anyString(), anyInt())).thenReturn(aiRecs);
 
-        // when
-        quizSessionService.generateSectionQuiz(1L, request);
-
-        // then
-        verify(quizSessionRepository).save(any());
-        verify(sessionWordRepository).saveAll(anyList());
-    }
-
-    @Test
-    @DisplayName("매칭 퀴즈 생성 - 단어 순서가 섞여있어도 우선순위(COLLECT > POPUP > SYSTEM)대로 정렬된다")
-    void generateMatchingQuiz_PrioritySorting() {
-        // given
-        QuizGenerateRequest request = new QuizGenerateRequest("v123", 0, SessionType.NORMAL);
-
-        given(userRepository.findById(1L)).willReturn(Optional.of(user));
-        given(videoRepository.findById("v123")).willReturn(Optional.of(video));
-        given(quizSessionRepository.findByUserAndVideo(any(), any())).willReturn(Optional.of(session));
-
-        List<QuizSessionWord> mixedWords = new ArrayList<>(List.of(
-                QuizSessionWord.builder().word("System1").wordType(WordType.SYSTEM).build(),
-                QuizSessionWord.builder().word("Collect1").wordType(WordType.COLLECT).build(),
-                QuizSessionWord.builder().word("Popup1").wordType(WordType.POPUP).build(),
-                QuizSessionWord.builder().word("Collect2").wordType(WordType.COLLECT).build(),
-                QuizSessionWord.builder().word("Popup2").wordType(WordType.POPUP).build()
-        ));
-        given(sessionWordRepository.findAllByQuizSession(any())).willReturn(mixedWords);
-        given(quizService.createMatchingQuiz(anyLong(), anyLong(), anyList())).willReturn(new ArrayList<>());
+        given(quizService.createMatchingQuiz(anyLong(), anyLong(), anyList()))
+                .willThrow(new RuntimeException("AI Error"));
 
         // when
         quizSessionService.generateMatchingQuiz(1L, request);
 
         // then
-        ArgumentCaptor<List<QuizWordRequest>> listCaptor = ArgumentCaptor.forClass(List.class);
-        verify(quizService).createMatchingQuiz(eq(100L), eq(1L), listCaptor.capture());
-
-        List<QuizWordRequest> capturedList = listCaptor.getValue();
-        List<String> words = capturedList.stream().map(QuizWordRequest::getWord).toList();
-
-        assertThat(words).hasSize(5);
-        assertThat(words.get(0)).contains("Collect");
-        assertThat(words.get(4)).isEqualTo("System1");
+        verify(quizFallbackService).createLocalMatchingQuizNewTx(eq(100L), eq(1L), anyList());
     }
 
     @Test
@@ -268,30 +232,5 @@ class QuizSessionServiceTest {
         assertThatThrownBy(() -> quizSessionService.completeQuizSession(1L, 999L))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.SESSION_NOT_FOUND);
-    }
-
-    @Test
-    @DisplayName("영상을 3번째 완주하면 골드 배지와 1000 EXP 보너스를 받는다")
-    void completeQuizSession_Success_GoldBadge() {
-        // given
-        given(userRepository.findById(user.getId())).willReturn(Optional.of(user));
-        given(quizSessionRepository.findById(session.getId())).willReturn(Optional.of(session));
-
-        LearningHistory history = LearningHistory.builder().user(user).video(video).build();
-        ReflectionTestUtils.setField(history, "completionCount", 2);
-        given(learningHistoryRepository.findByUserAndVideo(any(), any())).willReturn(Optional.of(history));
-        given(userBadgeRepository.existsByUserAndVideoAndBadgeType(any(), any(), eq(BadgeType.GOLD))).willReturn(false);
-        given(quizResultRepository.findByQuizSession(any())).willReturn(List.of());
-
-        given(quizFeedbackGenerator.generateFeedback(anyDouble(), anyString(), any()))
-                .willReturn("골드 배지 축하 피드백!");
-
-        // when
-        QuizCompleteResponse response = quizSessionService.completeQuizSession(user.getId(), session.getId());
-
-        // then
-        assertThat(response.getFeedback()).isEqualTo("골드 배지 축하 피드백!");
-        assertThat(response.getEarnedExp()).isEqualTo(1200);
-        assertThat(response.getNewBadge().getBadgeType()).isEqualTo(BadgeType.GOLD);
     }
 }

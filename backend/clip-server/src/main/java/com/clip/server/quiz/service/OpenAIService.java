@@ -62,6 +62,9 @@ public class OpenAIService {
                 1. content:
                    - O: word를 정확히 사용
                    - X: similarWord를 사용
+                   - 영어 문장만 작성
+                   - 한글 절대 포함 금지
+                   - translation 내용을 포함하지 말 것
                 2. translation:
                    - 자연스러운 한글 해석
                 3. question:
@@ -70,6 +73,10 @@ public class OpenAIService {
                    - word와 similarWord 차이 설명
                    - 두 단어 모두 반드시 포함
                    - 1~2문장
+                5. 추가 규칙
+                   - 이전과 동일한 문장 구조 반복 금지
+                   - 매번 다른 예문 사용
+                   - content 문장은 다양하게 생성
         
                 ## 피드백 규칙 ⭐
                 - 같은 표현 반복 금지
@@ -261,7 +268,7 @@ public class OpenAIService {
                     5. "다시 한 번 볼까요?"          
                     - 반드시 다양한 표현을 사용하고 반복하지 말 것
                     
-                    ## JSON 형식 (반드시 유지)
+                    ## JSON 형식- 반드시 아래 JSON 형식대로만 출력할 것
                     {
                       "quizzes": [
                         {
@@ -311,14 +318,41 @@ public class OpenAIService {
 
     private OpenAIQuizDataResponse processSingle(String prompt) {
         String raw = callOpenAI(prompt);
+
         if (raw == null) return null;
+
         try {
             JsonNode node = extractContentNode(raw);
-            // 루트가 객체이고 실제 데이터가 한 단계 아래에 있을 경우를 대비한 언래핑
+
+            // 루트가 객체이고 실제 데이터가 한 단계 아래에 있을 경우
             if (node.isObject() && node.size() == 1 && !node.has("word")) {
                 node = node.elements().next();
             }
-            return objectMapper.treeToValue(node, OpenAIQuizDataResponse.class);
+
+            OpenAIQuizDataResponse quiz =
+                    objectMapper.treeToValue(node, OpenAIQuizDataResponse.class);
+
+            // content 한글 검증
+            if (quiz.getContent() != null &&
+                    quiz.getContent().matches(".*[가-힣].*")) {
+
+                log.warn("content에 한글 포함됨: {}", quiz.getContent());
+            }
+
+            // content와 translation 동일 검증
+            if (quiz.getContent() != null &&
+                    quiz.getTranslation() != null &&
+                    quiz.getContent().equals(quiz.getTranslation())) {
+
+                log.warn(
+                        "content와 translation 동일함 content={}, translation={}",
+                        quiz.getContent(),
+                        quiz.getTranslation()
+                );
+            }
+
+            return quiz;
+
         } catch (Exception e) {
             log.error("단일 파싱 실패: {}", e.getMessage());
             return null;
@@ -353,7 +387,7 @@ public class OpenAIService {
 
                 Map<String, Object> body = new HashMap<>();
                 body.put("model", model);
-                body.put("temperature", 0.5); // 적절한 창의성을 위해 0.5 설정
+                body.put("temperature", 0.7); // 적절한 창의성을 위해 0.7 설정
                 body.put("messages", List.of(
                         Map.of("role", "system", "content", "당신은 모든 응답을 JSON으로만 해야 하는 영어 교육 봇입니다. 절대 JSON 외의 텍스트를 포함하지 마세요."),
                         Map.of("role", "user", "content", prompt)
@@ -378,4 +412,5 @@ public class OpenAIService {
         String cleaned = content.replaceAll("```json|```", "").trim();
         return objectMapper.readTree(cleaned);
     }
+
 }

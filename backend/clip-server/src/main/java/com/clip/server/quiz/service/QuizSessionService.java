@@ -10,7 +10,7 @@ import com.clip.server.quiz.dto.response.QuizGenerateResponse;
 import com.clip.server.quiz.entity.QuizResult;
 import com.clip.server.quiz.entity.QuizSession;
 import com.clip.server.quiz.entity.QuizSessionWord;
-import com.clip.server.quiz.entity.SessionType;
+import com.clip.server.quiz.entity.QuizType;
 import com.clip.server.quiz.repository.QuizResultRepository;
 import com.clip.server.quiz.repository.QuizSessionRepository;
 import com.clip.server.quiz.repository.QuizSessionWordRepository;
@@ -25,14 +25,10 @@ import com.clip.server.user.repository.LearningHistoryRepository;
 import com.clip.server.user.repository.UserBadgeRepository;
 import com.clip.server.user.repository.UserRepository;
 import com.clip.server.video.entity.Video;
-import com.clip.server.video.entity.VideoKeyWord;
 import com.clip.server.video.repository.VideoKeyWordRepository;
 import com.clip.server.video.repository.VideoRepository;
-import com.clip.server.word.entity.CollectedWord;
 import com.clip.server.word.entity.WordType;
 import com.clip.server.word.repository.CollectedWordRepository;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -51,6 +47,7 @@ public class QuizSessionService {
     private static final double DENSITY_FACTOR = 0.8;
     private static final int CORRECT_EXP = 100;
     // 영상 시청 완료 보상
+
     private static final int VIDEO_COMPENSATION = 200;
 
     private final QuizSessionRepository quizSessionRepository;
@@ -67,7 +64,8 @@ public class QuizSessionService {
     private final QuizService quizService;
     private final OpenAIService openAIService;
     private final QuizFeedbackGenerator quizFeedbackGenerator;
-
+    private final QuizFallbackService quizFallbackService;
+    private final QuizTxService quizTxService;
 
     /**
      * 중간 섹션 퀴즈 생성 (OX, 빈칸)
@@ -80,7 +78,7 @@ public class QuizSessionService {
         Video video = videoRepository.findById(request.getVideoId()).orElseThrow(()-> new BusinessException(ErrorCode.VIDEO_NOT_FOUND));
 
         // 세션 정보 확인 및 생성
-        QuizSession quizSession = getOrCreateSession(user, video, request.getSessionType());
+        QuizSession quizSession = quizTxService.getOrCreateSession(user, video, request.getSessionType());
 
         // NPE 방지
         int duration = (video.getDuration() != null) ? video.getDuration() : 0;
@@ -102,8 +100,10 @@ public class QuizSessionService {
 
         // 해당 구간 단어 조회 및 우선순위(1~3순위) 정렬
         List<QuizSessionWord> candidates = quizSessionWordRepository.findWordsBySection(quizSession.getId(), start, end);
+
         // 전체 리스트를 무작위로 섞음
         Collections.shuffle(candidates);
+
         // 그 상태에서 우선순위대로 정렬 (셔플된 결과 내에서 등급순 정렬됨)
         candidates.sort(Comparator.comparingInt(this::getPriority));
 
@@ -127,24 +127,54 @@ public class QuizSessionService {
             // 자막이 너무 비어있을 경우를 대비해 제목을 백업으로 활용
             String aiInputText = combinedSubtitles.isBlank() ? video.getTitle() : combinedSubtitles;
 
-            log.info("### AI 단어 추출 요청 - 입력 텍스트 요약: {}",
-                    aiInputText.substring(0, Math.min(aiInputText.length(), 50)) + "...");
+            String preview = Optional.ofNullable(aiInputText)
+                    .filter(s -> !s.isBlank())
+                    .map(s -> s.substring(0, Math.min(s.length(), 50)) + "...")
+                    .orElse("[EMPTY]");
 
-            List<Map<String, String>> aiRecommended = openAIService.recommendImportantWords(aiInputText, needCount);
+            log.info("### AI 단어 추출 요청 - 입력 텍스트 요약: {}", preview);
+
+            List<Map<String, String>> aiRecommended =
+                    Optional.ofNullable(
+                            openAIService.recommendImportantWords(aiInputText, needCount)
+                    ).orElse(Collections.emptyList());
 
             for (Map<String, String> rec : aiRecommended) {
-                // AI가 추천한 단어가 이미 목록에 없는 경우에만 추가 (중복 방지)
+
+                // null 데이터 방어
+                if (rec == null) {
+                    continue;
+                }
+
+                String word = rec.get("word");
+                String meaning = rec.get("meaning");
+
+                // word 없으면 스킵
+                if (word == null || word.isBlank()) {
+                    continue;
+                }
+
                 boolean isDuplicate = quizWordRequests.stream()
-                        .anyMatch(q -> q.getWord().equalsIgnoreCase(rec.get("word")));
+                        .map(QuizWordRequest::getWord)
+                        .filter(Objects::nonNull)
+                        .anyMatch(existing -> existing.equalsIgnoreCase(word));
 
                 if (!isDuplicate) {
-                    quizWordRequests.add(new QuizWordRequest(rec.get("word"), rec.get("meaning"), "00:00"));
+                    quizWordRequests.add(
+                            new QuizWordRequest(
+                                    word,
+                                    meaning != null ? meaning : "",
+                                    "00:00"
+                            )
+                    );
                 }
+
             }
         }
 
         // 중복 제거 후 필요한 개수만
         List<QuizWordRequest> finalWords = quizWordRequests.stream()
+                .filter(q -> q.getWord() != null && !q.getWord().isBlank())
                 .collect(Collectors.toMap(
                         QuizWordRequest::getWord,
                         req -> req,
@@ -193,7 +223,7 @@ public class QuizSessionService {
         Video video = videoRepository.findById(request.getVideoId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.VIDEO_NOT_FOUND));
 
-        QuizSession quizSession = getOrCreateSession(user, video, request.getSessionType());
+        QuizSession quizSession = quizTxService.getOrCreateSession(user, video, request.getSessionType());
 
         List<QuizSessionWord> allWords =
                 quizSessionWordRepository.findAllByQuizSession(quizSession);
@@ -250,20 +280,48 @@ public class QuizSessionService {
             log.info("### [Matching Quiz AI] 최적화된 자막(약 {}자) 기반 단어 추천 요청", aiInput.length());
 
             try {
-                List<Map<String, String>> aiRecommended = openAIService.recommendImportantWords(aiInput, needCount);
+                List<Map<String, String>> aiRecommended =
+                        Optional.ofNullable(
+                                openAIService.recommendImportantWords(aiInput, needCount)
+                        ).orElse(Collections.emptyList());
+
                 for (Map<String, String> rec : aiRecommended) {
+
+                    if (rec == null) {
+                        continue;
+                    }
+
                     String word = rec.get("word");
-                    if (finalCandidates.stream().noneMatch(c -> c.getWord().equalsIgnoreCase(word))) {
-                        finalCandidates.add(new QuizWordRequest(word, rec.get("meaning"), "00:00"));
+                    String meaning = rec.get("meaning");
+
+                    if (word == null || word.isBlank()) {
+                        continue;
+                    }
+
+                    boolean notExists = finalCandidates.stream()
+                            .map(QuizWordRequest::getWord)
+                            .filter(Objects::nonNull)
+                            .noneMatch(existing -> existing.equalsIgnoreCase(word));
+
+                    if (notExists) {
+
+                        finalCandidates.add(
+                                new QuizWordRequest(
+                                        word,
+                                        meaning != null ? meaning : "",
+                                        "00:00"
+                                )
+                        );
                     }
                 }
             } catch (Exception e) {
-                log.error("매칭 퀴즈 AI 단어 보충 실패: {}", e.getMessage());
+                log.error("### 매칭 퀴즈 AI 단어 보충 실패", e);
             }
         }
 
         // 중복 단어 제거 후 5개 선택
-        List<QuizWordRequest> finalFive = finalCandidates.stream()
+        List<QuizWordRequest> finalWords = finalCandidates.stream()
+                .filter(q -> q.getWord() != null && !q.getWord().isBlank())
                 .collect(Collectors.toMap(
                         QuizWordRequest::getWord,
                         req -> req,
@@ -275,10 +333,10 @@ public class QuizSessionService {
                 .limit(5)
                 .collect(Collectors.toList());
 
-        if (finalFive.size() < 5) {
+        if (finalWords.size() < 5) {
             log.warn(
                     "매칭 퀴즈 5개 확보 실패 - 현재 개수={}, videoId={}, sessionId={}",
-                    finalFive.size(),
+                    finalWords.size(),
                     video.getVideoId(),
                     quizSession.getId()
             );
@@ -287,70 +345,14 @@ public class QuizSessionService {
         List<QuizDetailResponse> quizzes;
         try {
             // 1차 시도: AI를 통한 매칭 퀴즈 생성
-            quizzes = quizService.createMatchingQuiz(quizSession.getId(), user.getId(), finalFive);
+            quizzes = quizService.createMatchingQuiz(quizSession.getId(), user.getId(), finalWords);
         } catch (Exception e) {
             // 2차 시도 (Fallback): AI 실패 시 서버 내부 데이터로 즉시 생성
-            log.warn("AI 매칭 퀴즈 생성 실패, 자체 생성 로직(Local Fallback) 가동. 사유: {}", e.getMessage());
-            quizzes = quizService.createLocalMatchingQuizNewTx(quizSession.getId(), user.getId(), finalFive);
+            log.warn("AI 매칭 퀴즈 생성 실패, 자체 생성 로직(Local Fallback) 가동", e);
+            quizzes = quizFallbackService.createLocalMatchingQuizNewTx(quizSession.getId(), user.getId(), finalWords);
         }
 
         return mapToQuizStartResponse(quizSession, quizzes);
-    }
-
-    private QuizSession getOrCreateSession(User user, Video video, SessionType type) {
-        return quizSessionRepository.findByUserAndVideo(user, video)
-                .orElseGet(() -> {
-
-                    int duration = (video.getDuration() != null) ? video.getDuration() : 0;
-
-                    QuizSession newSession = QuizSession.builder()
-                            .user(user)
-                            .video(video)
-                            .sessionType(type)
-                            .totalQuizCount(calculateTotalQuizCount(duration))
-                            .build();
-                    QuizSession savedSession = quizSessionRepository.save(newSession);
-
-                    syncSessionWords(savedSession, user, video);
-
-                    return savedSession;
-                });
-    }
-
-    private void syncSessionWords(QuizSession quizSession, User user, Video video) {
-
-        List<QuizSessionWord> sessionWords = new ArrayList<>();
-
-        List<CollectedWord> collected = collectedWordRepository.findAllByUserAndVideo(user, video);
-        for (CollectedWord cw : collected) {
-            sessionWords.add(QuizSessionWord.builder()
-                    .quizSession(quizSession)
-                    .word(cw.getWord())
-                    .sentence(cw.getSentence())
-                    .translation(cw.getTranslation())
-                    .wordType(cw.getWordType())
-                    .timestamp(convertToSeconds(cw.getTimestamp()))
-                    .build());
-        }
-
-        List<VideoKeyWord> systemKeyWords = videoKeyWordRepository.findAllByVideo(video);
-        for(VideoKeyWord vk: systemKeyWords) {
-            // 중복 방지
-            boolean isDuplicate = sessionWords.stream()
-                    .anyMatch(sw -> sw.getWord().equalsIgnoreCase(vk.getWord()));
-            if(!isDuplicate) {
-                sessionWords.add(QuizSessionWord.builder()
-                        .quizSession(quizSession)
-                        .word(vk.getWord())
-                        .sentence(vk.getSentence())
-                        .translation(vk.getTranslation())
-                        .wordType(WordType.SYSTEM)
-                        .timestamp(vk.getTimestamp())
-                        .build());
-            }
-        }
-        quizSessionWordRepository.saveAll(sessionWords);
-        log.info("세션 {}에 대해 {}개의 단어 스냅샷 생성 완료", quizSession.getId(), sessionWords.size());
     }
 
     private QuizWordRequest mapToRequest(QuizSessionWord word) {
@@ -361,36 +363,6 @@ public class QuizSessionService {
         if (totalSeconds == null) return "00:00";
         int total = totalSeconds.intValue();
         return String.format("%02d:%02d", total / 60, total % 60);
-    }
-
-    private Double convertToSeconds(String timestamp) {
-        if (timestamp == null || !timestamp.contains(":")) return 0.0;
-        try {
-            String[] parts = timestamp.split(":");
-            return (double) (Integer.parseInt(parts[0]) * 60 + Integer.parseInt(parts[1]));
-        } catch (Exception e) {
-            log.error("타임스탬프 변환 실패: {}", timestamp);
-            return 0.0;
-        }
-    }
-
-    // 섹션당 퀴즈 수 계산
-    private int calculateTotalQuizCount(int videoTotalDuration) {
-        int totalQuizCount = 0;
-        if(videoTotalDuration<60) {
-            // 섹션 개수 0개
-            totalQuizCount = 0;
-        } else if (videoTotalDuration<600) {
-            // 섹션 개수 1개, 섹션 최대 퀴즈 개수 3개
-            totalQuizCount = 3;
-        } else if (videoTotalDuration<1200) {
-            // 섹션 개수 2개, 섹션 최대 퀴즈 개수 3개
-            totalQuizCount = 6;
-        }  else if (1200<=videoTotalDuration) {
-            // 섹션 개수 3개, 섹션 최대 퀴즈 개수 4개, 매칭 퀴즈수 5개
-            totalQuizCount = 12;
-        }
-        return totalQuizCount;
     }
 
     // 섹션당 퀴즈 개수 계산
@@ -455,7 +427,9 @@ public class QuizSessionService {
         // 학습 이력 업데이트(단어수, 영상 학습 횟수, 영상 총 학습 시간, 영상 마지막 학습 시간)
         learningHistory.updateCollectedWord(wordCounts);
         learningHistory.updateCompletionCount();
-        learningHistory.updateTotalWatchTime(video.getDuration());
+        learningHistory.updateTotalWatchTime(
+                video.getDuration() != null ? video.getDuration() : 0
+        );
         learningHistory.updateLastAccessAt();
 
         // 퀴즈 결과 집계
@@ -487,7 +461,7 @@ public class QuizSessionService {
         quizSession.complete(totalQuizCount, correctCount, wrongCount, totalEarnedExp);
 
         // 가장 많이 틀린 퀴즈 타입 추출 (예: "OX", "빈칸")
-        Optional mostWrongType = quizResultRepository.findMostWrongQuizType(sessionId);
+        Optional<QuizType> mostWrongType = quizResultRepository.findMostWrongQuizType(sessionId);
 
         // 2. 피드백 생성 (AI 호출 없이 즉시 생성!)
         String feedback = quizFeedbackGenerator.generateFeedback(
