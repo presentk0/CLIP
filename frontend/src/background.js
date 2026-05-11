@@ -66,14 +66,28 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log('백그라운드 번역 요청 영상:', Date.now(), body.videoId);
     console.log('백그라운드 자막 개수:', Date.now(), body.subtitleRequests.length);
 
-    const fetchTranslate = async () => {
+    const fetchTranslate = async (retryCount = 0) => {
+      // 최대 재시도 횟수
+      const MAX_RETRY = 3;
+      // 재시도 간격 (2초)
+      const RETRY_DELAY = 2000;
       try {
         const translateData = await apiFetch(message.endpoint, message.options);
         console.log('백그라운드 번역 응답:', Date.now(), translateData);
         sendResponse(translateData);
       } catch (error) {
         console.log('백그라운드 번역 에러:', Date.now(), error);
-        sendResponse({ success: false, error: error.message });
+        
+        // 재시도 로직
+        if (retryCount < MAX_RETRY) {
+          console.log(`번역 재시도 (${retryCount + 1}/${MAX_RETRY})...`);
+          setTimeout(() => {
+            fetchTranslate(retryCount + 1);
+          }, RETRY_DELAY);
+        } else {
+          console.log('번역 최대 재시도 초과');
+          sendResponse({ success: false, error: error.message });
+        }
       }
     };
 
