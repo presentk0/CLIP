@@ -73,8 +73,25 @@ public class QuizService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
         // 1. OpenAI를 통한 OX 퀴즈 데이터 생성
-        OpenAIQuizDataResponse aiData = openAIService.generateOXQuiz(request.getWord(), request.getMeaning());
-        if (aiData == null) throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+        OpenAIQuizDataResponse aiData;
+
+        try {
+            aiData = openAIService.generateOXQuiz(
+                    request.getWord(),
+                    request.getMeaning()
+            );
+
+        } catch (Exception e) {
+
+            log.error("### OX 퀴즈 생성 실패", e);
+
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+
+        if (aiData == null) {
+            log.error("### OX 퀴즈 응답 NULL");
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
 
         // 2. 결과 엔티티 빌드 (AI 응답 단어가 누락된 경우 요청 단어 사용)
         QuizResult result = QuizResult.builder()
@@ -209,47 +226,6 @@ public class QuizService {
                     .question(saved.getQuestion()).answer(saved.getCorrectAnswer())
                     .videoTimeStamp(saved.getVideoTimestamp()).build();
         }).collect(Collectors.toList());
-    }
-
-    @Transactional
-    public List<QuizDetailResponse> createLocalMatchingQuiz(Long sessionId, Long userId, List<QuizWordRequest> requests) {
-
-        QuizSession session = quizSessionRepository.findById(sessionId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.SESSION_NOT_FOUND));
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
-
-        log.info("### 매칭 퀴즈 자체 생성을 시작합니다. (단어 수: {})", requests.size());
-
-        return requests.stream().map(req -> {
-            QuizResult result = QuizResult.builder()
-                    .quizSession(session)
-                    .user(user)
-                    .word(req.getWord())
-                    .quizType(QuizType.MATCHING)
-                    .question(req.getWord())       // 질문은 영어 단어
-                    .correctAnswer(req.getMeaning()) // 정답은 한글 뜻
-                    .content("")                   // 자체 생성 시 예문은 비워둠 (혹은 DB에서 가져옴)
-                    .translation("")
-                    .explanation(req.getWord() + "는 '" + req.getMeaning() + "'라는 뜻입니다.")
-                    .videoTimestamp(req.getVideoTimeStamp())
-                    .build();
-
-            QuizResult saved = quizResultRepository.save(result);
-
-            return QuizDetailResponse.builder()
-                    .quizId(saved.getId())
-                    .quizType(saved.getQuizType())
-                    .question(saved.getQuestion())
-                    .answer(saved.getCorrectAnswer())
-                    .videoTimeStamp(saved.getVideoTimestamp())
-                    .build();
-        }).collect(Collectors.toList());
-    }
-
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public List<QuizDetailResponse> createLocalMatchingQuizNewTx(Long sessionId, Long userId, List<QuizWordRequest> requests) {
-        return createLocalMatchingQuiz(sessionId, userId, requests);
     }
 
     // 퀴즈 제출 로직
