@@ -21,6 +21,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class OpenAIService {
 
+
     @Value("${openai.api.key}")
     private String apiKey;
 
