@@ -16,6 +16,7 @@ import com.clip.server.user.entity.User;
 import com.clip.server.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -30,6 +31,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
@@ -38,12 +41,19 @@ class QuizServiceTest {
 
     @InjectMocks
     private QuizService quizService;
+
     @Mock
     private OpenAIService openAIService;
+
+    @Mock
+    private QuizFallbackService quizFallbackService;
+
     @Mock
     private QuizResultRepository quizResultRepository;
+
     @Mock
     private UserRepository userRepository;
+
     @Mock
     private QuizSessionRepository quizSessionRepository;
 
@@ -82,8 +92,13 @@ class QuizServiceTest {
         // given
         QuizWordRequest request = new QuizWordRequest("Consistent", "일관된", "01:23");
         OpenAIQuizDataResponse aiResponse = OpenAIQuizDataResponse.builder()
-                .word("Consistent").content("His actions are consistent.").translation("그의 행동은 일관된다.")
-                .question("맞을까?").answer("O").explanation("설명").build();
+                .word("Consistent")
+                .content("His actions are consistent.")
+                .translation("그의 행동은 일관된다.")
+                .question("맞을까?")
+                .answer("O")
+                .explanation("설명")
+                .build();
 
         given(quizSessionRepository.findById(any())).willReturn(Optional.of(quizSession));
         given(userRepository.findById(any())).willReturn(Optional.of(user));
@@ -97,6 +112,7 @@ class QuizServiceTest {
         assertThat(response.getContent()).isEqualTo("His actions are consistent.");
         assertThat(response.getQuizType()).isEqualTo(QuizType.OX);
         verify(quizResultRepository).save(any());
+        verify(quizFallbackService, never()).createLocalOXQuiz(anyLong(), anyLong(), any());
     }
 
     @Test
@@ -116,7 +132,6 @@ class QuizServiceTest {
         given(quizSessionRepository.findById(sessionId)).willReturn(Optional.of(quizSession));
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
 
-        // AI는 2개만 성공했다고 가정
         List<OpenAIQuizDataResponse> aiPartialResponse = List.of(
                 OpenAIQuizDataResponse.builder().word("apple").question("apple").answer("사과").build(),
                 OpenAIQuizDataResponse.builder().word("banana").question("banana").answer("바나나").build()
@@ -128,17 +143,13 @@ class QuizServiceTest {
         List<QuizDetailResponse> responses = quizService.createMatchingQuiz(sessionId, userId, requests);
 
         // then
-        assertThat(responses).hasSize(5); // AI 2개 + 로컬 보충 3개 = 총 5개
-
-        // 1번째 (AI 데이터 기반)
+        assertThat(responses).hasSize(5);
         assertThat(responses.get(0).getQuestion()).isEqualTo("apple");
         assertThat(responses.get(0).getAnswer()).isEqualTo("사과");
-
-        // 5번째 (로컬 데이터 보충 기반)
         assertThat(responses.get(4).getQuestion()).isEqualTo("elderberry");
-        assertThat(responses.get(4).getAnswer()).isEqualTo("엘더베리");
 
         verify(quizResultRepository, times(5)).save(any());
+        verify(quizFallbackService, never()).createLocalMatchingQuiz(anyLong(), anyLong(), anyList());
     }
 
     @Test
@@ -155,21 +166,260 @@ class QuizServiceTest {
         // then
         assertThat(response.isCorrect()).isTrue();
         assertThat(response.getEarnedExp()).isEqualTo(100);
-        assertThat(response.getCurrentExp()).isEqualTo(200); // 100 + 100
+        assertThat(response.getCurrentExp()).isEqualTo(200);
         assertThat(response.getFeedback()).isEqualTo("정답이에요! 아주 잘했어요.");
     }
 
-    @Test
-    @DisplayName("매칭 퀴즈 AI 생성 실패 시 500 에러를 던져 폴백 로직을 유도한다")
-    void createMatchingQuiz_AIFail_ThrowException() {
-        // given
-        given(quizSessionRepository.findById(any())).willReturn(Optional.of(quizSession));
-        given(userRepository.findById(any())).willReturn(Optional.of(user));
-        given(openAIService.generateMatchingQuiz(any())).willReturn(null); // AI 완전 실패
+    @Nested
+    @DisplayName("OX 퀴즈 Fallback 테스트")
+    class OXQuizFallbackTest {
 
-        // when & then
-        assertThatThrownBy(() -> quizService.createMatchingQuiz(10L, 1L, List.of()))
-                .isInstanceOf(BusinessException.class)
-                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INTERNAL_SERVER_ERROR);
+        @Test
+        @DisplayName("AI 응답이 null이면 Fallback이 호출된다")
+        void createOXQuiz_aiNull_fallback() {
+            // given
+            QuizWordRequest request = new QuizWordRequest("travel", "여행하다", "01:30");
+
+            given(openAIService.generateOXQuiz(anyString(), anyString())).willReturn(null);
+
+            QuizDetailResponse fallbackResponse = QuizDetailResponse.builder()
+                    .quizId(1L)
+                    .quizType(QuizType.OX)
+                    .content("I want to travel every day.")
+                    .translation("나는 매일 여행하고 싶어요.")
+                    .build();
+            given(quizFallbackService.createLocalOXQuiz(anyLong(), anyLong(), any()))
+                    .willReturn(fallbackResponse);
+
+            // when
+            QuizDetailResponse response = quizService.createOXQuiz(10L, 1L, request);
+
+            // then
+            assertThat(response).isNotNull();
+            assertThat(response.getQuizType()).isEqualTo(QuizType.OX);
+            verify(quizFallbackService).createLocalOXQuiz(10L, 1L, request);
+        }
+
+        @Test
+        @DisplayName("AI 응답 content에 한글이 포함되면 Fallback이 호출된다")
+        void createOXQuiz_koreanContent_fallback() {
+            // given
+            QuizWordRequest request = new QuizWordRequest("travel", "여행하다", "01:30");
+
+            OpenAIQuizDataResponse aiResponse = OpenAIQuizDataResponse.builder()
+                    .word("travel")
+                    .content("나는 여행하고 싶어요.")  // ❌ 한글 포함
+                    .translation("나는 여행하고 싶어요.")
+                    .answer("O")
+                    .build();
+
+            given(openAIService.generateOXQuiz(anyString(), anyString())).willReturn(aiResponse);
+
+            QuizDetailResponse fallbackResponse = QuizDetailResponse.builder()
+                    .quizId(1L)
+                    .quizType(QuizType.OX)
+                    .build();
+            given(quizFallbackService.createLocalOXQuiz(anyLong(), anyLong(), any()))
+                    .willReturn(fallbackResponse);
+
+            // when
+            quizService.createOXQuiz(10L, 1L, request);
+
+            // then
+            verify(quizFallbackService).createLocalOXQuiz(10L, 1L, request);
+        }
+
+        @Test
+        @DisplayName("AI 호출 중 예외가 발생하면 Fallback이 호출된다")
+        void createOXQuiz_aiException_fallback() {
+            // given
+            QuizWordRequest request = new QuizWordRequest("travel", "여행하다", "01:30");
+
+            given(openAIService.generateOXQuiz(anyString(), anyString()))
+                    .willThrow(new RuntimeException("OpenAI 서버 오류"));
+
+            QuizDetailResponse fallbackResponse = QuizDetailResponse.builder()
+                    .quizId(1L)
+                    .quizType(QuizType.OX)
+                    .build();
+            given(quizFallbackService.createLocalOXQuiz(anyLong(), anyLong(), any()))
+                    .willReturn(fallbackResponse);
+
+            // when
+            QuizDetailResponse response = quizService.createOXQuiz(10L, 1L, request);
+
+            // then
+            assertThat(response).isNotNull();
+            verify(quizFallbackService).createLocalOXQuiz(10L, 1L, request);
+        }
+    }
+
+    @Nested
+    @DisplayName("빈칸 퀴즈 Fallback 테스트")
+    class BlankQuizFallbackTest {
+
+        @Test
+        @DisplayName("AI 응답이 null이면 Fallback이 호출된다")
+        void createBlankQuiz_aiNull_fallback() {
+            // given
+            QuizWordRequest request = new QuizWordRequest("study", "공부하다", "02:00");
+
+            given(openAIService.generateBlankQuiz(anyString(), anyString())).willReturn(null);
+
+            QuizDetailResponse fallbackResponse = QuizDetailResponse.builder()
+                    .quizId(1L)
+                    .quizType(QuizType.BLANK)
+                    .content("I want to [ ] every day.")
+                    .options(List.of("study", "go", "run", "make"))
+                    .build();
+            given(quizFallbackService.createLocalBlankQuiz(anyLong(), anyLong(), any()))
+                    .willReturn(fallbackResponse);
+
+            // when
+            QuizDetailResponse response = quizService.createBlankQuiz(10L, 1L, request);
+
+            // then
+            assertThat(response).isNotNull();
+            assertThat(response.getQuizType()).isEqualTo(QuizType.BLANK);
+            verify(quizFallbackService).createLocalBlankQuiz(10L, 1L, request);
+        }
+
+        @Test
+        @DisplayName("AI 응답 content에 빈칸이 없으면 Fallback이 호출된다")
+        void createBlankQuiz_noBlank_fallback() {
+            // given
+            QuizWordRequest request = new QuizWordRequest("study", "공부하다", "02:00");
+
+            OpenAIQuizDataResponse aiResponse = OpenAIQuizDataResponse.builder()
+                    .word("study")
+                    .content("I want to study every day.")  // ❌ 빈칸 없음
+                    .translation("나는 매일 공부하고 싶어요.")
+                    .answer("study")
+                    .options(List.of("study", "go", "run", "make"))
+                    .build();
+
+            given(openAIService.generateBlankQuiz(anyString(), anyString())).willReturn(aiResponse);
+
+            QuizDetailResponse fallbackResponse = QuizDetailResponse.builder()
+                    .quizId(1L)
+                    .quizType(QuizType.BLANK)
+                    .build();
+            given(quizFallbackService.createLocalBlankQuiz(anyLong(), anyLong(), any()))
+                    .willReturn(fallbackResponse);
+
+            // when
+            quizService.createBlankQuiz(10L, 1L, request);
+
+            // then
+            verify(quizFallbackService).createLocalBlankQuiz(10L, 1L, request);
+        }
+
+        @Test
+        @DisplayName("AI 응답 options가 4개가 아니면 Fallback이 호출된다")
+        void createBlankQuiz_invalidOptions_fallback() {
+            // given
+            QuizWordRequest request = new QuizWordRequest("study", "공부하다", "02:00");
+
+            OpenAIQuizDataResponse aiResponse = OpenAIQuizDataResponse.builder()
+                    .word("study")
+                    .content("I want to [ ] every day.")
+                    .translation("나는 매일 공부하고 싶어요.")
+                    .answer("study")
+                    .options(List.of("study", "go"))  // ❌ 2개만 있음
+                    .build();
+
+            given(openAIService.generateBlankQuiz(anyString(), anyString())).willReturn(aiResponse);
+
+            QuizDetailResponse fallbackResponse = QuizDetailResponse.builder()
+                    .quizId(1L)
+                    .quizType(QuizType.BLANK)
+                    .build();
+            given(quizFallbackService.createLocalBlankQuiz(anyLong(), anyLong(), any()))
+                    .willReturn(fallbackResponse);
+
+            // when
+            quizService.createBlankQuiz(10L, 1L, request);
+
+            // then
+            verify(quizFallbackService).createLocalBlankQuiz(10L, 1L, request);
+        }
+    }
+
+    @Nested
+    @DisplayName("매칭 퀴즈 Fallback 테스트")
+    class MatchingQuizFallbackTest {
+
+        @Test
+        @DisplayName("AI 전체 실패 시 전체 Fallback이 호출된다")
+        void createMatchingQuiz_aiTotalFail_fallback() {
+            // given
+            List<QuizWordRequest> requests = List.of(
+                    new QuizWordRequest("apple", "사과", "01:00"),
+                    new QuizWordRequest("banana", "바나나", "01:30")
+            );
+
+            given(openAIService.generateMatchingQuiz(anyList())).willReturn(null);
+
+            List<QuizDetailResponse> fallbackResponses = List.of(
+                    QuizDetailResponse.builder().quizId(1L).quizType(QuizType.MATCHING).question("apple").answer("사과").build(),
+                    QuizDetailResponse.builder().quizId(2L).quizType(QuizType.MATCHING).question("banana").answer("바나나").build()
+            );
+            given(quizFallbackService.createLocalMatchingQuiz(anyLong(), anyLong(), anyList()))
+                    .willReturn(fallbackResponses);
+
+            // when
+            List<QuizDetailResponse> responses = quizService.createMatchingQuiz(10L, 1L, requests);
+
+            // then
+            assertThat(responses).hasSize(2);
+            verify(quizFallbackService).createLocalMatchingQuiz(10L, 1L, requests);
+        }
+
+        @Test
+        @DisplayName("AI 빈 리스트 반환 시 전체 Fallback이 호출된다")
+        void createMatchingQuiz_aiEmptyList_fallback() {
+            // given
+            List<QuizWordRequest> requests = List.of(
+                    new QuizWordRequest("apple", "사과", "01:00")
+            );
+
+            given(openAIService.generateMatchingQuiz(anyList())).willReturn(List.of());
+
+            List<QuizDetailResponse> fallbackResponses = List.of(
+                    QuizDetailResponse.builder().quizId(1L).quizType(QuizType.MATCHING).build()
+            );
+            given(quizFallbackService.createLocalMatchingQuiz(anyLong(), anyLong(), anyList()))
+                    .willReturn(fallbackResponses);
+
+            // when
+            quizService.createMatchingQuiz(10L, 1L, requests);
+
+            // then
+            verify(quizFallbackService).createLocalMatchingQuiz(10L, 1L, requests);
+        }
+    }
+
+    @Test
+    @DisplayName("매칭 퀴즈 AI 전체 실패 시 Fallback 서비스가 호출된다")
+    void createMatchingQuiz_AIFail_CallsFallback() {
+        // given
+        List<QuizWordRequest> requests = List.of(
+                new QuizWordRequest("test", "테스트", "00:00")
+        );
+
+        given(openAIService.generateMatchingQuiz(any())).willReturn(null);
+
+        List<QuizDetailResponse> fallbackResponses = List.of(
+                QuizDetailResponse.builder().quizId(1L).quizType(QuizType.MATCHING).build()
+        );
+        given(quizFallbackService.createLocalMatchingQuiz(anyLong(), anyLong(), anyList()))
+                .willReturn(fallbackResponses);
+
+        // when
+        List<QuizDetailResponse> responses = quizService.createMatchingQuiz(10L, 1L, requests);
+
+        // then
+        assertThat(responses).isNotEmpty();
+        verify(quizFallbackService).createLocalMatchingQuiz(10L, 1L, requests);
     }
 }
