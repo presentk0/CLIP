@@ -156,7 +156,9 @@ public class QuizService {
                 && aiData.getOptions() != null && aiData.getOptions().size() == 4
                 && aiData.getTranslation() != null && !aiData.getTranslation().isBlank()
                 // content에 한글이 포함되면 무효
-                && !aiData.getContent().matches(".*[가-힣].*");
+                && !aiData.getContent().matches(".*[가-힣].*")
+                && aiData.getTranslation().length() <= 80
+                && !aiData.getTranslation().contains("~");
     }
 
     /**
