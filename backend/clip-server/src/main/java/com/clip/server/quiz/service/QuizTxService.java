@@ -32,8 +32,6 @@ import java.util.List;
 public class QuizTxService {
 
     private final QuizSessionRepository quizSessionRepository;
-    private final QuizResultRepository quizResultRepository;
-    private final UserRepository userRepository;
     private final QuizSessionWordRepository quizSessionWordRepository;
     private final CollectedWordRepository collectedWordRepository;
     private final VideoKeyWordRepository videoKeyWordRepository;
@@ -105,25 +103,6 @@ public class QuizTxService {
         }
         quizSessionWordRepository.saveAll(sessionWords);
         log.info("세션 {}에 대해 {}개의 단어 스냅샷 생성 완료", quizSession.getId(), sessionWords.size());
-    }
-
-    // 섹션당 퀴즈 수 계산
-    private int calculateTotalQuizCount(int videoTotalDuration) {
-        int totalQuizCount = 0;
-        if(videoTotalDuration<60) {
-            // 섹션 개수 0개
-            totalQuizCount = 0;
-        } else if (videoTotalDuration<600) {
-            // 섹션 개수 1개, 섹션 최대 퀴즈 개수 3개
-            totalQuizCount = 3;
-        } else if (videoTotalDuration<1200) {
-            // 섹션 개수 2개, 섹션 최대 퀴즈 개수 3개
-            totalQuizCount = 6;
-        }  else if (1200<=videoTotalDuration) {
-            // 섹션 개수 3개, 섹션 최대 퀴즈 개수 4개, 매칭 퀴즈수 5개
-            totalQuizCount = 12;
-        }
-        return totalQuizCount;
     }
 
     private Double convertToSeconds(String timestamp) {

@@ -245,11 +245,13 @@ public class OpenAIService {
                     - 정확히 5개 생성
                     - question: 영어 단어
                     - answer: 핵심 한글 뜻 (2~5글자)
+                      - 반드시 해당 단어 자체의 기본 뜻만 작성
+                      - 복합어나 문맥 속 의미가 아닌, 단어 사전적 의미 사용
+                      - 올바른 예시: service → 서비스, 봉사
+                      - 잘못된 예시: service → 보조견 (service dog의 뜻이므로 틀림)
                     - content: 자연스러운 예문
                     - translation: 해석
-                    - explanation:
-                      → 단어 의미 간단 설명
-                      → 1문장
+                    - explanation: 단어 의미 간단 설명 (1문장)
                     
                     ## 피드백 다양성 규칙 (매우 중요)
                     - 같은 표현 반복 금지
@@ -336,8 +338,8 @@ public class OpenAIService {
             // content 한글 검증
             if (quiz.getContent() != null &&
                     quiz.getContent().matches(".*[가-힣].*")) {
-
                 log.warn("content에 한글 포함됨: {}", quiz.getContent());
+                return null;  // ← Fallback으로 전환
             }
 
             // content와 translation 동일 검증
@@ -350,6 +352,14 @@ public class OpenAIService {
                         quiz.getContent(),
                         quiz.getTranslation()
                 );
+                return null;  // ← Fallback으로 전환
+            }
+
+            if (quiz.getTranslation() != null &&
+                    (quiz.getTranslation().length() > 80 ||
+                            countSentences(quiz.getTranslation()) > 2)) {
+                log.warn("translation 이상 감지 - Fallback 전환: {}", quiz.getTranslation());
+                return null;  // ← Fallback으로 전환
             }
 
             return quiz;
@@ -359,7 +369,13 @@ public class OpenAIService {
             return null;
         }
     }
-
+    
+    // 문장 개수 체크
+    private int countSentences(String text) {
+        if (text == null) return 0;
+        return (int) text.chars().filter(c -> c == '.' || c == '?' || c == '!').count();
+    }
+    
     private <T> List<T> processList(String prompt, TypeReference<List<T>> typeReference) {
         String raw = callOpenAI(prompt);
         if (raw == null) return List.of();
