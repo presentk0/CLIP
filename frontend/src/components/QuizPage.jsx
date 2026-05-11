@@ -1,7 +1,7 @@
 /* global chrome */
 
 import nlp from 'compromise';
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import frog from '../imgs/image_710.png';
 import frog1 from '../imgs/image_712.png';
 import { apiFetch } from '../utils/api';
@@ -51,6 +51,9 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
 
   // 이전 진행 상황 복원 여부 체크 (중복 저장 방지용)
   const [isRestoring, setIsRestoring] = useState(true);
+
+  // 이미 전송한 quizId 저장
+  const [submittedQuizIds, setSubmittedQuizIds] = useState([]);
 
 
   // 전체 자막 목록
@@ -293,9 +296,6 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
       // return 없으면 다른 단어 클릭 시 즉시 이동
       // return;
     }
-
-    console.log('원본:', word);
-    console.log('코드:', [...word].map(c => c.charCodeAt(0)));
 
     // 클릭 시점의 자막 정보 저장 (단어 수집용)
     // set은 다음 렌더링에 반영되기에 즉시 사용해야 하는 api는 savedSubtitle로 사용
@@ -624,6 +624,7 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
 
   // 빈칸 퀴즈 타입별 나타나는 박스
   const blankQuiz = () => {
+    if (!currentQuiz?.options?.length) return null;
     return(
               // {/* 전체 퀴즈 박스 */}
               <div style={{
@@ -780,6 +781,7 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
 
     // ox 퀴즈 타입별 나타나는 박스
   const oxQuiz = () => {
+    if (!currentQuiz) return null;
     return(
               // {/* 전체 퀴즈 박스 */}
               <div style={{
@@ -939,6 +941,7 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
 
     // 매칭 퀴즈 타입별 나타나는 박스
   const matchingQuiz = () => {
+    if (!quizzes?.length || !matchingShuffledMeanings?.length) return null;
     return(
               // {/* 전체 퀴즈 박스 */}
               <div style={{
@@ -962,7 +965,7 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
                   gap: '12px',
                 }}>
 
-                  {/* 빈칸 채우기 박스 */}
+                  {/* 단어와 뜻 매칭하기 박스 */}
                   <div style={{
                     display: 'flex',
                     padding: '6px 12px',
@@ -1052,49 +1055,6 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
                   </div>
                 </div>
 
-                {/* 보기 버튼 전체 박스 */}
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  alignContent: 'flex-start',
-                  gap: '8px',
-                  alignSelf: 'stretch',
-                  flexWrap: 'wrap'
-                }}>
-
-                  {/* 보기 버튼 */}
-                  {currentQuiz?.options.map((choice, i) => (
-                    <button
-                    key={i}
-                    disabled={isConfirmed}
-                    onClick={() => handleChoice(choice)}
-                    style={{
-                      display: 'flex',
-                      width: '165px',
-                      height: '40px',
-                      padding: buttonPositions[i].padding,
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                      gap: '10px',
-                      borderRadius: '10px',
-                      border: borderColor(choice),
-                      // border: tempChoice === choice ? '2px solid #EEE' : '1px solid #E7E6EB',
-                      background: backgroundColor(choice),
-                      // background: tempChoice === choice ? '#F8F8FA' : '#FFF',
-                      boxShadow: '0 4px 4px 0 rgba(206, 210, 223, 0.16)',
-                      color: textColor(choice),
-                      // color: '#4D525C',
-                      textAlign: 'center',
-                      fontFamily: 'Pretendard',
-                      fontSize: '14px',
-                      fontStyle: 'normal',
-                      fontWeight: '400',
-                      lineHeight: 'normal',
-                    }}>
-                      {choice}
-                    </button>
-                  ))}
-                </div>
               </div>
     );
   }
@@ -1252,7 +1212,7 @@ const matchingHandleWordClick = (word) => {
 
   // 뜻이 이미 선택되어 있으면 매칭 시도
   if (matchingSelectedMeaning) {
-    checkMatch(word, matchingSelectedWord);
+    checkMatch(word, matchingSelectedMeaning);
   }
 };
 
@@ -1276,26 +1236,63 @@ const checkMatch = async (word, meaning) => {
   // 정답 찾기
   const quiz = quizzes.find(q => q.question === word);
   const isMatchingCorrect = quiz?.answer === meaning;
+
+  // 이미 전송한 quizId면 서버 전송 스킵
+  const alreadySubmitted = submittedQuizIds.includes(quiz?.quizId);
+
   
+  console.log('checkMatch 호출');
+  console.log('word:', word);
+  console.log('meaning:', meaning);
+  console.log('quizId:', quiz?.quizId);
+  console.log('이미 전송됨?:', alreadySubmitted);
+  console.log('현재 submittedQuizIds:', submittedQuizIds);
+
+  // 정답일 경우
   if (isMatchingCorrect) {
-    // 정답일 경우
-    setMatchingWrongPair(prev => [...prev, { word, meaning }]);
+    // 전송하지 않은 quizId인 경우 전송
+    if (!alreadySubmitted) {
+      try {
+        await apiFetch('/quiz/submit', {
+          method: 'POST',
+          body: JSON.stringify({
+            sessionId,
+            quizId: quiz?.quizId,
+            userAnswer: meaning
+          })
+        });
+        setSubmittedQuizIds(prev => [...prev, quiz?.quizId]);
+        console.log('Matching 정답 POST /quiz/submit', quiz?.quizId, meaning);
+      } catch (error) {
+        console.error('매칭 정답 전송 실패:', error);
+      }
+    }
+
+    // 화면 업데이트
+    setMatchingMatchedPairs(prev => [...prev, { word, meaning }]);
     setMatchingSelectedWord(null);
     setMatchingSelectedMeaning(null);
     
   } else {
     // 오답일 경우
+    // 전송하지 않은 quizId인 경우 전송
+    if (!alreadySubmitted) {
+      try {
+        await apiFetch('/quiz/submit', {
+          method: 'POST',
+          body: JSON.stringify({
+            sessionId,
+            quizId: quiz?.quizId,
+            userAnswer: meaning
+          })
+        });
+        setSubmittedQuizIds(prev => [...prev, quiz?.quizId]);
+        console.log('Matching 오답 POST /quiz/submit', quiz?.quizId, meaning);
+      } catch (error) {
+        console.error('매칭 오답 전송 실패:', error);
+      }
+    }
     setMatchingWrongPair({ word, meaning });
-    
-    // 서버에 오답 전송
-    await apiFetch('/quiz/submit', {
-      method: 'POST',
-      body: JSON.stringify({
-        quizId: quiz.quizId,
-        selectedAnswer: meaning,
-        isCorrect: false
-      })
-    });
     
     // 1초 후 초기화
     setTimeout(() => {
@@ -1303,6 +1300,22 @@ const checkMatch = async (word, meaning) => {
       setMatchingSelectedWord(null);
       setMatchingSelectedMeaning(null);
     }, 1000);
+
+    // // 서버에 오답 전송
+    // try {
+    //   await apiFetch('/quiz/submit', {
+    //     method: 'POST',
+    //     body: JSON.stringify({
+    //       sessionId,
+    //       quizId: quiz.quizId,
+    //       userAnswer: meaning
+    //       // selectedAnswer: meaning,
+    //       // isCorrect: false
+    //     })
+    //   });
+    // } catch (error) {
+    //   console.log('오답 전송 실패', error);
+    // }
   }
 };
 
@@ -1354,6 +1367,29 @@ const [matchingShuffledMeanings, setMatchingShuffledMeanings] = useState([]);
 const handleMatchingComplete = async () => {
   // 모든 매칭 완료했는지 확인
   if (matchingMatchedPairs.length === quizzes.length) {
+
+    // try {
+    //   // 5개 단어쌍 각각 전송
+    //   for (const pair of matchingMatchedPairs) {
+    //     const quiz = quizzes.find(q => q.question === pair.word);
+
+    //     await apiFetch('/quiz/submit', {
+    //       method: 'POST',
+    //       body: JSON.stringify({
+    //         sessionId,
+    //         quizId: quiz?.quizId,
+    //         // 매칭한 뜻
+    //         userAnswer: pair.meaning
+    //       })
+    //     });
+    //   }
+    // } catch (error) {
+    //   console.error('5개 단어쌍 각각 제출 실패', error);
+    // }
+  console.log('/complete 호출 전');
+  console.log('sessionId:', sessionId);
+  console.log('matchingMatchedPairs:', matchingMatchedPairs.length);
+
     try {
       const finalResult = await apiFetch(`/quiz/sessions/${sessionId}/complete`, {
         method: 'POST'
@@ -1365,7 +1401,9 @@ const handleMatchingComplete = async () => {
       // 정산 페이지로 이동
       onSettlementPage(finalResult.data);
     } catch (error) {
-      console.error('세션 종료 실패', error);
+      console.error('handleMatchingComplete 세션 종료 실패', error);
+      console.error('handleMatchingComplete 에러 메시지:', error.message);
+  console.error('handleMatchingComplete 에러 스택:', error.stack);
     }
   }
 };
@@ -1401,9 +1439,9 @@ const handleMatchingComplete = async () => {
 
         setMatchingSelectedWord(result.quizState.matchingSelectedWord ?? null);
         setMatchingSelectedMeaning(result.quizState.matchingSelectedMeaning ?? null);
-      setMatchingMatchedPairs(result.quizState.matchingMatchedPairs ?? []);
-      setMatchingWrongPair(null);
-
+        setMatchingMatchedPairs(result.quizState.matchingMatchedPairs ?? []);
+        setMatchingWrongPair(null);
+        setSubmittedQuizIds(result.quizState.submittedQuizIds ?? []);
         // 영상 일시정지 메시지 전송
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
           if (tabs[0]) chrome.tabs.sendMessage(tabs[0].id, { type: 'SET_QUIZ_MODE', active: true }).catch((error) => {console.log('이거 에러22:', error)});
@@ -1423,7 +1461,9 @@ const handleMatchingComplete = async () => {
         setSessionId(message.sessionId);
         setQuizzes(message.quizzes);
         if (message.quizzes[0]?.quizType === 'MATCHING') {
-          console.log('퀴즈 페이지 매칭 퀴즈 받음', Date.now());
+            console.log('quizzes:', message.quizzes);
+  console.log('answers:', message.quizzes.map(q => q.answer));
+  console.log('shuffle 전:', message.quizzes.map(q => q.answer));
           setMatchingShuffledMeanings(shuffle(message.quizzes.map(q => q.answer)));
         } else {
           setMatchingShuffledMeanings([]);
@@ -1439,6 +1479,7 @@ const handleMatchingComplete = async () => {
     setMatchingSelectedMeaning(null);
     setMatchingMatchedPairs([]);
     setMatchingWrongPair(null);
+    setSubmittedQuizIds([]);
 
       // 영상 일시정지 메시지 전송
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -1487,14 +1528,15 @@ const handleMatchingComplete = async () => {
           isConfirmed,
           tempChoice,
 
-              matchingSelectedWord,
-    matchingSelectedMeaning,
-    matchingMatchedPairs,
-    matchingShuffledMeanings,
+          matchingSelectedWord,
+          matchingSelectedMeaning,
+          matchingMatchedPairs,
+          matchingShuffledMeanings,
+          submittedQuizIds,
         }
       });
     }
-  }, [currentIndex, correctCount, wrongCount, answers, isConfirmed, sessionId, tempChoice, videoId, isRestoring, quizzes, matchingSelectedWord, matchingSelectedMeaning, matchingMatchedPairs, matchingShuffledMeanings]);
+  }, [currentIndex, correctCount, wrongCount, answers, isConfirmed, sessionId, tempChoice, videoId, isRestoring, quizzes, matchingSelectedWord, matchingSelectedMeaning, matchingMatchedPairs, matchingShuffledMeanings, submittedQuizIds]);
 
 
   // 답안 제출
@@ -1540,6 +1582,23 @@ const handleMatchingComplete = async () => {
 
   // 다음 문제 또는 정산 완료
   const handleNext = async () => {
+    // 매칭 퀴즈면 바로 정산 페이지
+    if (currentQuiz?.quizType === 'MATCHING') {
+      try {
+        const finalResult = await apiFetch(`/quiz/sessions/${sessionId}/complete`, {
+          method: 'POST'
+        });
+        console.log(`MATCHING POST /quiz/sessions/${sessionId}/complete`, finalResult);
+        chrome.storage.local.remove('quizState');
+        onSettlementPage(finalResult.data);
+      } catch (error) {
+        console.error('MATCHING handleNext 세션 종료 실패', error);
+          console.error('MATCHING handleNext 에러 메시지:', error.message);
+        console.error('MATCHING handleNext 에러 스택:', error.stack);
+      }
+      return;
+    }
+
     if (currentIndex < quizzes.length - 1) {
       // 다음 문제로 이동
       setCurrentIndex(prev => prev + 1);
@@ -1550,16 +1609,29 @@ const handleMatchingComplete = async () => {
     } else {
       // 마지막 문제였으면 퀴즈 종료
       try {
-        const finalResult = await apiFetch(`/quiz/sessions/${sessionId}/complete`, {
-          method: 'POST'
-        });
-        console.log(`POST /quiz/sessions/${sessionId}/complete`, finalResult);
+
+
         // 저장된 진행 상황 삭제
         chrome.storage.local.remove('quizState');
-        // 정산 페이지로 이동
-        onSettlementPage(finalResult.data);
+
+      // 영상 재생 신호
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs[0]) {
+          chrome.tabs.sendMessage(tabs[0].id, { type: 'RESUME_VIDEO' });
+        }
+      });
+
+  // 퀴즈 상태만 초기화
+    setCurrentIndex(0);
+    setQuizzes([]);
+    setTempChoice(null);
+    setIsConfirmed(false);
+    setFeedback(null);
+    setDictionaryData(null);
+    setSubmittedQuizIds([]);
+
       } catch (error) {
-        console.error('세션 종료 실패', error);
+        console.error('빈칸,ox handleNext 세션 종료 실패', error);
       }
     }
   };
@@ -1778,7 +1850,7 @@ const handleMatchingComplete = async () => {
                           lineHeight: 'normal',
                           letterSpacing: '-0.032px'
                         }}>
-                          {(currentIndex + 1)}
+                          {currentQuiz?.quizType === 'MATCHING' ? matchingMatchedPairs.length : currentIndex + 1}
                         </p>
 
 
@@ -1791,7 +1863,7 @@ const handleMatchingComplete = async () => {
                           lineHeight: 'normal',
                           letterSpacing: '-0.032px'
                         }}>
-                          /{quizzes.length}
+                          /{quizzes?.length}
                         </p>
                       </div>
                     </div>
@@ -1829,7 +1901,7 @@ const handleMatchingComplete = async () => {
                         {/* 채워지는 보라색 바 */}
                         <div style={{ 
                           display: 'flex',
-                          width: `${274 * ((currentIndex + 1) / quizzes.length)}px`,
+                          width: currentQuiz?.quizType === 'MATCHING' ? `${274 * (matchingMatchedPairs.length / quizzes.length)}px` : `${274 * ((currentIndex + 1) / quizzes.length)}px`,
                           height: '14px',
                           flexDirection: 'column',
                           alignItems: 'flex-start',
@@ -1890,10 +1962,11 @@ const handleMatchingComplete = async () => {
 
                 <div style={{
                   display: 'flex',
-                  width: '370px',
+                  // width: '370px',
+                  width: '100%',
                   flexDirection: 'column',
-                  // alignItems: 'flex-start',
-                  alignItems: 'center',
+                  alignItems: 'flex-start',
+                  // alignItems: 'center',
                 }}>
 
                   {/* 개구리 마스코트1 */}
@@ -1907,18 +1980,18 @@ const handleMatchingComplete = async () => {
                     backgroundSize: 'contain',
                     // 가운데 정렬
                     backgroundPosition: 'center',
-                    alignSelf: 'flex-start',
+                    // alignSelf: 'flex-start',
                   }}>
                   </div>
 
-
+                  {/* 자막 박스 감싸는 div */}
                   <div style={{
                     display: 'flex',
                     flexDirection: 'column',
-                    // alignItems: 'flex-start',
-                    // alignSelf: 'stretch',
-                    alignItems: 'center',
+                    alignItems: 'flex-start',
                     alignSelf: 'stretch',
+                    // alignItems: 'center',
+                    // alignSelf: 'stretch',
                   }}>
 
                     {/* 전체 문제 박스 */}
@@ -2410,7 +2483,7 @@ const handleMatchingComplete = async () => {
               </div> */}
                   {currentQuiz?.quizType === 'BLANK' && blankQuiz()}
 {currentQuiz?.quizType === 'OX' && oxQuiz()}
-{currentQuiz?.quizType === 'MATCHING' && matchingQuiz()}
+{currentQuiz?.quizType === 'MATCHING' &&  matchingShuffledMeanings?.length > 0 &&  matchingQuiz()}
 
 
               {/* 럭키 미스테이크 전체 배경 박스 */}
@@ -2588,7 +2661,8 @@ const handleMatchingComplete = async () => {
               fontSize: '16px',
               fontStyle: 'normal',
               fontWeight: '500',
-              lineHeight: '18px' /* 112.5% */
+              lineHeight: '18px',
+              whiteSpace: 'nowrap'
             }}>
               건너 뛰기
             </p>
@@ -2619,7 +2693,8 @@ const handleMatchingComplete = async () => {
                 fontSize: '16px',
                 fontStyle: 'normal',
                 fontWeight: '700',
-                lineHeight: '18px', /* 112.5% */
+                lineHeight: '18px',
+                whiteSpace: 'nowrap'
               }}>
               결과 보기
               </p>
@@ -2648,7 +2723,8 @@ const handleMatchingComplete = async () => {
                   fontSize: '16px',
                   fontStyle: 'normal',
                   fontWeight: '700',
-                  lineHeight: '18px' /* 112.5% */
+                  lineHeight: '18px',
+                  whiteSpace: 'nowrap'
                 }}>
                   문제 확인
                 </p>
@@ -2724,6 +2800,7 @@ const handleMatchingComplete = async () => {
               display: 'flex',
               alignItems: 'center',
               gap: '4px',
+              justifyContent: 'center',
               // position: 'absolute',
               // top: '23.65px',
               // bottom: '132.6px',
@@ -2735,7 +2812,8 @@ const handleMatchingComplete = async () => {
               borderRadius: '7.99px',
               border: '0.799px solid #E7E6EB',
               background: '#FFF',
-              boxSizing: 'border-box'
+              boxSizing: 'border-box',
+              padding: '0 8px',
             }}>
 
               {/* 사전 아이콘 들어갈 자리 */}
@@ -2754,7 +2832,8 @@ const handleMatchingComplete = async () => {
                         background: 'transparent',
                         border: 'none',
                 zIndex: '999',
-                // boxSizing: 'border-box'
+                // boxSizing: 'border-box',
+                flexShrink: 0,
               }}>
                 {isCollected ? (
                   <svg xmlns="http://www.w3.org/2000/svg" width="9" height="11" viewBox="0 0 9 11" fill="none">
@@ -2784,7 +2863,8 @@ const handleMatchingComplete = async () => {
                 fontStyle: 'normal',
                 fontWeight: '400',
                 zIndex: '999',
-                lineHeight: 'normal'
+                lineHeight: 'normal',
+                whiteSpace: 'nowrap',
               }}>
                 단어 수집
               </span>

@@ -153,21 +153,21 @@ function App() {
   };
 
 
-  // 최종 정산 완료 후 퀴즈페이지로 돌아가기
-const handleGoBackToQuiz = () => {
-  console.log('정산하고 버튼', Date.now());
-  // 정산 데이터 초기화
-  setSettlementData(null);
-  // 퀴즈페이지로 이동
-  setMove(1);
+//   // 최종 정산 완료 후 퀴즈페이지로 돌아가기
+// const handleGoBackToQuiz = () => {
+//   console.log('정산하고 버튼', Date.now());
+//   // 정산 데이터 초기화
+//   setSettlementData(null);
+//   // 퀴즈페이지로 이동
+//   setMove(1);
   
-  // 영상 재생 신호 보내기
-  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    if (tabs[0]) {
-      chrome.tabs.sendMessage(tabs[0].id, { type: 'RESUME_VIDEO' });
-    }
-  });
-};
+//   // 영상 재생 신호 보내기
+//   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+//     if (tabs[0]) {
+//       chrome.tabs.sendMessage(tabs[0].id, { type: 'RESUME_VIDEO' });
+//     }
+//   });
+// };
 
 
   return (
@@ -195,6 +195,7 @@ const handleGoBackToQuiz = () => {
 
       {/* 페이지 2: 정산 화면 */}
       {move === 2 && (
+        console.log('handleExit 전달:', handleExit),
         // data 전달
         <SettlementPage 
           data={settlementData}
@@ -202,7 +203,8 @@ const handleGoBackToQuiz = () => {
           videoTitle={videoTitle}
           channelName={channelName}
           duration={duration}
-          onGoBackToQuiz={handleGoBackToQuiz}
+          onExitPage={handleExit}
+          // onGoBackToQuiz={handleGoBackToQuiz}
         />
       )}
     </div>

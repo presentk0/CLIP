@@ -112,6 +112,9 @@ let currentVideoTitle = '';
 // 현재 영상 전체 길이 저장
 let currentDuration = 0;
 
+// Video가 서버에 저장됐는지 여부
+let isVideoSaved = false;
+
 // ========== 사이드 패널 신호 수신 ==========
 chrome.runtime.onMessage.addListener((message) => {
   console.log('콘텐츠 받음:', message.type, Date.now());
@@ -158,6 +161,9 @@ currentVideoTitle = '';
 
 // 현재 영상 전체 길이 리셋
 currentDuration = 0;
+
+// Video가 서버에 저장됐는지 여부 리셋
+isVideoSaved = false;
     // ========== 큐/기타 리셋 ==========
     resetQueue();
     // retryCount = 0;
@@ -399,6 +405,8 @@ function resetAllState() {
     isSubtitleInterceptorSet = false;
     allSubtitles = [];
     lastSentIndex = -1;
+    // Video가 서버에 저장됐는지 여부 리셋
+isVideoSaved = false;
     // ========== 큐/리스너 리셋 ==========
     // 영상 바뀔 때 큐 비우기
     resetQueue();
@@ -478,18 +486,38 @@ currentDuration = 0;
   loopEnd = null;
 }
 
+// 비디오 제목 가져오기
+const getVideoTitle = () => {
+  // 데스크톱
+  const desktop = document.querySelector('#title h1')?.textContent?.trim();
+  if (desktop) return desktop;
+  
+  // 모바일
+  const mobile = document.querySelector('.slim-video-information-title')?.textContent?.trim()
+    || document.querySelector('h2.slim-video-information-title')?.textContent?.trim();
+  if (mobile) return mobile;
+  
+  return '';
+};
+
 
 
 // 채널명 가져오기
 const getChannelName = () => {
-  const name = document.querySelector('ytd-channel-name yt-formatted-string')?.getAttribute('title')
+  // 데스크톱
+  const desktop = document.querySelector('ytd-channel-name yt-formatted-string')?.getAttribute('title')
     || document.querySelector('ytd-channel-name a')?.textContent?.trim()
     || document.querySelector('#channel-name a')?.textContent?.trim()
-    || document.querySelector('#channel-name yt-formatted-string')?.textContent?.trim()
-    || '';
-
-    return name || null;
-  };
+    || document.querySelector('#channel-name yt-formatted-string')?.textContent?.trim();
+  if (desktop) return desktop;
+  
+  // 모바일
+  const mobile = document.querySelector('.slim-owner-channel-name span')?.textContent?.trim()
+    || document.querySelector('h3.slim-owner-channel-name span')?.textContent?.trim();
+  if (mobile) return mobile;
+  
+  return '';
+};
 
 let videoRetryCount = 0;
 let infoRetryCount = 0;
@@ -526,7 +554,7 @@ function observeSubtitles() {
 
   // 영상 정보 가져오기
   const videoId = new URL(window.location.href).searchParams.get('v');
-  const videoTitle = document.querySelector('#title h1')?.textContent?.trim() || '';
+  const videoTitle = getVideoTitle();
   const channelName = getChannelName();
   const duration = video.duration;
 
@@ -599,6 +627,10 @@ function setupSubtitleInterceptor(videoId, videoTitle, duration) {
         allSubtitles = response.data.subtitles;
         translatedVideoId = videoId;
         lastSentIndex = -1;
+
+        isVideoSaved = true;
+        isQuizMode = true;
+
         setupTimeUpdateListener();
 
         console.log('전송 전 자막 개수:', allSubtitles.length);
@@ -970,8 +1002,13 @@ function handleSubtitleSync(e) {
 
     // 필요한 정보 가져오기
     const videoId = new URL(window.location.href).searchParams.get('v');
-    const videoTitle = document.querySelector('#title h1')?.textContent?.trim() || '';
+    // const videoTitle = document.querySelector('#title h1')?.textContent?.trim() || '';
     const duration = video.duration;
+    const videoTitle = currentVideoTitle || getVideoTitle();
+    if (!videoTitle) {
+      console.log('videoTitle 아직 없음 (index:', index, ')');
+      return;
+    }
 
     console.log('자막 전송:', sub.text);
 
@@ -1233,7 +1270,10 @@ async function processQueue() {
       });
       console.log(`POST /videos/${item.videoId}/subtitles`, Date.now(), quizResponse);
       // const sectionCount = getSectionCount(item.duration);
-      if (quizResponse.success) isQuizMode = true;
+      if (quizResponse.success) {
+        isVideoSaved = true;
+        isQuizMode = true;
+      }
 
       // // 섹션 수를 초과하지 않고 트루신호 받으면 (빈칸 / ox) 퀴즈 요청
       // if (sectionCount > quizSectionCount && quizResponse.success) {
@@ -1330,6 +1370,12 @@ async function startQuizSession() {
   // 퀴즈 요청 중이면 스킵 (중복 방지)
   if (quizRequested) return;
 
+  // Video가 저장되지 않았으면 스킵
+  if (!isVideoSaved) {
+    console.log('서버에 영상저장 못함 퀴즈 요청 스킵');
+    return;
+  }
+
   const videoId = new URL(window.location.href).searchParams.get('v');
 
   // 같은 영상이면 스킵 (중복 방지)
@@ -1360,6 +1406,14 @@ async function startQuizSession() {
 
     quizSectionCount++;
 
+    // 섹션 저장
+    chrome.storage.local.set({
+      [`quizProgress_${videoId}`]: {
+        sectionCount: quizSectionCount,
+        matchingCount: matchingQuizCount
+      }
+    });
+
     // 사이드 패널로 퀴즈 전송
     chrome.runtime.sendMessage({
       type: 'QUIZ_READY',
@@ -1377,6 +1431,8 @@ async function startQuizSession() {
 
   } catch (error) {
     console.error('퀴즈 세션 실패1', error);
+    console.error('퀴즈 세션 에러 메시지1', error.message);
+    console.error('퀴즈 세션 에러 스택1', error.stack);
   } finally {
     // 실행 후 다시 요청 가능
     quizRequested = false;
@@ -1391,6 +1447,11 @@ async function matchingQuiz() {
 
   // 퀴즈 요청 중이면 스킵 (중복 방지)
   if (quizRequested) return;
+
+    if (!isVideoSaved) {
+    console.log('서버에 영상저장 못함 퀴즈 요청 스킵');
+    return;
+  }
 
   const videoId = new URL(window.location.href).searchParams.get('v');
 
@@ -1427,6 +1488,13 @@ async function matchingQuiz() {
 
     matchingQuizCount++;
 
+    chrome.storage.local.set({
+      [`quizProgress_${videoId}`]: {
+        sectionCount: quizSectionCount,
+        matchingCount: matchingQuizCount
+      }
+    });
+
     // 사이드 패널로 퀴즈 전송
     chrome.runtime.sendMessage({
       type: 'QUIZ_READY',
@@ -1442,7 +1510,9 @@ async function matchingQuiz() {
       currentQuizzes: matchingResponse.data.quizzes
     });
   } catch (error) {
-    console.error('퀴즈 세션 실패', error);
+    console.error('매칭 퀴즈 세션 실패', error);
+    console.error('매칭 에러 메시지:', error.message);
+    console.error('매칭 에러 스택:', error.stack);
   } finally {
     // 실행 후 다시 요청 가능
     quizRequested = false;
@@ -1697,6 +1767,8 @@ currentVideoTitle = '';
 
 // 현재 영상 전체 길이 리셋
 currentDuration = 0;
+// Video가 서버에 저장됐는지 여부 리셋
+isVideoSaved = false;
 
   // ========== 큐 리셋 ==========
   resetQueue();
@@ -1730,6 +1802,20 @@ currentDuration = 0;
   
   chrome.runtime.sendMessage({ type: 'CONTENT_LOADED' });
   resetAllState();
+
+  // 퀴즈 진행 복원
+  const videoId = new URL(window.location.href).searchParams.get('v');
+  if (videoId) {
+    chrome.storage.local.get(`quizProgress_${videoId}`, (result) => {
+      const progress = result[`quizProgress_${videoId}`];
+      if (progress) {
+        quizSectionCount = progress.sectionCount || 0;
+        matchingQuizCount = progress.matchingCount || 0;
+        console.log('퀴즈 진행 복원', quizSectionCount, matchingQuizCount);
+      }
+    });
+  }
+
   handlePageChange();
   setupTitleObserver();
   
