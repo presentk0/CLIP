@@ -3,7 +3,7 @@ import frog2 from '../imgs/image_750.png';
 import { apiFetch } from '../utils/api';
 import { useState, useEffect } from 'react';
 
-function SettlementPage({ data, videoId, videoTitle, channelName, duration, onExitPage , onGoBackToQuiz }) {
+function SettlementPage({ data, videoId, videoTitle, channelName, duration, onExitPage }) {
   // 영상 전체 길이를 00:00:00 형태로 바꿔야 함(오류)
   // 해당 영상의 썸네일 이미지
   const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
@@ -88,7 +88,11 @@ function SettlementPage({ data, videoId, videoTitle, channelName, duration, onEx
                   {/* 이전페이지로 돌아가기 */}
                   <button
                   // 나중에 페이지별로 고치기 (오류)
-                  onClick={() => onGoBackToQuiz()}
+                  onClick={() => {
+                    console.log('1. 클릭됨');
+                    console.log('2. onExitPage:', onExitPage);
+                    console.log('3. typeof:', typeof onExitPage);
+                    onExitPage()}}
                   style={{
                     display: 'flex',
                     width: '24px',
@@ -106,9 +110,9 @@ function SettlementPage({ data, videoId, videoTitle, channelName, duration, onEx
                   {/* 디폴트페이지로 이동 */}
                   <button
                   onClick={() => {
-                        console.log('1. 클릭됨');
-    console.log('2. onExitPage:', onExitPage);
-    console.log('3. typeof:', typeof onExitPage);
+                    console.log('11. 클릭됨');
+                    console.log('22. onExitPage:', onExitPage);
+                    console.log('33. typeof:', typeof onExitPage);
                     onExitPage()}}
                   style={{
                     display: 'flex',
@@ -163,8 +167,10 @@ function SettlementPage({ data, videoId, videoTitle, channelName, duration, onEx
               {/* 푼 문제 / 전체 문제 박스 */}
               <div style={{
                 display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
+                flexDirection: 'row',
+                alignItems: 'baseline',
+                // flexDirection: 'column',
+                // alignItems: 'center',
                 // width: '36px',
                 // height: '14px',
               }}>
@@ -219,7 +225,8 @@ function SettlementPage({ data, videoId, videoTitle, channelName, duration, onEx
                 flexDirection: 'column',
                 alignItems: 'flex-start',
                 // alignItems: 'center',
-                alignSelf: 'stretch',
+                // alignSelf: 'stretch',
+                alignSelf: 'center',
                 position: 'relative',
               }}>
 
@@ -269,7 +276,9 @@ function SettlementPage({ data, videoId, videoTitle, channelName, duration, onEx
                   position: 'absolute',
                   right: '-18px',
                   top: '-11px',
-                  background: `url(${frog2}) transparent -42.788px -1.005px / 228.637% 225.776% no-repeat`,
+                  // background: `url(${frog2}) transparent -42.788px -1.005px / 228.637% 225.776% no-repeat`,
+                  background: `url(${frog2}) center / contain no-repeat`,
+                  zIndex: 1,
                 }}>
                 </div>
               </div>
