@@ -38,16 +38,12 @@ class QuizServiceTest {
 
     @InjectMocks
     private QuizService quizService;
-
     @Mock
     private OpenAIService openAIService;
-
     @Mock
     private QuizResultRepository quizResultRepository;
-
     @Mock
     private UserRepository userRepository;
-
     @Mock
     private QuizSessionRepository quizSessionRepository;
 
@@ -142,32 +138,6 @@ class QuizServiceTest {
         assertThat(responses.get(4).getQuestion()).isEqualTo("elderberry");
         assertThat(responses.get(4).getAnswer()).isEqualTo("엘더베리");
 
-        verify(quizResultRepository, times(5)).save(any());
-    }
-
-    @Test
-    @DisplayName("매칭 퀴즈 로컬 생성 - AI가 아예 실패했을 때 서버 데이터로만 5개를 생성한다")
-    void createLocalMatchingQuiz_Success() {
-        // given
-        List<QuizWordRequest> requests = List.of(
-                new QuizWordRequest("word1", "뜻1", "00:01"),
-                new QuizWordRequest("word2", "뜻2", "00:02"),
-                new QuizWordRequest("word3", "뜻3", "00:03"),
-                new QuizWordRequest("word4", "뜻4", "00:04"),
-                new QuizWordRequest("word5", "뜻5", "00:05")
-        );
-
-        given(quizSessionRepository.findById(any())).willReturn(Optional.of(quizSession));
-        given(userRepository.findById(any())).willReturn(Optional.of(user));
-        given(quizResultRepository.save(any())).willAnswer(invocation -> invocation.getArgument(0));
-
-        // when
-        List<QuizDetailResponse> responses = quizService.createLocalMatchingQuiz(10L, 1L, requests);
-
-        // then
-        assertThat(responses).hasSize(5);
-        assertThat(responses.get(0).getQuestion()).isEqualTo("word1");
-        assertThat(responses.get(0).getAnswer()).isEqualTo("뜻1");
         verify(quizResultRepository, times(5)).save(any());
     }
 

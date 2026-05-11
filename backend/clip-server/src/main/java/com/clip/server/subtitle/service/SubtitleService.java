@@ -116,8 +116,11 @@ public class SubtitleService {
 
     // 공통 저장 로직
     private Subtitle saveSubtitleAndKeywordsInternal(Video video, String text, String translation, Double startTime, Double endTime) {
+        Video managedVideo = videoRepository.findById(video.getVideoId())
+                .orElseThrow(() -> new BusinessException(VIDEO_NOT_FOUND));
+
         Subtitle subtitle = Subtitle.builder()
-                .video(video)
+                .video(managedVideo)
                 .text(text)
                 .translation(translation)
                 .startTime(startTime)
@@ -125,12 +128,11 @@ public class SubtitleService {
                 .build();
         Subtitle saved = subtitleRepository.save(subtitle);
 
-        // 키워드 추출 및 저장
         List<String> extraKeyWords = extractionService.extractKeywords(saved.getText());
         List<VideoKeyWord> videoKeyWords = extraKeyWords.stream()
                 .map(word -> VideoKeyWord.builder()
                         .word(word)
-                        .video(video)
+                        .video(managedVideo)
                         .timestamp(saved.getStartTime())
                         .sentence(saved.getText())
                         .translation(saved.getTranslation())
