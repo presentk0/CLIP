@@ -9,6 +9,7 @@ import com.clip.server.subtitle.dto.response.SubtitleListResponse;
 import com.clip.server.subtitle.dto.response.SubtitleResponse;
 import com.clip.server.subtitle.entity.Subtitle;
 import com.clip.server.subtitle.repository.SubtitleRepository;
+import com.clip.server.translation.dto.request.TranslationRequest;
 import com.clip.server.user.entity.User;
 import com.clip.server.user.repository.UserRepository;
 import com.clip.server.video.entity.Video;
@@ -26,6 +27,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -79,28 +81,27 @@ public class SubtitleServiceTest {
                 .lastAddedStartTime(-1.0)
                 .lastQuizzedSection(0)
                 .build();
+
+        lenient().when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
+        lenient().when(videoRepository.findById(anyString())).thenReturn(Optional.of(video));
+        lenient().when(videoService.getOrCreateVideo(anyString(), anyString(), anyInt())).thenReturn(video);
+
+        lenient().when(subtitleRepository.save(any(Subtitle.class))).thenAnswer(invocation -> {
+            Subtitle s = invocation.getArgument(0);
+            if (ReflectionTestUtils.getField(s, "id") == null) {
+                ReflectionTestUtils.setField(s, "id", 100L);
+            }
+            return s;
+        });
     }
 
     @Test
     @DisplayName("영상의 자막 정보를 성공적으로 저장한다.")
     void saveSubtitle_success() {
         // given
-        given(userRepository.findById(userId)).willReturn(Optional.of(user));
-        given(videoService.getOrCreateVideo(anyString(), anyString(), anyInt())).willReturn(video);
         given(userVideoProgressRepository.findByUserAndVideo(any(), any())).willReturn(Optional.of(progress));
         given(subtitleRepository.findByVideoAndStartTimeAndText(any(), any(), any())).willReturn(Optional.empty());
-
-        Subtitle subtitle = Subtitle.builder()
-                .video(video)
-                .text(request.getText())
-                .translation(request.getTranslation())
-                .startTime(request.getStartTime())
-                .endTime(request.getEndTime())
-                .build();
-        ReflectionTestUtils.setField(subtitle, "id", 100L);
-
-        given(subtitleRepository.save(any(Subtitle.class))).willReturn(subtitle);
-        given(extractionService.extractKeywords(anyString())).willReturn(List.of());
+        lenient().when(extractionService.extractKeywords(anyString())).thenReturn(new ArrayList<>());
 
         // when
         SubtitleResponse subtitleResponse = subtitleService.saveSubtitle(userId, videoId, request);
@@ -109,15 +110,12 @@ public class SubtitleServiceTest {
         assertThat(subtitleResponse).isNotNull();
         assertThat(subtitleResponse.getText()).isEqualTo("The quick brown fox");
         verify(subtitleRepository, times(1)).save(any());
-        verify(videoService, times(1)).getOrCreateVideo(any(), any(), any());
     }
 
     @Test
     @DisplayName("중복된 자막 저장 시도 시 기존 자막을 반환한다.")
     void saveSubtitle_duplicate() {
         // given
-        given(userRepository.findById(userId)).willReturn(Optional.of(user));
-        given(videoService.getOrCreateVideo(anyString(), anyString(), anyInt())).willReturn(video);
         given(userVideoProgressRepository.findByUserAndVideo(any(), any())).willReturn(Optional.of(progress));
 
         Subtitle existingSubtitle = Subtitle.builder()
@@ -145,20 +143,9 @@ public class SubtitleServiceTest {
     void saveSubtitle_TriggerQuiz() {
         // given
         SubtitleRequest triggerRequest = new SubtitleRequest("Title", "Hello", "안녕", 0.0, 310.0, 600);
-
-        given(userRepository.findById(anyLong())).willReturn(Optional.of(user));
-        given(videoService.getOrCreateVideo(anyString(), anyString(), anyInt())).willReturn(video);
         given(userVideoProgressRepository.findByUserAndVideo(any(), any())).willReturn(Optional.of(progress));
         given(subtitleRepository.findByVideoAndStartTimeAndText(any(), any(), any())).willReturn(Optional.empty());
-
-        Subtitle mockSavedSubtitle = Subtitle.builder()
-                .video(video)
-                .text(triggerRequest.getText())
-                .translation(triggerRequest.getTranslation())
-                .startTime(triggerRequest.getStartTime())
-                .build();
-        given(subtitleRepository.save(any(Subtitle.class))).willReturn(mockSavedSubtitle);
-        given(extractionService.extractKeywords(anyString())).willReturn(List.of());
+        lenient().when(extractionService.extractKeywords(anyString())).thenReturn(List.of());
 
         // when
         SubtitleResponse response = subtitleService.saveSubtitle(1L, video.getVideoId(), triggerRequest);
@@ -174,22 +161,11 @@ public class SubtitleServiceTest {
     @SuppressWarnings("unchecked")
     void saveSubtitle_ExtractAndSaveKeywords() {
         // given
-        given(userRepository.findById(userId)).willReturn(Optional.of(user));
-        given(videoService.getOrCreateVideo(anyString(), anyString(), anyInt())).willReturn(video);
         given(userVideoProgressRepository.findByUserAndVideo(any(), any())).willReturn(Optional.of(progress));
         given(subtitleRepository.findByVideoAndStartTimeAndText(any(), any(), any())).willReturn(Optional.empty());
 
-        Subtitle savedSubtitle = Subtitle.builder()
-                .video(video)
-                .text(request.getText())
-                .translation(request.getTranslation())
-                .startTime(request.getStartTime())
-                .endTime(request.getEndTime())
-                .build();
-        given(subtitleRepository.save(any(Subtitle.class))).willReturn(savedSubtitle);
-
         List<String> mockKeywords = List.of("quick", "brown", "fox");
-        given(extractionService.extractKeywords(savedSubtitle.getText())).willReturn(mockKeywords);
+        given(extractionService.extractKeywords(anyString())).willReturn(mockKeywords);
 
         ArgumentCaptor<List<VideoKeyWord>> captor = ArgumentCaptor.forClass(List.class);
 
@@ -197,7 +173,7 @@ public class SubtitleServiceTest {
         subtitleService.saveSubtitle(userId, videoId, request);
 
         // then
-        verify(extractionService, times(1)).extractKeywords(savedSubtitle.getText());
+        verify(extractionService, times(1)).extractKeywords(anyString());
         verify(videoKeyWordRepository).saveAll(captor.capture());
 
         List<VideoKeyWord> capturedKeywords = captor.getValue();
@@ -206,9 +182,30 @@ public class SubtitleServiceTest {
     }
 
     @Test
+    @DisplayName("벌크 자막 저장 - 여러 개의 자막을 한 번에 저장한다.")
+    void bulkSaveSubtitles_success() {
+        // given
+        TranslationRequest.SubtitleDetail detail1 = new TranslationRequest.SubtitleDetail("Text1", 0.0, 1.0);
+        TranslationRequest.SubtitleDetail detail2 = new TranslationRequest.SubtitleDetail("Text2", 1.0, 2.0);
+
+        List<TranslationRequest.SubtitleDetail> requests = List.of(detail1, detail2);
+        List<String> translations = List.of("번역1", "번역2");
+
+        given(subtitleRepository.findByVideoAndStartTimeAndText(any(), any(), any())).willReturn(Optional.empty());
+        lenient().when(extractionService.extractKeywords(anyString())).thenReturn(new ArrayList<>());
+
+        // when
+        subtitleService.bulkSaveSubtitles(videoId, "Title", 600, requests, translations);
+
+        // then
+        verify(videoService, times(1)).getOrCreateVideo(eq(videoId), eq("Title"), eq(600));
+        verify(subtitleRepository, times(2)).save(any());
+    }
+
+    @Test
     @DisplayName("영상의 자막 정보를 성공적으로 조회한다.")
     void getSubtitles_success() {
-        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+        // given
         given(videoRepository.existsById(videoId)).willReturn(true);
 
         Subtitle subtitle = Subtitle.builder()
@@ -221,8 +218,10 @@ public class SubtitleServiceTest {
 
         given(subtitleRepository.findByVideo_VideoIdOrderByStartTimeAsc(videoId)).willReturn(List.of(subtitle));
 
+        // when
         SubtitleListResponse subtitleListResponse = subtitleService.getSubtitles(videoId, userId);
 
+        // then
         assertThat(subtitleListResponse.getVideoId()).isEqualTo(videoId);
         assertThat(subtitleListResponse.getSubtitles().get(0).getText()).isEqualTo("I'm happy");
     }
@@ -230,9 +229,10 @@ public class SubtitleServiceTest {
     @Test
     @DisplayName("존재하지 않는 비디오 ID로 조회하면 404 에러를 반환한다.")
     void getSubtitles_videoNotFound() {
-        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+        // given
         given(videoRepository.existsById(videoId)).willReturn(false);
 
+        // when & then
         assertThatThrownBy(() -> subtitleService.getSubtitles(videoId, userId))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("영상을 찾을 수 없습니다.");
