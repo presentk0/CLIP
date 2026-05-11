@@ -542,7 +542,7 @@ function DefaultPage() {
       </div>
 
       {/* 추천하는 영상 전체 박스 */}
-      <div style={{
+      {/* <div style={{
         display: 'flex',
         width: '370px',
         height: '673px',
@@ -552,7 +552,7 @@ function DefaultPage() {
         flexShrink: '0',
         borderRadius: '24px',
         background: '#FFF',
-      }}>
+      }}> */}
 
         {/* 추천하는 영상 하위 박스 */}
         {/* <div style={{
@@ -599,7 +599,7 @@ function DefaultPage() {
             {/* 추천하는 영상 전체 */}
           {/* </div> */}
         {/* </div> */}
-      </div>
+      {/* </div> */}
     </div>
   );
 }
