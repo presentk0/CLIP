@@ -145,6 +145,9 @@ public class QuizFallbackService {
 
         String word = request.getWord();
         String meaning = request.getMeaning();
+
+        String safeMeaning = (meaning != null && !meaning.isBlank()) ? meaning : word;
+
         boolean isCorrect = random.nextBoolean();
         String similarWord = getRandomSimilarWord(word);
 
@@ -162,7 +165,7 @@ public class QuizFallbackService {
             content = String.format(sentenceTemplate, word);
             translation = String.format(translationTemplate, meaning);
             answer = "O";
-            explanation = String.format("'%s'는 '%s'라는 의미로, 이 문맥에 잘 맞아요.", word, meaning);
+            explanation = String.format("'%s'는 '%s'라는 의미로, 이 문맥에 잘 맞아요.", word, safeMeaning);
         } else {
             content = String.format(sentenceTemplate, similarWord);
             translation = String.format(translationTemplate, meaning);
@@ -215,6 +218,8 @@ public class QuizFallbackService {
         String word = request.getWord();
         String meaning = request.getMeaning();
 
+        String safeMeaning = (meaning != null && !meaning.isBlank()) ? meaning : word;
+
         // 랜덤 템플릿 선택
         int templateIndex = random.nextInt(SENTENCE_TEMPLATES.size());
         String sentenceTemplate = SENTENCE_TEMPLATES.get(templateIndex);
@@ -222,7 +227,7 @@ public class QuizFallbackService {
 
         // [ ] 형태로 빈칸 만들기
         String content = sentenceTemplate.replace("%s", "[ ]");
-        String translation = String.format(translationTemplate, meaning);
+        String translation = String.format(translationTemplate, safeMeaning);
 
         // 4지선다 생성
         List<String> options = generateOptions(word, 4);
