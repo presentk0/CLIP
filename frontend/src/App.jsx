@@ -25,8 +25,6 @@ function App() {
 
 
 
-
-
   // 사이드패널 열림 감지 및 연결
   useEffect(() => {
     // 연결 실패 시 재시도 횟수
@@ -44,7 +42,6 @@ function App() {
       if (isSent) return;
 
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        console.log('패널 열림 신호1');
         if (tabs[0]) {
           chrome.tabs.sendMessage(tabs[0].id, { type: 'PANEL_OPENED' })
           .then(() => {
@@ -54,7 +51,6 @@ function App() {
             console.log('패널 열림 실패 신호', error.message);
             retryCount++;
             if (retryCount < maxRetry) {
-              console.log('패널 열림 재시도');
               // 실패하면 1초 후 재시도
               setTimeout(sendPanelOpened, 1000);
             } else {
@@ -64,24 +60,16 @@ function App() {
         }
       })
     };
-
     sendPanelOpened();
 
     // content.js 새로고침 감지
     const listener = (message) => {
-      console.log('메시지 받음2:', message.type, Date.now());
       if (message.type === 'CONTENT_LOADED') {
-        // isSent = false;
-        // retryCount = 0;
-        // sendPanelOpened();
-        console.log('새로고침 받음', Date.now());
 
     // 성공한 적 있으면 바로 1번만 시도
     if (isSent) {
-      console.log('새로고침 시도1', Date.now());
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         if (tabs[0]) {
-          console.log('새로고침 시도2', Date.now());
           chrome.tabs.sendMessage(tabs[0].id, { type: 'PANEL_OPENED' })
             .catch((error) => console.log('재전송 실패', error.message));
         }
@@ -99,14 +87,11 @@ function App() {
   }, []);
 
 
+
   // 퀴즈페이지로 이동 및 영상 아이디와 제목, 전체 길이 저장
   useEffect(() => {
-    console.log('App 시작:', Date.now());
     const listener = (message) => {
-      console.log('메시지 받음:', message.type, Date.now());
       if (message.type === 'GO_TO_QUIZ') {
-        console.log('퀴즈 페이지 이동1:', Date.now(), message.videoId);
-        // if (isChange !== message.videoId) {setIsChange(true)};
         setVideoId(message.videoId);
         setVideoTitle(message.videoTitle);
         setChannelName(message.channelName);
@@ -115,19 +100,14 @@ function App() {
         setDuration(message.duration);
         setMove(1);
       }
-      // if (message.type === 'VIDEO_DURATION') {
-      //   console.log('퀴즈 페이지 이동2:', Date.now());
-      //   setDuration(message.duration);
-      //   setMove(1);
-      // }
       if (message.type === 'GO_TO_DEFAULT') {
-        console.log('언마운트 후 디폴트로', Date.now());
         goToDefault();
       }
     };
     chrome.runtime.onMessage.addListener(listener);
     return () => chrome.runtime.onMessage.removeListener(listener);
   }, []);
+
 
 
   // 영상 이동 시 퀴즈페이지 리셋 후 디폴트페이지로 이동
@@ -147,27 +127,12 @@ function App() {
   };
 
 
+
   // 디폴트 페이지로 이동 (중간 이탈)
   const handleExit = () => {
     setMove(0);
   };
 
-
-//   // 최종 정산 완료 후 퀴즈페이지로 돌아가기
-// const handleGoBackToQuiz = () => {
-//   console.log('정산하고 버튼', Date.now());
-//   // 정산 데이터 초기화
-//   setSettlementData(null);
-//   // 퀴즈페이지로 이동
-//   setMove(1);
-  
-//   // 영상 재생 신호 보내기
-//   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-//     if (tabs[0]) {
-//       chrome.tabs.sendMessage(tabs[0].id, { type: 'RESUME_VIDEO' });
-//     }
-//   });
-// };
 
 
   return (
@@ -195,7 +160,6 @@ function App() {
 
       {/* 페이지 2: 정산 화면 */}
       {move === 2 && (
-        console.log('handleExit 전달:', handleExit),
         // data 전달
         <SettlementPage 
           data={settlementData}
@@ -204,7 +168,6 @@ function App() {
           channelName={channelName}
           duration={duration}
           onExitPage={handleExit}
-          // onGoBackToQuiz={handleGoBackToQuiz}
         />
       )}
     </div>
@@ -212,4 +175,3 @@ function App() {
 }
 
 export default App;
-
