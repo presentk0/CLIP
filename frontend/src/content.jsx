@@ -10,14 +10,6 @@ let lastSentIndex = -1;
 // 인터셉터 중복 방지
 let isSubtitleInterceptorSet = false;
 
-
-// // 리스너 중복 방지
-// let isTimeUpdateSet = false;
-
-
-
-
-
 // 서버로 보낼 자막 데이터들 모아두는 박스
 let textQueue = [];
 // 대기열의 현재 처리 위치 (줄의 맨 앞)
@@ -40,35 +32,14 @@ let loopStart = null;
 let loopEnd = null;
 
 
-
-// // 영상 끝 감지 리스너 활성화 여부 체크
-// let isEndListenerSet = false;
-
-
 // 구간 반복 이벤트 리스너 강제 종료용
 let eventLoop = null;
 
-
-
-// // 영상 끝 감지 이벤트 리스너 강제 종료용
-// let eventEndListener = null;
-
-
-
-
-// // 영상 자막 감지 이벤트 리스너 강제 종료용
-// let eventSubtitleListener = null;
-
-
-// // 영상 페이지에서 영상 가져오기 실패 시 재시도 횟수 카운트용
-// let retryCount = 0;
 // 영상 페이지에서 영상 가져오기 (실패 시 최대 15번까지 재시도)
 const MAX_RETRY = 15;
 
-
 // 홈 & 검색 화면에서 새로운 영상 썸네일이 나타나는지 감시용 (배지 부착용)
 let thumbnailObserver = null;
-
 
 let isQuiz = false;
 // 현재 요청한 퀴즈 섹션 수
@@ -82,26 +53,21 @@ let lastUrl = '';
 // ========== 시청 시간 체크 ==========
 // 총 시청 시간 (초)
 let totalWatchTime = 0;
-// 마지막 체크 시점
+// 마지막 시청 시간 체크 시점
 let lastWatchTime = 0;
 // 시청 시간 감지 및 영상 끝남 감지 리스너 중복 방지
 let isTimeUpdateListenerSet = false;
 // 시청 시간 및 영상 끝남 감지 및 영상 자막 감지 이벤트 리스너 강제 종료용
 let eventTimeUpdateListener = null;
 
-
 // 마지막 퀴즈가 나온 시점의 시청 시간
 let lastQuizTime = 0;
-
 
 // 퀴즈 요청 가능한지 체크
 let isQuizMode = false;
 
 // 이미 자막 가져온 영상 ID
 let translatedVideoId = null;
-
-// infect.js 자막 가져오는 리스너 제거용
-let subtitleDataListener = null;
 
 // 현재 영상Id 저장
 let currentVideoId = null;
@@ -115,124 +81,152 @@ let currentDuration = 0;
 // Video가 서버에 저장됐는지 여부
 let isVideoSaved = false;
 
-// ========== 사이드 패널 신호 수신 ==========
+// 페이지 이동 감지 옵저버 중복 방지
+let titleObserver = null;
+
+let videoRetryCount = 0;
+
+let infoRetryCount = 0;
+
+// 광고 체크 타이머
+let adCheckTimer = null;
+
+// 사이드 패널 신호 수신
 chrome.runtime.onMessage.addListener((message) => {
-  console.log('콘텐츠 받음:', message.type, Date.now());
-  // 패널 열림
+  // ========== 패널 열림 ==========
   if (message.type === 'PANEL_OPENED') {
-    console.log('패널 열림1:', Date.now());
+    // 패널 열림 상태 저장
     isPanelOpen = true;
     // 패널 열리면 모든 시스템 리셋 및 시작
     init();
   }
 
-  // 패널 닫힘
+   // ========== 패널 닫힘 ==========
   if (message.type === 'PANEL_CLOSED') {
-    console.log('패널 닫힘 신호', Date.now());
+    // 패널 닫힘 상태 저장
     isPanelOpen = false;
 
     // ========== 리스너/자막 리셋 ==========
     resetSubtitleSystem();
 
-    // ========== 퀴즈/영상 상태 리셋 ==========
+    // ========== 퀴즈 상태 리셋 ==========
+    // 퀴즈 페이지 이동 여부
     isQuiz = false;
+    // 섹션 퀴즈 출제 횟수
     quizSectionCount = 1;
+    // 매칭 퀴즈 출제 횟수
     matchingQuizCount = 0;
+    // 퀴즈 요청 중 여부
     quizRequested = false;
+    // 마지막 퀴즈 요청한 영상 ID
     lastVideoId = '';
+    // 퀴즈 요청 가능 여부
     isQuizMode = false;
 
-        // 같은 영상인지 체크 리셋
+    // ========== 영상 상태 리셋 ==========
+    // 번역 완료된 영상 ID 리셋
     translatedVideoId = null;
-
+    // 이미 자막 가로챘는지 여부 리셋
     isSubtitleInterceptorSet = false;
+    // 전체 자막 배열 리셋
     allSubtitles = [];
+    // 마지막 전송한 자막 인덱스 리셋
     lastSentIndex = -1;
+    // 현재 영상Id 리셋
+    currentVideoId = null;
+    // 현재 영상 제목 리셋
+    currentVideoTitle = '';
+    // 현재 영상 전체 길이 리셋
+    currentDuration = 0;
+    // Video가 서버에 저장됐는지 여부 리셋
+    isVideoSaved = false;
 
-    
-// infect.js 자막 가져오는 리스너 체크 리셋
-subtitleDataListener = null;
-
-// 현재 영상Id 저장 리셋
-currentVideoId = null;
-
-// 현재 영상 제목 리셋
-currentVideoTitle = '';
-
-// 현재 영상 전체 길이 리셋
-currentDuration = 0;
-
-// Video가 서버에 저장됐는지 여부 리셋
-isVideoSaved = false;
-    // ========== 큐/기타 리셋 ==========
+    // ========== 큐/재시도 리셋 ==========
+    // 자막 전송 대기열 초기화
     resetQueue();
-    // retryCount = 0;
+    // 영상 요소 찾기 재시도 횟수 리셋
     videoRetryCount = 0;
+    // 영상 정보 찾기 재시도 횟수 리셋
     infoRetryCount = 0;
 
-        // ========== 페이지 감지 옵저버 리셋 ==========
-  if (titleObserver) {
-    titleObserver.disconnect();
-    titleObserver = null;
-  }
+    // ========== 페이지 감지 옵저버 리셋 ==========
+    if (titleObserver) {
+      titleObserver.disconnect();
+      titleObserver = null;
+    }
+
     // ========== 썸네일/UI ==========
     // 썸네일 옵저버 리셋
     if (thumbnailObserver) {
       thumbnailObserver.disconnect();
       thumbnailObserver = null;
     }
-    // 붙인 뱃지 제거
+
+    // ========== UI 복원 ==========
+    // 썸네일 뱃지 제거
     removeBadges();
     // 추천 영상 다시 보여주기
     showRecommendations();
+
+    // ========== 광고 체크 타이머 리셋 ==========
+    if (adCheckTimer) {
+      clearTimeout(adCheckTimer);
+      adCheckTimer = null;
+    }
   }
 
-  // 퀴즈 시 영상 멈추기
+  // ========== 퀴즈 시작 ==========
   if (message.type === 'SET_QUIZ_MODE') {
-    console.log('퀴즈 모드 신호', Date.now());
     const video = document.querySelector('video');
+    // 영상 일시정지
     if (video) video.pause();
   }
 
-  // 퀴즈 다 풀고 영상 재시작
+  // ========== 퀴즈 완료 ==========
   if (message.type === 'RESUME_VIDEO') {
-  console.log('정산 신호', Date.now());
-  const video = document.querySelector('video');
-  if (video) {
-    video.play();
+    const video = document.querySelector('video');
+    // 영상 재생
+    if (video) video.play();
+
+    // ========== 다음 퀴즈 요청 가능하도록 리셋 ==========
+    // 퀴즈 중복 방지용 ID 초기화
+    lastVideoId = '';
+    // 퀴즈 요청 가능
+    quizRequested = false;
+    // 퀴즈 모드 활성화
+    isQuizMode = true;
   }
-  
-  // 퀴즈 상태 관리 리셋
-  lastVideoId = '';
-  quizRequested = false;
-  isQuizMode = true;
-}
 
-
-  // 사이드 패널에서 보낸 시점 이동 메시지 수신
-  // 루프 관련만 video 체크
+  // ========== 구간 반복 ==========
   if (message.type === 'START_LOOP' || message.type === 'STOP_LOOP') {
-    console.log('시작 또는 멈춤 루프 신호', Date.now());
     const video = document.querySelector('video');
     if (!video) return;
+
+    // ========== 구간 반복 시작 ==========
     if (message.type === 'START_LOOP') {
-      console.log('시작 루프 신호', Date.now());
       // 현재 영상 플레이어 객체 저장
       eventLoop = video;
+      // 반복 시작 시간 저장
       loopStart = message.startTime;
+      // 반복 종료 시간 저장
       loopEnd = message.endTime;
-      console.log(loopStart);
-      console.log(loopEnd);
-
+      // 반복 시작 지점으로 이동
       video.currentTime = loopStart;
+      // 영상 재생
       video.play();
+      // 반복 리스너 등록
       video.addEventListener('timeupdate', handleLoop);
     }
+
+    // ========== 구간 반복 종료 ==========
     if (message.type === 'STOP_LOOP') {
-      console.log('멈춤 루프 신호', Date.now());
+      // 시작 시간 초기화
       loopStart = null;
+      // 종료 시간 초기화
       loopEnd = null;
+      // 일시정지
       video.pause();
+      // 반복 리스너 제거
       video.removeEventListener('timeupdate', handleLoop);
       // 저장한 영상 영상 플레이어 객체 리셋
       eventLoop = null;
@@ -241,60 +235,132 @@ isVideoSaved = false;
 });
 
 
-// // 첫 화면과 새로고침 시 사이드패널도 새로고침
-// window.addEventListener('load', () => {
-//   chrome.runtime.sendMessage({ type: 'CONTENT_LOADED' });
-//   console.log('새로고침 전송', Date.now());
 
-//   // 패널 열려있으면 상태 리셋 + 페이지 구분 및 이동
-//   if (isPanelOpen) {
-//     resetAllState();
-//     handlePageChange();
-//   }
-  
-//   // 현재 URL 저장
-//   lastUrl = location.href;
-// });
+// 상태 리셋 함수
+function resetAllState() {
+  // ========== 썸네일 옵저버 리셋 ==========
+  if (thumbnailObserver) {
+    // 썸네일 배지 감시 중지
+    thumbnailObserver.disconnect();
+    thumbnailObserver = null;
+  }
+
+  // ========== 영상 상태 리셋 =========
+  // 마지막 처리한 영상 ID 리셋
+  lastVideoId = '';
+  // 번역 완료된 영상 ID 리셋
+  translatedVideoId = null;
+  // Video가 서버에 저장됐는지 여부 리셋
+  isVideoSaved = false;
+
+  // ========== 자막 상태 리셋 ==========
+  // 이미 자막 가로챘는지 여부 리셋
+  isSubtitleInterceptorSet = false;
+  // 전체 자막 배열
+  allSubtitles = [];
+  // 마지막에 전송한 자막 인덱스
+  lastSentIndex = -1;
+
+  // ========== 퀴즈 상태 리셋 ==========
+  // 퀴즈 요청 중인지 여부
+  quizRequested = false;
+  // 퀴즈 페이지로 이동했는지 여부
+  isQuiz = false;
+  // 퀴즈 요청 가능한지 여부 리셋
+  isQuizMode = false;
+  // 현재 퀴즈 섹션 수 리셋
+  quizSectionCount = 1;
+  // 매칭 퀴즈 요청 횟수 리셋
+  matchingQuizCount = 0;
+
+  // ========== 시청 시간 리셋 ==========
+  // 실제로 시청한 누적 시간 리셋
+  totalWatchTime = 0;
+  // 마지막으로 체크한 영상 시점 리셋
+  lastWatchTime = 0;
+  // 마지막 퀴즈가 나온 시점의 시청 시간 리셋
+  lastQuizTime = 0;
+
+  // ========== 큐/리스너 리셋 ==========
+  // 자막 전송 대기열 초기화
+  resetQueue();
+  // 이벤트 리스너 제거
+  resetSubtitleSystem();
+
+  // ========== 광고 체크 타이머 리셋 ==========
+  if (adCheckTimer) {
+    clearTimeout(adCheckTimer);
+    adCheckTimer = null;
+  }
+}
 
 
-// // 페이지 이동 시 실행(첫 화면은 미실행)
-// document.addEventListener('yt-navigate-finish', () => {
-//   console.log('실행여부1', Date.now());
-//   // URL 바뀌면 실행
-//   // location.href = 현재 페이지의 전체 URL
-//   if (location.href !== lastUrl) {
-//     chrome.runtime.sendMessage({ type: 'CONTENT_LOADED' });
-//     console.log('실행여부2', Date.now());
 
-//     // 상태 리셋 + 페이지 구분 및 이동
-//     resetAllState();
-//     handlePageChange();
-
-//     // ========== 현재 URL 저장 ==========
-//     lastUrl = location.href;
-//   }
-// });
-
-
-// 페이지 이동 감지 옵저버 중복 방지
-let titleObserver = null;
+// 영상 바뀔 때 대기열 리셋
+function resetQueue() {
+  // 자막 전송 대기열 비우기
+  textQueue = [];
+  // 대기열 처리 위치 초기화
+  head = 0;
+  // 처리 중 상태 해제
+  isProcessing = false;
+}
 
 
 
+// 이벤트 리스너/자막 리셋
+function resetSubtitleSystem() {
+  // ========== 자막 데이터 리셋 ==========
+  // 전체 자막 배열 리셋
+  allSubtitles = [];
+  // 마지막에 전송한 자막 인덱스 리셋
+  lastSentIndex = -1;
+
+  // ========== 영상 정보 리셋 ==========
+  // 현재 영상 Id 리셋
+  currentVideoId = null;
+  // 현재 영상 제목 리셋
+  currentVideoTitle = '';
+  // 현재 영상 전체 길이 리셋
+  currentDuration = 0;
+
+  // ========== 리스너 상태 리셋 ==========
+  // 시청시간, 자막동기화 리스너 중복 등록 감지 리셋
+  isTimeUpdateListenerSet = false;
+
+  // ========== 시청/자막 이벤트 리스너 제거 ==========
+  if (eventTimeUpdateListener) {
+    // 영상 시청 및 영상 끝 감지 이벤트 리스너 강제 종료
+    eventTimeUpdateListener.removeEventListener('timeupdate', handleTimeUpdate);
+    // 자막 감지 이벤트 리스너 강제 종료
+    eventTimeUpdateListener.removeEventListener('timeupdate', handleSubtitleSync);
+    eventTimeUpdateListener = null;
+  }
+
+  // ========== CustomEvent 리스너 제거 ==========
+  // 자막 가져오는 이벤트 리스너 강제 종료
+  document.removeEventListener('CLIPZY_SUBTITLE_DATA', subtitleDataHandler);
+
+  // ========== 구간 반복 리스너 제거 ==========
+  // 구간 반복 이벤트 리스너 강제 종료
+  if (eventLoop) {
+    eventLoop.removeEventListener('timeupdate', handleLoop);
+    eventLoop = null;
+  }
+  loopStart = null;
+  loopEnd = null;
+}
 
 
 
-
-// ========== SPA 이동 감지 옵저버 ==========
+// YouTube SPA 대응 - 페이지 이동 감지 옵저버 설치
 function setupTitleObserver() {
   const title = document.querySelector('title');
   
   if (!title) {
     setTimeout(setupTitleObserver, 100);
-    console.log('타이틀 재시도', Date.now());
     return;
   }
-  console.log('타이틀 찾음', Date.now());
 
   // 기존 옵저버 제거
   if (titleObserver) {
@@ -307,14 +373,12 @@ function setupTitleObserver() {
     //  location.href = 현재 페이지의 전체 URL
     if (location.href !== lastUrl) {
 
-    // 광고 중이면 무시
-    if (document.querySelector('.ad-showing')) {
-      console.log('광고 중 - 페이지 변경 무시');
-      return;
-    }
+      // 광고 중이면 무시
+      if (document.querySelector('.ad-showing')) {
+        return;
+      }
 
       lastUrl = location.href;
-      console.log('페이지 변경:', location.href);
       
       chrome.runtime.sendMessage({ type: 'CONTENT_LOADED' });
       // 상태 리셋 + 페이지 구분 및 이동
@@ -328,163 +392,158 @@ function setupTitleObserver() {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// ========== 페이지 구분 및 이동 ==========
+// 페이지 구분 및 이동
 function handlePageChange() {
-    if (isPanelOpen) {
-      console.log('패널 열렸나',isPanelOpen, Date.now());
-      // 영상 페이지면 추천 영상 숨기고 자막 감지
-      if (location.href.includes('/watch')) {
-        setTimeout(hideRecommendations, 500);
-        console.log('페이지 이동 및 구분:', Date.now());
-        setTimeout(observeSubtitles, 3000);
-      } else {
-        // 영상 페이지 아니면 디폴트 페이지로 이동 및 추천 영상 보이고 페이지 감지
-        chrome.runtime.sendMessage({
-          type: 'GO_TO_DEFAULT'
-        });
-        console.log('디폴트로 이동함',Date.now());
-        showRecommendations();
-        setTimeout(observeThumbnails, 3000);
+  if (isPanelOpen) {
+    // 영상 페이지면 추천 영상 숨기고 자막 감지
+    if (location.href.includes('/watch')) {
+      setTimeout(hideRecommendations, 500);
+      setTimeout(observeSubtitles, 3000);
+    } else {
+      // 영상 페이지 아니면 디폴트 페이지로 이동 및 추천 영상 보이고 썸네일 감지
+      chrome.runtime.sendMessage({
+        type: 'GO_TO_DEFAULT'
+      });
+      showRecommendations();
+      setTimeout(observeThumbnails, 3000);
+    }
+  }
+}
+
+
+
+// 추천영상 숨기기
+const hideRecommendations = () => {
+  // 사이드 패널 열려야 실행
+  if (!isPanelOpen) return;
+
+  // 기존 스타일 태그 있는지 확인
+  let styleTag = document.querySelector('#clip-hide-recommendations');
+
+  // 기존 스타일 태그가 없으면 새로 만들기
+  // ytd-watch-flexy = 영상 페이지 컨테이너
+  // 그 안의 #secondary만 숨김
+  // 메인 페이지의 #secondary는 영향 없음
+  if (!styleTag) {
+    // <style> 태그 생성
+    styleTag = document.createElement('style');
+    // 나중에 찾기/삭제 위해 ID 부여
+    styleTag.id = 'clip-hide-recommendations';
+    // CSS 규칙 작성 (각각 데스크톱 버전, 모바일 버전)
+    styleTag.textContent = `
+      ytd-watch-flexy #secondary {
+        display: none !important;
       }
+
+      ytd-watch-flexy #primary,
+      ytd-watch-flexy #player,
+      ytd-watch-flexy #player-container,
+      ytd-watch-flexy .html5-video-player,
+      ytd-watch-flexy video {
+      max-width: 100% !important;
+      width: 100% !important;
+      }
+
+
+      ytm-watch .related-items-container {
+        display: none !important;
+      }
+
+      ytm-watch .player-container,
+      ytm-watch #player,
+      ytm-watch .html5-video-player,
+      ytm-watch video {
+        max-width: 100% !important;
+        width: 100% !important;
+      }
+    `;
+
+    // <head>에 추가
+    document.head.appendChild(styleTag);
+  }
+};
+
+
+
+// 추천영상 다시 보이기
+const showRecommendations = () => {
+  // 스타일 태그 찾기
+  const styleTag = document.querySelector('#clip-hide-recommendations');
+
+  // 스타일 태그 있으면 삭제
+  if (styleTag) {
+    // <style> 태그 제거 -> CSS 규칙 사라짐 -> 다시 보임
+    styleTag.remove();
+  }
+};
+
+
+
+// 영상 시청 페이지면 자막 감지 함수 실행하고 아니면 자막 감지 중지 함수 실행
+function observeSubtitles() {
+  // ========== 실행 조건 체크 ==========
+  // 사이드 패널 열려야 실행
+  if (!isPanelOpen) return;
+  // 쇼츠 차단
+  if (window.location.href.includes('/shorts')) return;
+  // 영상 페이지가 아니면 추천 영상 표시하고 종료
+  if (!window.location.href.includes('/watch')) {
+    showRecommendations();
+    return;
+  }
+
+  // ========== 현재 영상 요소 가져오기 ==========
+  const video = document.querySelector('video');
+  if (!video) {
+    if (videoRetryCount < MAX_RETRY) {
+      videoRetryCount++;
+      // DOM이 렌더링 안 됐으면 1초 후 재시도
+      setTimeout(observeSubtitles, 1000);
     }
-}
+    return;
+  }
+  // video 찾으면 재시도 횟수 리셋
+  videoRetryCount = 0;
 
+  // ========== 영상 정보 가져오기 ==========
+  // URL에서 영상 ID 추출
+  const videoId = new URL(window.location.href).searchParams.get('v');
+  // 영상 제목
+  const videoTitle = getVideoTitle();
+  // 채널명
+  const channelName = getChannelName();
+  // 영상 길이
+  const duration = video.duration;
 
-// ========== 상태 리셋 함수 ==========
-function resetAllState() {
-    // ========== 썸네일 관련 ==========
-    // 썸네일 배지 감시 중지
-    if (thumbnailObserver) {
-      thumbnailObserver.disconnect();
-      thumbnailObserver = null;
+  // 제목/채널명 아직 로딩 안 됐으면 재시도
+  if (!videoTitle || !channelName) {
+    if (infoRetryCount < MAX_RETRY) {
+      infoRetryCount++;
+      setTimeout(observeSubtitles, 1000);
+      return;
     }
+    console.log('최대 재시도 초과');
+  }
+  // 성공하면 재시도 횟수 리셋
+  infoRetryCount = 0;
 
-    // ========== 상태 리셋 ==========
-    lastVideoId = '';
-    quizRequested = false;
-    isQuiz = false;
-    // 현재 퀴즈 섹션 수 리셋
-    quizSectionCount = 1;
-    // 매칭 퀴즈 요청 횟수 리셋
-    matchingQuizCount = 0;
+  // ========== 퀴즈 페이지로 이동 (최초 1회) ==========
+  if (!isQuiz && videoId && videoTitle && channelName) {
+    chrome.runtime.sendMessage({
+      type: 'GO_TO_QUIZ',
+      videoId: videoId,
+      videoTitle: videoTitle,
+      channelName: channelName || '',
+      duration: duration
+    }).catch((error) => console.log('퀴즈 페이지로 이동 에러', error));
+    isQuiz = true;
+  }
 
-    // 퀴즈 요청 가능한지 여부 리셋
-    isQuizMode = false;
-
-
-    // 변수 리셋
-    totalWatchTime = 0;
-    lastWatchTime = 0;
-
-
-    // hasEndQuizShown = false;
-
-
-
-
-    // 마지막 퀴즈가 나온 시점의 시청 시간 리셋
-    lastQuizTime = 0;
-
-    // 같은 영상인지 체크 리셋
-    translatedVideoId = null;
-
-    isSubtitleInterceptorSet = false;
-    allSubtitles = [];
-    lastSentIndex = -1;
-    // Video가 서버에 저장됐는지 여부 리셋
-isVideoSaved = false;
-    // ========== 큐/리스너 리셋 ==========
-    // 영상 바뀔 때 큐 비우기
-    resetQueue();
-    // 이벤트 리스너 리셋
-    resetSubtitleSystem();
+  // ========== 영상 자막 전체 가져오는 함수 실행 ==========
+  setupSubtitleInterceptor(videoId, videoTitle, duration);
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-// 이벤트 리스너/자막 리셋
-function resetSubtitleSystem() {
-  // 전체 자막 데이터 리셋
-  allSubtitles = [];
-  // 마지막에 전송한 자막 인덱스 리셋
-  lastSentIndex = -1;
-
-  // // 리스너 중복 방지 리셋
-  // isTimeUpdateSet = false;
-  // // 영상 끝 감지 횟수 리셋
-  // isEndListenerSet = false;
-
-  // 시청 시간 감지 및 영상 끝남 감지 리스너 리셋
-  isTimeUpdateListenerSet = false;
-
-
-      // infect.js 자막 가져오는 리스너 체크 리셋
-subtitleDataListener = null;
-
-// 현재 영상Id 저장 리셋
-currentVideoId = null;
-
-// 현재 영상 제목 리셋
-currentVideoTitle = '';
-
-// 현재 영상 전체 길이 리셋
-currentDuration = 0;
-
-  // 영상 시청 및 영상 끝 감지 이벤트 리스너 강제 종료
-  if (eventTimeUpdateListener) {
-    eventTimeUpdateListener.removeEventListener('timeupdate', handleTimeUpdate);
-    console.log('diff 멈춤2', Date.now());
-    // eventTimeUpdateListener.removeEventListener('loadeddata', watchTimeReset);
-
-    eventTimeUpdateListener.totalWatchTime = 0;
-    eventTimeUpdateListener.lastTime = 0;
-    eventTimeUpdateListener.matchingQuizCount = 0;
-
-    eventTimeUpdateListener = null;
-  }
-
-  // 자막 감지 이벤트 리스너 강제 종료
-  if (eventTimeUpdateListener) {
-    eventTimeUpdateListener.removeEventListener('timeupdate', handleSubtitleSync);
-    eventTimeUpdateListener = null;
-  }
-
-  // 자막 가져오는 이벤트 리스너 강제 종료
-  document.removeEventListener('CLIPZY_SUBTITLE_DATA', subtitleDataHandler);
-
-  // 구간 반복 이벤트 리스너 강제 종료
-  if (eventLoop) {
-    eventLoop.removeEventListener('timeupdate', handleLoop);
-    // 영상 구간 반복 이벤트 리스너 강제 종료용
-    eventLoop = null;
-  }
-  loopStart = null;
-  loopEnd = null;
-}
 
 // 비디오 제목 가져오기
 const getVideoTitle = () => {
@@ -496,7 +555,6 @@ const getVideoTitle = () => {
   const mobile = document.querySelector('.slim-video-information-title')?.textContent?.trim()
     || document.querySelector('h2.slim-video-information-title')?.textContent?.trim();
   if (mobile) return mobile;
-  
   return '';
 };
 
@@ -519,74 +577,6 @@ const getChannelName = () => {
   return '';
 };
 
-let videoRetryCount = 0;
-let infoRetryCount = 0;
-
-// 영상 시청 페이지면 자막 감지 함수 실행하고 아니면 자막 감지 중지 함수 실행
-function observeSubtitles() {
-  // 사이드 패널 열려야 실행
-  if (!isPanelOpen) return;
-
-  // 쇼츠 차단
-  if (window.location.href.includes('/shorts')) {
-    return;
-  }
-
-  // watch 페이지에서만 실행
-  if (!window.location.href.includes('/watch')) {
-    showRecommendations();
-    return;
-  }
-
-  // 현재 영상 가져오기
-  const video = document.querySelector('video');
-  if (!video) {
-    if (videoRetryCount < MAX_RETRY) {
-      videoRetryCount++;
-      // DOM이 렌더링 안 됐으면 1초 후 재시도
-      setTimeout(observeSubtitles, 1000);
-    }
-    return;
-  }
-  // video 찾으면 리셋
-  videoRetryCount = 0;
-
-
-  // 영상 정보 가져오기
-  const videoId = new URL(window.location.href).searchParams.get('v');
-  const videoTitle = getVideoTitle();
-  const channelName = getChannelName();
-  const duration = video.duration;
-
-  console.log('GO_TO_QUIZ 체크:', { isQuiz, videoId, videoTitle, channelName, infoRetryCount });
-  // 아직 로딩 안 됐으면 재시도
-  if (!videoTitle || !channelName) {
-    if (infoRetryCount < MAX_RETRY) {
-      console.log('퀴즈이동 재시도');
-      infoRetryCount++;
-      setTimeout(observeSubtitles, 1000);
-      return;
-    }
-    console.log('최대 재시도 초과');
-  }
-    // 성공하면 리셋
-    infoRetryCount = 0;
-
-  // 퀴즈 페이지 이동(최초 1회)
-  if (!isQuiz && videoId && videoTitle && channelName) {
-    chrome.runtime.sendMessage({
-      type: 'GO_TO_QUIZ',
-      videoId: videoId,
-      videoTitle: videoTitle,
-      channelName: channelName || '',
-      duration: duration
-    }).catch((error) => console.log('에러:', error));
-    isQuiz = true;
-  }
-
-  // 영상 자막 전체 가져오는 함수 실행
-  setupSubtitleInterceptor(videoId, videoTitle, duration);
-}
 
 
 // XMLHttpRequest 가로채기 설정
@@ -594,22 +584,27 @@ function observeSubtitles() {
 // XMLHttpRequest = 브라우저 내장 객체 (네트워크 요청용)
 // XMLHttpRequest.prototype = XMLHttpRequest에서 쓸 수 있는 모든 함수들 가져오기
 function setupSubtitleInterceptor(videoId, videoTitle, duration) {
+  // ========== 실행 조건 체크 ==========
   // 사이드 패널 닫혀있으면 무시
   if (!isPanelOpen) return;
 
+  // 광고 중 감지
   if (document.querySelector('.ad-showing')) {
-    return setTimeout(() => setupSubtitleInterceptor(videoId, videoTitle, duration), 500);
+    // 기존 광고 체크 타이머가 등록되어 있으면 무시
+    if (adCheckTimer) return;
+
+    // 0.5초 후 재시도
+    adCheckTimer = setTimeout(() => {
+      // 광고 체크 타이머 리셋
+      adCheckTimer = null;
+      setupSubtitleInterceptor(videoId, videoTitle, duration);
+    }, 500);
+    return;
   }
 
   // 최초 1회만 발동
   if (isSubtitleInterceptorSet) return;
   isSubtitleInterceptorSet = true;
-  console.log('최초 1회', Date.now());
-
-  // 이전 inject.js 자막 데이터 수신 리스너 제거
-  if (subtitleDataListener) {
-    document.removeEventListener('CLIPZY_SUBTITLE_DATA', subtitleDataHandler);
-  }
 
   // 현재 영상Id, 제목, 전체 길이 저장
   currentVideoId = videoId;
@@ -621,35 +616,29 @@ function setupSubtitleInterceptor(videoId, videoTitle, duration) {
     method: 'GET'
   }).then(response => {
     // 테스트용으로 넣었던 10개 이하의 자막이 아니면 실행 (오류)
-      if (response?.data?.subtitles?.length >= 10) {
-        // 이미 저장된 자막 있으면 사용
-        console.log(`GET /videos/${videoId}/subtitles`, response);
-        allSubtitles = response.data.subtitles;
-        translatedVideoId = videoId;
-        lastSentIndex = -1;
+    if (response?.data?.subtitles?.length >= 10) {
+      // 이미 저장된 자막 있으면 사용
+      allSubtitles = response.data.subtitles;
+      translatedVideoId = videoId;
+      lastSentIndex = -1;
+      isVideoSaved = true;
+      isQuizMode = true;
+      setupTimeUpdateListener();
 
-        isVideoSaved = true;
-        isQuizMode = true;
-
-        setupTimeUpdateListener();
-
-        console.log('전송 전 자막 개수:', allSubtitles.length);
-        // content.js에서 전체 자막 전달
-chrome.runtime.sendMessage({
-  type: 'SUBTITLES_LOADED',
-  subtitles: allSubtitles
-});
-      } else {
-        // 서버에 없으면 유튜브에서 가져오기
-        registerSubtitleListener();
-      }
-    })
-    .catch(error => {
-      console.log('자막 조회 실패:', error);
-      // 조회 실패해도 유튜브에서 가져오기
+      // content.js에서 전체 자막 전달
+      chrome.runtime.sendMessage({
+        type: 'SUBTITLES_LOADED',
+        subtitles: allSubtitles
+      });
+    } else {
+      // 서버에 없으면 유튜브에서 가져오기
       registerSubtitleListener();
-    });
-  
+    }
+  }).catch(error => {
+    console.log('자막 조회 실패:', error);
+    // 조회 실패해도 유튜브에서 가져오기
+    registerSubtitleListener();
+  });
 };
 
 
@@ -657,18 +646,15 @@ chrome.runtime.sendMessage({
 // 자막 가져오는 리스너 설정
 async function subtitleDataHandler (event) {
   if (translatedVideoId === currentVideoId && allSubtitles.length > 0) {
-    console.log('이미 자막 있음 무시');
     return;
   }
 
   if (translatedVideoId === currentVideoId) {
-    console.log('이미 번역된 영상 무시');
     return;
   }
 
   // 영상 페이지에서만 처리
   if (!location.href.includes('/watch')) {
-    console.log('영상 페이지 아님 무시');
     return;
   }
 
@@ -688,12 +674,10 @@ async function subtitleDataHandler (event) {
   // ========== 데이터 구조 검증 ==========
   // data.events가 (없거나 falsy 또는 배열이 아닌 경우면) 리턴 (데이터 구조 검증)
   if (!data.events || !Array.isArray(data.events)) {
-    console.log('잘못된 데이터2');
     return;
   }
 
   translatedVideoId = currentVideoId;
-  console.log('자막 발생 빈도',Date.now());
   try {
     // ========== 자막 데이터 처리 ==========
     // 자막 데이터의 이벤트 요소(tStartMs,dDurationMs, segs) 저장
@@ -721,14 +705,6 @@ async function subtitleDataHandler (event) {
     }));
 
      // ========== 서버에 전체 자막 및 번역 저장 ==========
-    const texts = allSubtitles.map(sub => sub.text);
-    console.log(texts, currentVideoId, currentVideoTitle, currentDuration);
-
-    // // 번역 요청 전에 현재 영상 저장
-    // const requestVideoId = videoId;
-
-    console.log('콘텐츠 번역 요청', Date.now());
-    // const translateResponse = await chrome.runtime.sendMessage({
     chrome.runtime.sendMessage({
       type: 'TRANSLATE',
       endpoint: '/translate/subtitles',
@@ -763,33 +739,18 @@ async function subtitleDataHandler (event) {
       console.log('번역 실패:', error);
     });
 
-    // ========== 번역 결과 합치기 ==========
-    // if (translateResponse?.success && translateResponse?.data?.translatedTexts) {
-    //   const translations = translateResponse.data.translatedTexts;
-
-    //   allSubtitles = allSubtitles.map((sub, index) => ({
-    //     ...sub,
-    //     translation: translations[index] || ''
-    //   }));
-    // }
-
-    console.log('자막 나옴', allSubtitles.length, '개', Date.now());
-
     // ========== 리스너 설정 ==========
     // 인덱스 리셋
     lastSentIndex = -1;
 
     // 영상 시청 시간 감지 및 끝 시간 감지 리스너 설정
     setupTimeUpdateListener();
-
-    } catch (error) {
-      console.log('자막 파싱 실패:', error);
-      console.log('자막 파싱 실패:', error.message);
-      // 다시 요청 가능
-      translatedVideoId = null;
-    }
-  };
-
+  } catch (error) {
+    console.log('자막 파싱 실패:', error);
+    // 다시 요청 가능
+    translatedVideoId = null;
+  }
+};
 
 
 
@@ -802,34 +763,26 @@ function registerSubtitleListener() {
 
   // 자막 버튼 껐다 켜기
   const btn = document.querySelector('.ytp-subtitles-button');
-  console.log('자막 버튼 상태:', btn?.getAttribute('aria-pressed'));
   if (btn) {
     if (btn.getAttribute('aria-pressed') === 'true') {
       // 켜져 있으면 껐다 켜기
-      console.log('자막 껐다 켜기');
       // 끄기
       btn.click();
       setTimeout(() => {
-        console.log('자막 다시 켜기');
         // 켜기
         btn.click();
       }, 1000);
     } else {
       // 꺼져 있으면 → 그냥 켜기
-      console.log('자막 켜기');
       btn.click();
     }
-  } else {
-    console.log('자막 버튼 없음');
   }
 }
 
 
 
-
 // 시청 시간 감지 및 영상 끝남 감지 및 자막 감지 리스너 설정
 function setupTimeUpdateListener() {
-  console.log('설정 전', Date.now());
   if (isTimeUpdateListenerSet) return;
 
   const video = document.querySelector('video');
@@ -839,33 +792,7 @@ function setupTimeUpdateListener() {
   video.addEventListener('timeupdate', handleTimeUpdate);
   video.addEventListener('timeupdate', handleSubtitleSync);
   isTimeUpdateListenerSet = true;
-
-  
-  // video.addEventListener('timeupdate', () => {
-  //   // 광고 중이면 무시
-  //   if (document.querySelector('.ad-showing')) return;
-
-  //   const diff = video.currentTime - lastWatchTime;
-  //   if (diff > 0 && diff < 1) {
-  //     totalWatchTime += diff;
-  //   }
-  //   lastWatchTime = video.currentTime;
-  // });
-
-  // 영상 변경 시 리셋
-  // loadeddata = 첫 프레임 로드
-  // video.addEventListener('loadeddata', watchTimeReset);
 }
-
-
-// // ========== 영상 변경 시 리셋 ==========
-// function watchTimeReset(e) {
-//   const video = e.target;
-//   video.totalWatchTime = 0;
-//   video.lastTime = 0;
-//   video.matchingQuizCount = 0;
-//   isTimeUpdateListenerSet = false;
-// }
 
 
 
@@ -880,7 +807,6 @@ function handleTimeUpdate(e) {
   if (document.querySelector('.ad-showing')) return;
 
   if (allSubtitles.length === 0) {
-    console.log('allSubtitles 비어있음');
     video.removeEventListener('timeupdate', handleTimeUpdate);
     eventTimeUpdateListener = null;
     return;
@@ -893,37 +819,18 @@ function handleTimeUpdate(e) {
     totalWatchTime += diff;
   }
   lastWatchTime = video.currentTime;
-  console.log('diff 시작', Date.now());
-
 
   // ========== 빈칸/OX 퀴즈 체크 ==========
-  // 시청 시간이 조건에 맞으면 빈칸/ox 퀴즈 요청
-  // if (totalWatchTime / getQuizCount(video.duration) === 0){
+  // n초마다
+  const quizIntervalCount = getQuizCount(video.duration);
+  // 최대 x번 퀴즈 요청
+  const sectionCount = getSectionCount(video.duration);
 
-  // }
-
-      // n초마다
-      const quizIntervalCount = getQuizCount(video.duration);
-      // 최대 x번 퀴즈 요청
-      const sectionCount = getSectionCount(video.duration);
-
-      console.log('퀴즈 조건:', {
-  quizIntervalCount,
-  sectionCount,
-  quizSectionCount,
-  totalWatchTime,
-  lastQuizTime,
-  diff: totalWatchTime - lastQuizTime,
-  isQuizMode
-});
-
-
-      // 0초가 아니고 && n초가 지났고 && 섹션 수를 초과하지 않고, 서버에서 퀴즈 요청 허용받으면 (빈칸 / ox) 퀴즈 요청
-      if (quizIntervalCount > 0 && sectionCount >= quizSectionCount && totalWatchTime - lastQuizTime >= quizIntervalCount && isQuizMode) {
-        startQuizSession();
-        lastQuizTime = totalWatchTime;
-        console.log('성공하면 퀴즈 요청하기', video.duration, quizIntervalCount, sectionCount);
-      };
+  // 0초가 아니고 && n초가 지났고 && 섹션 수를 초과하지 않고, 서버에서 퀴즈 요청 허용받으면 (빈칸 / ox) 퀴즈 요청
+  if (quizIntervalCount > 0 && sectionCount >= quizSectionCount && totalWatchTime - lastQuizTime >= quizIntervalCount && isQuizMode) {
+    startQuizSession();
+    lastQuizTime = totalWatchTime;
+  };
 
   // ========== 영상 끝 감지 (매칭 퀴즈) ==========
   // 영상 종료까지 남은 시간 담기
@@ -931,10 +838,8 @@ function handleTimeUpdate(e) {
 
   // 끝나기 3초 전
   if ((matchingTiming < 3)) {
-    console.log('끝남1');
     // 리스너 제거
     video.removeEventListener('timeupdate', handleTimeUpdate);
-    console.log('diff 멈춤1', Date.now());
     isTimeUpdateListenerSet = false;
 
     // 매칭 퀴즈 1회만
@@ -942,248 +847,59 @@ function handleTimeUpdate(e) {
       video.pause();
       matchingQuiz();
     }
-    console.log('끝남 확인1');
     return;
   }
 };
 
 
 
-
-
-
-
-
 // 현재 시간에 맞는 자막 찾아서 전송
 function handleSubtitleSync(e) {
-  console.log('1. handleSubtitleSync 호출');
   const video = e.target;
-  // // 영상이 없거나 자막 데이터가 없으면 스킵
-  // if (!video || allSubtitles.length === 0) return;
 
   if (!video) {
-    console.log('2. video 없음');
     return;
   }
-  
 
   if (document.querySelector('.ad-showing')) {
-    console.log('광고 중');
     return;
   }
 
   if (allSubtitles.length === 0) {
-    console.log('allSubtitles 비어있음');
     video.removeEventListener('timeupdate', handleSubtitleSync);
     eventTimeUpdateListener = null;
     return;
   }
-  // // 광고면 스킵
-  // if (document.querySelector('.ad-showing')) return;
 
   // 현재 시간 실시간 업데이트
   const currentTime = video.currentTime;
-
-  console.log('5. currentTime:', currentTime);
 
   // 현재 시간이 자막의 시작~끝 사이에 있으면 allSubtitles에 맞는 인덱스 반환
   const index = allSubtitles.findIndex(sub =>
     currentTime >= sub.startTime && currentTime <= sub.endTime
   );
-    console.log('7. 찾은 index:', index);
-      console.log(' 이번 자막 시간:', allSubtitles[index]?.startTime, '~', allSubtitles[index]?.endTime);
-  console.log('8. lastSentIndex:', lastSentIndex);
 
   // 자막 데이터가 있고 && 기존 영상이면 전송(새로고침하면 초기화)
   if (index !== -1 && index !== lastSentIndex) {
     // 인덱스 순서로 담기
     const sub = allSubtitles[index];
-    console.log('9. 자막 전송:', sub.text);
 
     // 필요한 정보 가져오기
     const videoId = new URL(window.location.href).searchParams.get('v');
-    // const videoTitle = document.querySelector('#title h1')?.textContent?.trim() || '';
     const duration = video.duration;
     const videoTitle = currentVideoTitle || getVideoTitle();
+
     if (!videoTitle) {
-      console.log('videoTitle 아직 없음 (index:', index, ')');
       return;
     }
 
-    console.log('자막 전송:', sub.text);
 
     // 큐 대기열에 넣기
     addToQueue(sub.text, sub.translation, sub.startTime, sub.endTime, videoId, videoTitle, duration);  // , sub.translation 추가하기
     
     lastSentIndex = index;
-  } else {
-    console.log('10. 전송 안 함 - index:', index, 'lastSentIndex:', lastSentIndex);
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// // timeupdate 리스너 설정
-// // 영상 재생 시간이 바뀔 때마다 호출됨
-// function setupTimeUpdateListener() {
-//   console.log('설정 전', Date.now());
-//   // 이미 설정됐으면 스킵
-//   if (isTimeUpdateSet) return;
-//   console.log('설정 후', Date.now());
-
-//   const video = document.querySelector('video');
-//   if (!video) return;
-
-//   eventSubtitleListener = video;
-//   video.addEventListener('timeupdate', handleSubtitleSync);
-//   isTimeUpdateSet = true;
-
-//   console.log('timeupdate 리스너 설정', Date.now());
-// }
-
-
-// // 영상 끝 감지 함수(최초 1회)
-// function setupEndListener() {
-//   console.log('설정 전1', Date.now());
-//   if (!isEndListenerSet) return;
-//   console.log('설정 후1', Date.now());
-//   const video = document.querySelector('video');
-//   if (!video) return;
-//   console.log('설정 후2', Date.now());
-//   eventEndListener = video;
-//   video.addEventListener('timeupdate', handleTimeUpdate);
-//   isEndListenerSet = true;
-//   console.log('영상 시간 감지 시작:', Date.now());
-// }
-
-
-
-
-
-
-
-
-
-
-// // 영상이 켜지면 실시간 업데이트 및 일시정지 시 같이 멈춤
-// // 영상 이동 시 초기화 필요
-// // 리스너 함수는 이벤트가 발생했을 때 이벤트 객체를 첫 번째 인자로 받음
-// function handleTimeUpdate(e) {
-//   // 현재 영상 정보 담기
-//   const video = e.target;
-//   // 영상 종료까지 남은 시간 담기
-//   const matchingTiming = video.duration - video.currentTime;
-//   if ((matchingTiming < 3)) {
-//     video.removeEventListener('timeupdate', handleTimeUpdate);
-
-//     if (matchingQuizCount < 1) {
-//       video.pause();
-//       matchingQuiz();
-//     }
-//     console.log('끝남 확인1');
-//     return;
-//   }
-// }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// ========== 시청 시간 조회 ==========
-// function getWatchTime() {
-//   return {
-//     seconds: Math.floor(totalWatchTime),
-//     formatted: formatTime(totalWatchTime)
-//   };
-// }
-
-
-// ========== 초 → "n시 n분 n초" 변환 ==========
-// function formatTime(seconds) {
-//   const hours = Math.floor(seconds / 3600);
-//   const mins = Math.floor((seconds % 3600) / 60);
-//   const secs = Math.floor(seconds % 60);
-//   return `${hours}시 ${mins}분 ${secs}초`;
-// }
-
-
-
-
-
-
-
-
-// // 영상 끝 감시
-// let hasWatchedBefore = false;     // 서버에서 확인한 시청 기록
-// // let hasEndQuizShown = false;      // 이번 세션에서 퀴즈 표시 여부
-
-// // ========== 영상 진입 시 서버 체크 ==========
-// async function checkWatchHistory(videoId) {
-//   try {
-//     const response = await apiFetch(`중복 시청 여부 요청`, {
-//       method: 'GET'
-//     });
-    
-//     hasWatchedBefore = response.watched || false;
-    
-//     // if (hasWatchedBefore) {
-//     //   // 이미 본 영상 = 퀴즈 스킵 가능
-//     //   hasEndQuizShown = true;
-//     // }
-//   } catch (error) {
-//     console.log('시청 기록 확인 실패', error);
-//   }
-// }
-
-
-
-// // ========== 다시보기 클릭 시 ==========
-// function handleReplay() {
-//   console.log('다시보기 클릭됨');
-  
-//   // 모든 상태 초기화
-//   totalWatchTime = 0;
-//   lastWatchTime = 0;
-//   hasEndQuizShown = false;  // 퀴즈 다시 가능
-  
-// }
-
-
-
-
-
-
-
-
 
 
 
@@ -1197,13 +913,6 @@ function getQuizCount(duration) {
   
   return duration / totalQuizCount;
 }
-
-
-
-
-
-
-
 
 
 
@@ -1224,18 +933,19 @@ function getSectionCount(duration) {
 }
 
 
+
 // 큐에 자막 넣기
-function addToQueue(text, translation, startTime, endTime, videoId, videoTitle, duration) {  // , translation 추가하기
-  console.log('addToQueue 실행함:', text, startTime, endTime, videoId, videoTitle, duration);
+function addToQueue(text, translation, startTime, endTime, videoId, videoTitle, duration) {
   // 대기중인 자막이 10개 이상이면 오래된 자막부터 버리기
   if (textQueue.length - head >= MAX_QUEUE) {
     // 맨 앞 버리기
     head++;
   }
-  textQueue.push({ text, translation, startTime, endTime, videoId, videoTitle, duration });  // , translation 추가하기
+  textQueue.push({ text, translation, startTime, endTime, videoId, videoTitle, duration });
   // 처리 시도
   processQueue();
 }
+
 
 
 // 자막 데이터를 서버와 사이드패널로 보내기 전 순서대로 처리
@@ -1245,21 +955,16 @@ async function processQueue() {
   // 빈 큐면 스킵
   if (head >= textQueue.length) return;
   isProcessing = true;
-  console.log('processQueue 실행함');
   while (head < textQueue.length) {
     // 맨 앞 꺼내기
     const item = textQueue[head];
     // 에러 발생해도 큐가 멈추지 않게 먼저 증가시키기
     head++;
     try {
-      // // DeepL 번역 요청 (백그라운드)
-      // const translation = await fetchTranslation(item.text);
-
       // 백엔드 DB에 자막 1개 및 번역 데이터 저장
       const quizResponse = await apiFetch(`/videos/${item.videoId}/subtitles`, {
         method: 'POST',
         body: JSON.stringify({
-          // videoid: item.videoId,
           title: item.videoTitle,
           text: item.text,
           translation: item.translation || null,
@@ -1268,20 +973,11 @@ async function processQueue() {
           duration: item.duration
         })
       });
-      console.log(`POST /videos/${item.videoId}/subtitles`, Date.now(), quizResponse);
-      // const sectionCount = getSectionCount(item.duration);
       if (quizResponse.success) {
         isVideoSaved = true;
         isQuizMode = true;
       }
 
-      // // 섹션 수를 초과하지 않고 트루신호 받으면 (빈칸 / ox) 퀴즈 요청
-      // if (sectionCount > quizSectionCount && quizResponse.success) {
-      //   startQuizSession()
-      //   console.log('성공하면 퀴즈 요청하기');
-      // };
-
-      console.log('자막 보내기:', item.videoId, item.text, item.translation, item.startTime, item.endTime);
       // 사이드 패널 화면에 실시간 자막 업데이트
       chrome.runtime.sendMessage({
         type: 'SUBTITLE_UPDATE',
@@ -1291,7 +987,6 @@ async function processQueue() {
         startTime: item.startTime,
         endTime: item.endTime
       });
-
     } catch (error) {
       console.log('처리 실패:', error);
     }
@@ -1304,57 +999,6 @@ async function processQueue() {
   }
   isProcessing = false;
 }
-
-
-// 영상 바뀔 때 대기열 리셋
-function resetQueue() {
-  textQueue = [];
-  head = 0;
-  isProcessing = false;
-}
-
-
-// // 번역 API 호출
-// async function fetchTranslation(texts) {
-
-//   try {
-//     const translation = await apiFetch('/api/translate/subtitles', {
-//       method: 'POST',
-//       body: JSON.stringify({
-//         videoId: videoId,
-//         texts: texts,
-//       })
-//     });
-//   } catch (error) {
-//     console.log('번역오류1', error);
-//   }
-
-
-//   return new Promise((resolve) => {
-//     // 응답 리스너 먼저 등록
-//     const listener = (message) => {
-//       if (message?.type === 'TRANSLATE_RESULT' && message?.text === text) {
-//         chrome.runtime.onMessage.removeListener(listener);
-//         resolve(message?.translation || '');
-//       }
-//     };
-//     chrome.runtime.onMessage.addListener(listener);
-
-//     // 요청 보내기
-//     chrome.runtime.sendMessage({
-//       type: 'TRANSLATE',
-//       text: text,
-//       source: 'content'
-//     });
-//   });
-// }
-
-
-
-
-
-
-
 
 
 
@@ -1372,7 +1016,6 @@ async function startQuizSession() {
 
   // Video가 저장되지 않았으면 스킵
   if (!isVideoSaved) {
-    console.log('서버에 영상저장 못함 퀴즈 요청 스킵');
     return;
   }
 
@@ -1388,7 +1031,6 @@ async function startQuizSession() {
     const quizHistory = await apiFetch(`/badges/video/${videoId}`, {
       method: 'GET'
     });
-    console.log(`GET /badges/video/${videoId}:`,Date.now(), quizHistory);
     const sessionType = !quizHistory?.data?.currentBadge ? 'NORMAL' : 'REVIEW';
 
     // 서버에 퀴즈 받기
@@ -1398,11 +1040,8 @@ async function startQuizSession() {
         videoId: videoId,
         sessionType: sessionType,  // 복습 체크하기
         sectionNumber: quizSectionCount,
-        // 자막 배열 전송
-        // subtitles: collectedSubtitles.map(sub => sub.text)
       })
     });
-    console.log('POST /quiz/sessions/generate/section:',Date.now(), sessionResponse);
 
     quizSectionCount++;
 
@@ -1441,6 +1080,7 @@ async function startQuizSession() {
 }
 
 
+
 async function matchingQuiz() {
   // 사이드 패널 열려야 실행
   if (!isPanelOpen) return;
@@ -1449,25 +1089,21 @@ async function matchingQuiz() {
   if (quizRequested) return;
 
     if (!isVideoSaved) {
-    console.log('서버에 영상저장 못함 퀴즈 요청 스킵');
     return;
   }
 
   const videoId = new URL(window.location.href).searchParams.get('v');
-
 
   // 같은 영상이면 스킵 (중복 방지)
   if (videoId === lastVideoId) return;
 
   quizRequested = true;
   lastVideoId = videoId;
-
   try {
     // 복습 체크용 퀴즈 이력 조회하기
     const matchingQuizHistory = await apiFetch(`/badges/video/${videoId}`, {
       method: 'GET'
     });
-    console.log(`매칭 GET /badges/video/${videoId}:`,Date.now(), matchingQuizHistory);
     const matchingSessionType = !matchingQuizHistory?.data?.currentBadge ? 'NORMAL' : 'REVIEW';
 
 
@@ -1476,16 +1112,9 @@ async function matchingQuiz() {
       method: 'POST',
       body: JSON.stringify({
         videoId: videoId,
-        sessionType: matchingSessionType,  // 복습 체크하기
-        // sectionNumber: quizSectionCount,
-        // 자막 배열 전송
-        // subtitles: collectedSubtitles.map(sub => sub.text)
+        sessionType: matchingSessionType,
       })
     });
-    console.log('POST /quiz/sessions/generate/matching:',Date.now(), matchingResponse);
-
-
-
     matchingQuizCount++;
 
     chrome.storage.local.set({
@@ -1511,8 +1140,6 @@ async function matchingQuiz() {
     });
   } catch (error) {
     console.error('매칭 퀴즈 세션 실패', error);
-    console.error('매칭 에러 메시지:', error.message);
-    console.error('매칭 에러 스택:', error.stack);
   } finally {
     // 실행 후 다시 요청 가능
     quizRequested = false;
@@ -1520,62 +1147,18 @@ async function matchingQuiz() {
 }
 
 
-// 추천영상 숨기기
-const hideRecommendations = () => {
-  // 사이드 패널 열려야 실행
-  if (!isPanelOpen) return;
-
-  // 기존 스타일 태그 있는지 확인
-  let styleTag = document.querySelector('#clip-hide-recommendations');
-
-  // 기존 스타일 태그가 없으면 새로 만들기
-  // ytd-watch-flexy = 영상 페이지 컨테이너
-  // 그 안의 #secondary만 숨김
-  // 메인 페이지의 #secondary는 영향 없음
-  if (!styleTag) {
-    // <style> 태그 생성
-    styleTag = document.createElement('style');
-    // 나중에 찾기/삭제 위해 ID 부여
-    styleTag.id = 'clip-hide-recommendations';
-    // CSS 규칙 작성
-    styleTag.textContent = `
-      ytd-watch-flexy #secondary {
-        display: none !important;
-      }
-
-      ytd-watch-flexy #primary,
-      ytd-watch-flexy #player,
-      ytd-watch-flexy #player-container,
-      ytd-watch-flexy .html5-video-player,
-      ytd-watch-flexy video {
-        max-width: 100% !important;
-        width: 100% !important;
-      }
-    `;
-
-    // <head>에 추가
-    document.head.appendChild(styleTag);
-  }
-};
 
 
-// 추천영상 다시 보이기
-const showRecommendations = () => {
-  // 스타일 태그 찾기
-  const styleTag = document.querySelector('#clip-hide-recommendations');
 
-  // 스타일 태그 있으면 삭제
-  if (styleTag) {
-    // <style> 태그 제거 -> CSS 규칙 사라짐 -> 다시 보임
-    styleTag.remove();
-  }
-};
+
+
+
+
 
 
 // 구간 반복
 const handleLoop = (e) => {
   const video = e.target;
-  // const video = document.querySelector('video');
   if (loopEnd && video.currentTime >= loopEnd) {
     video.currentTime = loopStart;
   }
@@ -1603,7 +1186,6 @@ async function addTestBadge() {
     return;
   }
 
-
   for (const thumb of allThumbnails) {
     try {
       //  ytd-thumbnail 찾기
@@ -1625,7 +1207,6 @@ async function addTestBadge() {
 
       // API 호출(수정 예정)
       const response = await apiFetch(`/badges/video/${videoId}`);
-      console.log(`뱃지 부착 시도 /badges/video/${videoId}`);
       // 뱃지가 어떻게 오는지에 따라 수정예정(아마 결과에 맞는 뱃지 이미지를 붙일 듯)
       const badge = response?.data?.currentBadge;
 
@@ -1690,9 +1271,9 @@ function observeThumbnails() {
     childList: true,
     subtree: true
   });
-
   addTestBadge();
 }
+
 
 
 // 뱃지 제거 함수
@@ -1714,9 +1295,6 @@ function removeBadges() {
 // 페이지 로드 대기 후 실행
 // init()에서 페이지 종류에 따라 분기
 function init() {
-  console.log('콘텐츠 리셋1:', Date.now());
-  // 재시도 횟수 리셋
-  // retryCount = 0;
   videoRetryCount = 0;
   infoRetryCount = 0;
 
@@ -1731,44 +1309,33 @@ function init() {
   // 매칭 퀴즈 요청 횟수 리셋
   matchingQuizCount = 0;
 
-
-    // 변수 리셋
-    totalWatchTime = 0;
-    lastWatchTime = 0;
-
-
-
-    // hasEndQuizShown = false;
-
-
-
+  // 변수 리셋
+  totalWatchTime = 0;
+  lastWatchTime = 0;
 
   // 마지막 퀴즈가 나온 시점의 시청 시간 리셋
   lastQuizTime = 0;
 
-      // 퀴즈 요청 가능한지 여부 리셋
-    isQuizMode = false;
+  // 퀴즈 요청 가능한지 여부 리셋
+  isQuizMode = false;
 
-    // 같은 영상인지 체크 리셋
-    translatedVideoId = null;
-    isSubtitleInterceptorSet = false;
-    allSubtitles = [];
-    lastSentIndex = -1;
+  // 같은 영상인지 체크 리셋
+  translatedVideoId = null;
+  isSubtitleInterceptorSet = false;
+  allSubtitles = [];
+  lastSentIndex = -1;
 
 
-    // infect.js 자막 가져오는 리스너 체크 리셋
-subtitleDataListener = null;
+  // 현재 영상Id 저장 리셋
+  currentVideoId = null;
 
-// 현재 영상Id 저장 리셋
-currentVideoId = null;
+  // 현재 영상 제목 리셋
+  currentVideoTitle = '';
 
-// 현재 영상 제목 리셋
-currentVideoTitle = '';
-
-// 현재 영상 전체 길이 리셋
-currentDuration = 0;
-// Video가 서버에 저장됐는지 여부 리셋
-isVideoSaved = false;
+  // 현재 영상 전체 길이 리셋
+  currentDuration = 0;
+  // Video가 서버에 저장됐는지 여부 리셋
+  isVideoSaved = false;
 
   // ========== 큐 리셋 ==========
   resetQueue();
@@ -1778,29 +1345,22 @@ isVideoSaved = false;
 
   // ========== 패널 열려있으면 상태 리셋 + 페이지 구분 및 이동 ==========
   handlePageChange();
-  // // 영상 페이지일 경우
-  // if (window.location.href.includes('/watch')) {
-  //   // 추천 영상 숨기기
-  //   setTimeout(hideRecommendations, 500);
-  //   // 현재 영상이 재생중이면 자막 감시하고 아니면 자막 감시 중지
-  //   console.log('리셋 후 감시 여부 확인:', Date.now());
-  //   setTimeout(observeSubtitles, 3000);
-  //   // 영상 페이지가 아닐 경우
-  // } else {
-  //   // 추천 영상 보이기
-  //   showRecommendations();
-  //   // 뱃지 붙이기
-  //   setTimeout(observeThumbnails, 3000);
-  // }
+
+  // ========== 광고 체크 타이머 리셋 ==========
+  if (adCheckTimer) {
+    clearTimeout(adCheckTimer);
+    adCheckTimer = null;
+  }
 }
 
 
 
 // ========== 즉시 실행 (첫 로드/새로고침/F5) ==========
 (function start() {
-  console.log('content.js 시작');
+
   
   chrome.runtime.sendMessage({ type: 'CONTENT_LOADED' });
+  // 이전 영상의 자막, 퀴즈, 시청시간 등의 상태를 리셋
   resetAllState();
 
   // 퀴즈 진행 복원
@@ -1811,13 +1371,15 @@ isVideoSaved = false;
       if (progress) {
         quizSectionCount = progress.sectionCount || 0;
         matchingQuizCount = progress.matchingCount || 0;
-        console.log('퀴즈 진행 복원', quizSectionCount, matchingQuizCount);
       }
     });
   }
 
+  // 현재 페이지 종류에 따라 다른 처리
   handlePageChange();
+  // YouTube SPA 대응 - 페이지 이동 감지
   setupTitleObserver();
-  
+
+  // setupTitleObserver 실행 시 URL이 바뀌었을 때만 실행하게 설정
   lastUrl = location.href;
 })();
