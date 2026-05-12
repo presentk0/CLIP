@@ -89,9 +89,6 @@ function SettlementPage({ data, videoId, videoTitle, channelName, duration, onEx
                   <button
                   // 나중에 페이지별로 고치기 (오류)
                   onClick={() => {
-                    console.log('1. 클릭됨');
-                    console.log('2. onExitPage:', onExitPage);
-                    console.log('3. typeof:', typeof onExitPage);
                     onExitPage()}}
                   style={{
                     display: 'flex',
@@ -110,9 +107,6 @@ function SettlementPage({ data, videoId, videoTitle, channelName, duration, onEx
                   {/* 디폴트페이지로 이동 */}
                   <button
                   onClick={() => {
-                    console.log('11. 클릭됨');
-                    console.log('22. onExitPage:', onExitPage);
-                    console.log('33. typeof:', typeof onExitPage);
                     onExitPage()}}
                   style={{
                     display: 'flex',
