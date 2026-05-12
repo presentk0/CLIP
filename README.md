@@ -93,6 +93,56 @@
 
 ---
 
+## 📁 프로젝트 구조
+
+```
+CLIP
+│
+├── 📁 .github/
+│   └── 📁 workflows/               # GitHub Actions CI/CD
+│       ├── 📄 cd.yml               # 배포 자동화
+│       └── 📄 ci.yml               # 빌드/테스트 자동화
+│
+├── 📁 frontend/                    # Chrome Extension (React + Vite)
+│   ├── 📁 src/
+│   │   ├── 📁 components/          # UI 컴포넌트
+│   │   ├── 📁 imgs/                # 이미지 파일
+│   │   ├── 📁 utils/               # 유틸 함수
+│   │   ├── 📄 App.jsx              # 사이드패널 메인 컴포넌트
+│   │   ├── 📄 background.js        # 서비스 워커 (사이드패널 관리, API 프록시)
+│   │   ├── 📄 content.jsx          # 콘텐츠 스크립트 (자막 처리, 퀴즈 트리거)
+│   │   ├── 📄 inject.js            # YouTube 자막 API 가로채기 (MAIN world)
+│   │   └── 📄 main.jsx
+│   ├── 📄 manifest.json            # 크롬 익스텐션 설정 (MV3)
+│   ├── 📄 sidepanel.html
+│   ├── 📄 vite.config.js
+│   └── 📄 package.json
+│
+├── 📁 backend/                     # Spring Boot API Server
+│   └── 📁 src/
+│   │   ├── 📁 main/
+│   │   │   ├── 📁 java/com/clip/server/
+│   │   │   │   ├── 📁 common/      # 공통 모듈
+│   │   │   │   ├── 📁 progress/    # 학습 진행 관리
+│   │   │   │   ├── 📁 quiz/        # 퀴즈 기능
+│   │   │   │   ├── 📁 subtitle/    # 자막 처리
+│   │   │   │   ├── 📁 translation/ # 번역 기능
+│   │   │   │   ├── 📁 user/        # 사용자 관리
+│   │   │   │   ├── 📁 video/       # 영상 관리
+│   │   │   │   ├── 📁 word/        # 단어 수집
+│   │   │   │   └── 📄 ClipServerApplication.java
+│   │    │   └── 📁 resources/
+│   │    └── 📁 test/                # 테스트 코드
+│   ├── 📁 nginx/                   # Nginx 설정
+│   ├── 📄 Dockerfile               # Docker 이미지 설정
+│   └── 📄 docker-compose.yaml      # 컨테이너 구성
+├── 📄 .gitignore
+└── 📄 README.md
+```
+
+
+---
+
 ## 🚀 배포 현황
 
 | 구분 | 상태 |
