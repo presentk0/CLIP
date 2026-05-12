@@ -7,11 +7,9 @@ import frog1 from '../imgs/image_712.png';
 import { apiFetch } from '../utils/api';
 import bulb from '../imgs/image_62.png';
 import frog2 from '../imgs/image_750.png';
-// import undo_stroke from '../imgs/undo_stroke';
 
 // 렌더링해도 1번만 셔플 (비교값을 -0.5 ~ 0.5으로 설정)
 const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
-
 
 function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage }) {
 
@@ -40,15 +38,6 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
   // 각 문제별 정답/오답 기록
   const [answers, setAnswers] = useState([]);
 
-
-
-  // // 전체 문제 개수
-  // const [totalQuizCount, setTotalQuizCount] = useState(0);
-
-
-
-
-
   // 이전 진행 상황 복원 여부 체크 (중복 저장 방지용)
   const [isRestoring, setIsRestoring] = useState(true);
 
@@ -73,9 +62,6 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
   // 현재 구간 반복 중인지 여부
   const [isLooping, setIsLooping] = useState(false);
 
-
-  // // 이미 조회한 단어 저장
-  // const [cache, setCache] = useState({});
   // 수집한 단어 목록 상태 저장
   const [collectedWords, setCollectedWords] = useState([]);
 
@@ -94,39 +80,23 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
   // 다음 목표 뱃지 저장
   const [nextBadge, setNextBadge] = useState(null);
 
-  // // videoId 바뀌면 자막 조회
-  // useEffect(() => {
-  //   console.log('자막조회전', Date.now());
-  //   // videoId가 다르면 미실행
-  //   if (!videoId) return;
-  //   console.log('현재 영상', Date.now(), videoId);
-  //   const fetchSubtitles = async () => {
-  //     try {
-  //       // 서버에서 자막 조회
-  //       const response = await apiFetch(`/videos/${videoId}/subtitles`, {
-  //         method: 'GET'
-  //       });
-  //       console.log(Date.now(), `GET /videos/${videoId}/subtitles`, response);
-  //       // 자막이 있으면 시간순 정렬 후 저장
-  //       if (response?.data?.subtitles?.length > 0) {
-  //         console.log('자막있음:', response.data.subtitles.length, '개', Date.now());
-  //         const sorted = response.data.subtitles.sort((a, b) => a.startTime - b.startTime);
-  //         setSubtitles(sorted);
-  //         setSubtitleIndex(sorted.length - 1);
-  //         setCurrentSubtitle(sorted[sorted.length - 1]);
-  //       }
-  //     } catch (error) {
-  //       console.log('자막 조회 실패:', Date.now(), error);
-  //     }
-  //   };
-  //   fetchSubtitles();
-  // }, [videoId])
+  // 매칭 퀴즈 선택한 영단어
+  const [matchingSelectedWord, setMatchingSelectedWord] = useState(null);
+  // 매칭 퀴즈 선택한 뜻
+  const [matchingSelectedMeaning, setMatchingSelectedMeaning] = useState(null);
+  // 매칭 퀴즈 맞춘 쌍들
+  const [matchingMatchedPairs, setMatchingMatchedPairs] = useState([]);
+  // 매칭 퀴즈 틀린 쌍 (1초 표시용)
+  const [matchingWrongPair, setMatchingWrongPair] = useState(null);
+
+  // 퀴즈 셔플용
+  const [matchingShuffledMeanings, setMatchingShuffledMeanings] = useState([]);
+
 
 
   // content.jsx에서 자막 수신
   useEffect(() => {
     const listener = (message) => {
-      console.log('퀴즈 받음1:', message.type, Date.now());
 
       // 전체 자막 수신
       if (message.type === 'SUBTITLES_LOADED') {
@@ -138,7 +108,6 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
 
       // 새 자막 도착
       if (message.type === 'SUBTITLE_UPDATE') {
-        console.log('퀴즈 페이지 자막 받음', Date.now());
         const newSubtitle = {
           text: message.text,
           startTime: message.startTime,
@@ -172,6 +141,7 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
   }, []);
 
 
+
   // 수집한 단어 목록 조회
   useEffect(() => {
     const fetchCollectedWords = async () => {
@@ -182,7 +152,6 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
         if (response?.data?.words) {
           setCollectedWords(response.data.words);
         }
-        console.log('GET /words/my-collection', response);
       } catch (error) {console.log('단어 목록 조회 에러', error)}
     };
     fetchCollectedWords();
@@ -200,6 +169,7 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
   };
 
 
+
   // 다음 자막 스크립트 이동
   const goNext = () => {
     if (subtitleIndex < subtitles.length - 1) {
@@ -208,6 +178,7 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
       setCurrentSubtitle(subtitles[newIndex]);
     }
   };
+
 
 
   // 구간 반복 재생 (startTime ~ endTime)
@@ -232,50 +203,31 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
   };
 
 
-  // // 번역 API 호출
-  // async function fetchTranslation(word) {
-  //   try {
-  //     const response = await apiFetch('/translate/subtitles', {
-  //       method: 'POST',
-  //       body: JSON.stringify({
-  //         videoId: videoId,
-  //         // 배열로 보내기
-  //         texts: [word]
-  //       })
-  //     });
-  //     return response?.data?.translatedTexts?.[0] || '';
-  //   } catch (error) {
-  //     console.log('번역 실패', error);
-  //     return '';
-  //   }
-  // }
 
   // 단서 사전 번역 API 호출
   async function fetchTranslation(word) {
-  try {
-    const response = await apiFetch('/translate/subtitles', {
-      method: 'POST',
-      body: JSON.stringify({
-        videoId: videoId,
-        title: videoTitle,
-        duration: duration,
-        subtitleRequests: [
-          {
-            text: word,
-            startTime: currentSubtitle.startTime,
-            endTime: currentSubtitle.endTime,
-          }
-        ]
-      })
-    });
-    console.log('POST /translate/subtitles', response);
-    return response?.data?.translatedTexts?.[0] || '';
-  } catch (error) {
-    console.log('번역 실패', error);
-    return '';
+    try {
+      const response = await apiFetch('/translate/subtitles', {
+        method: 'POST',
+        body: JSON.stringify({
+          videoId: videoId,
+          title: videoTitle,
+          duration: duration,
+          subtitleRequests: [
+            {
+              text: word,
+              startTime: currentSubtitle.startTime,
+              endTime: currentSubtitle.endTime,
+            }
+          ]
+        })
+      });
+      return response?.data?.translatedTexts?.[0] || '';
+    } catch (error) {
+      console.log('번역 실패', error);
+      return '';
+    }
   }
-}
-
 
 
 
@@ -290,11 +242,9 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
       setDictionaryData(null);
       setClickedSubtitle(null);
 
-          // 나중에 조회해서 이미 수집했는지 확인 후 대응하기 (오류)
-    setIsCollected(false);
-
+      // 나중에 조회해서 이미 수집했는지 확인 후 대응하기 (오류)
+      setIsCollected(false);
       // return 없으면 다른 단어 클릭 시 즉시 이동
-      // return;
     }
 
     // 클릭 시점의 자막 정보 저장 (단어 수집용)
@@ -344,24 +294,12 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
       return;
     }
 
-    // // 이미 조회한 단어면 캐시에서 가져오기
-    // if (cache[word]) {
-    //   console.log('캐시:', cache[word]);
-    //   setDictionaryData(cache[word]);
-    //   setIsPinned(true);
-    //   return;
-    // }
-
     // 사전 API 호출
     try {
       const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
-      console.log('사전api');
       
       // 에러날 경우 기존 팝업 유지
       if (!response.ok) {
-        // setIsPinned(false);
-        // setDictionaryData(null);
-        // setClickedSubtitle(null);
         return;
       }
 
@@ -377,14 +315,11 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
           setIsPinned(false);
           setDictionaryData(null);
           setClickedSubtitle(null);
-          console.log('품사 없음');
           return;
         }
 
         // 해당 품사의 첫 번째 뜻 목록 가져오기
         const def = meaning.definitions[0];
-        console.log('원본:', def.definition);
-        console.log('정제:', def.definition.replace(/\([^)]*\)/g, '').trim());
         const result = {
           word: word,
           // 발음 기호(품사는 있어도 발음이 없는 경우가 있음)
@@ -403,45 +338,30 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
           antonyms: meaning.antonyms?.slice(0, 5) || [],
           // 단어 번역
           meaningTranslation: '',
-          // // 예문 번역
-          // exampleTranslation: ''
         };
 
         // 뜻 번역
         result.meaningTranslation = await fetchTranslation(result.definition) || '';
 
-        // // 예문 있을 때만 번역
-        // if (result.example) {
-        //   result.exampleTranslation = await fetchTranslation(result.example) || '';
-        // }
-
-        // // 캐시에 저장
-        // setCache(prev => ({ ...prev, [word]: result }));
         setDictionaryData(result);
         setIsPinned(true);
 
         // 팝업 열 때 서버에 타입 POPUP으로 보내기
-        const popupResponse = await apiFetch('/words/collect', {
+        await apiFetch('/words/collect', {
           method: 'POST',
           body: JSON.stringify({
             wordType: 'POPUP',
             videoId: videoId,
             word: word,
             meaning: result.meaningTranslation,
-            // example: result.exampleTranslation,
             sentence: savedSubtitle.text,
             timestamp: formatTime(savedSubtitle.startTime),
             // set은 다음 렌더링에 반영되기에 즉시 사용해야 하는 api는 dictionaryData.translation 대신 savedSubtitle.translation 사용
             // 또한 dictionaryData가 null이면 에러나기에 result로 ''처리
             translation: savedSubtitle.translation,
-            // translation: result.translation,
             title: videoTitle
           })
         });
-        console.log('POST /words/collect', 'POPUP', videoId, word, result.meaningTranslation, savedSubtitle.text, formatTime(savedSubtitle.startTime), savedSubtitle.translation, videoTitle, popupResponse);
-        // .then((response) => {
-        //   console.log('POST /words/collect', body, response);
-        // }).catch((error) => {console.log('이거 에러11:', error)});
       }
     } catch (error) {
       console.log('사전 조회 실패:', error);
@@ -451,6 +371,7 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
       return;
     }
   };
+
 
 
   // 사전 팝업 닫기
@@ -464,6 +385,7 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
   };
 
 
+
   // 시간 형식 변환 (초 → 00:00:00)
   const formatTime = (seconds) => {
     const h = Math.floor(seconds / 3600);
@@ -473,34 +395,33 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
   };
 
 
+
   // 단어 수집 버튼
   const collectWord = async () => {
     try {
-      const response = await apiFetch('/words/collect', {
+      await apiFetch('/words/collect', {
         method: 'POST',
         body: JSON.stringify({
           wordType: 'COLLECT',
           videoId: videoId,
           word: dictionaryData.word,
           meaning: dictionaryData.meaningTranslation,
-          // example: dictionaryData.exampleTranslation,
           // 단어가 포함된 문장
           sentence: clickedSubtitle.text,
           // 영상 시간
           timestamp: formatTime(currentSubtitle.startTime),
           // 단어가 포함된 문장 뜻
           translation: clickedSubtitle.translation,
-          // translation: dictionaryData.translation,
           // 영상 제목
           title: videoTitle
         })
       });
       setIsCollected(true);
-      console.log('POST /words/collect', 'COLLECT', videoId, dictionaryData.word, dictionaryData.meaningTranslation, clickedSubtitle.text, formatTime(currentSubtitle.startTime), clickedSubtitle.translation, videoTitle, response);
     } catch (error) {
       console.log('단어 수집 실패:', error);
     }
   };
+
 
 
   // 해당하는 품사를 한글로 변환
@@ -512,13 +433,13 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
   };
 
 
+
   // 단어의 품사 구분 및 일부 단어 필터링
   const getWordFilter = (sentence, word) => {
     // 원본 자막 넣기
     const doc = nlp(sentence);
     // 해당 단어를 자막에서 찾고 관련 태그들을 부여
     const match = doc.match(word);
-    console.log(match);
 
     // 구동사 체크
     const phrasalVerb = doc.match('#PhrasalVerb').text();
@@ -549,17 +470,19 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
     // 감탄사 제외
     if (match.has('#Interjection')) return false;
 
-
     // 가장 처음 품사 가져오기
     const tags = match.json()[0]?.terms?.[0]?.tags;
       if (tags && tags.length > 0) {
-        const firstTag = [...tags][0];  // Set → Array
-        return firstTag.toLowerCase();  // 'Verb' → 'verb'
+        // Set → Array
+        const firstTag = [...tags][0];
+        // 'Verb' → 'verb'
+        return firstTag.toLowerCase();
       }
 
     // 품사를 모르면 null
     return null;
   };
+
 
 
   // 빈칸 퀴즈 보기 버튼 위치
@@ -575,10 +498,11 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
   ];
 
 
+
   // 현재 문제 정보
   const currentQuiz = quizzes[currentIndex];
-  // const isCorrect = tempChoice === currentQuiz?.correctAnswer;
   const isCorrect = feedback?.correct;
+
 
 
   // ox퀴즈용 특정 단어 강조하기
@@ -598,12 +522,12 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
 
     return (
       <div style={{
-          color: '#01030D',
-          fontFamily: 'Pretendard',
-          fontSize: '16px',
-          fontStyle: 'normal',
-          fontWeight: '700',
-          lineHeight: 'normal',
+        color: '#01030D',
+        fontFamily: 'Pretendard',
+        fontSize: '16px',
+        fontStyle: 'normal',
+        fontWeight: '700',
+        lineHeight: 'normal',
       }}>
         {before}
         <span style={{
@@ -622,444 +546,413 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
   };
 
 
+
   // 빈칸 퀴즈 타입별 나타나는 박스
   const blankQuiz = () => {
     if (!currentQuiz?.options?.length) return null;
     return(
-              // {/* 전체 퀴즈 박스 */}
+      // {/* 전체 퀴즈 박스 */}
+      <div style={{
+        display: 'flex',
+        width: '370px',
+        padding: '24px 16px 20px 16px',
+        flexDirection: 'column',
+        alignItems: 'flex-start',
+        gap: '24px',
+        borderRadius: '24px',
+        background: '#FFF'
+      }}>
+
+        {/* 문제 박스 */}
+        <div style={{
+          display: 'flex',
+          width: '334px',
+          padding: '0 4px',
+          flexDirection: 'column',
+          alignItems: 'flex-start',
+          gap: '12px',
+        }}>
+
+          {/* 빈칸 채우기 박스 */}
+          <div style={{
+            display: 'flex',
+            padding: '6px 12px',
+            justifyContent: 'center',
+            alignItems: 'center',
+            borderRadius: '999px',
+            background: '#F5F3FF',
+          }}>
+
+            <p style={{
+              color: '#01030D',
+              fontFamily: 'Pretendard',
+              fontSize: '12px',
+              fontStyle: 'normal',
+              fontWeight: '400',
+              lineHeight: 'normal'
+            }}>
+              빈칸 채우기
+            </p>
+          </div>
+
+          {/* 자막, 뜻 들어가는 박스 */}
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-start',
+            gap: '8px',
+            alignSelf: 'stretch'
+          }}>
+
+            {/* 자막 전용 박스 */}
+            <div style={{
+              display: 'flex',
+              width: '191px',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              gap: '4px'
+            }}>
+
+              {/* 빈칸 채우기 문제 자막 박스 */}
               <div style={{
                 display: 'flex',
-                width: '370px',
-                padding: '24px 16px 20px 16px',
-                flexDirection: 'column',
-                alignItems: 'flex-start',
-                gap: '24px',
-                borderRadius: '24px',
-                background: '#FFF'
+                alignItems: 'flex-end',
+                gap: '4px',
+                alignSelf: 'stretch'
               }}>
 
-                {/* 문제 박스 */}
-                <div style={{
-                  display: 'flex',
-                  width: '334px',
-                  padding: '0 4px',
-                  flexDirection: 'column',
-                  alignItems: 'flex-start',
-                  gap: '12px',
-                }}>
-
-                  {/* 빈칸 채우기 박스 */}
-                  <div style={{
-                    display: 'flex',
-                    padding: '6px 12px',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    borderRadius: '999px',
-                    background: '#F5F3FF',
-                  }}>
-
-
-                    <p style={{
-                      color: '#01030D',
-                      fontFamily: 'Pretendard',
-                      fontSize: '12px',
-                      fontStyle: 'normal',
-                      fontWeight: '400',
-                      lineHeight: 'normal'
-                    }}>
-                      빈칸 채우기
-                    </p>
-                  </div>
-
-                  {/* 자막, 뜻 들어가는 박스 */}
-                  <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'flex-start',
-                    gap: '8px',
-                    alignSelf: 'stretch'
-                  }}>
-
-                    {/* 자막 전용 박스 */}
-                    <div style={{
-                      display: 'flex',
-                      width: '191px',
-                      flexDirection: 'column',
-                      alignItems: 'flex-start',
-                      gap: '4px'
-                    }}>
-
-                      {/* 빈칸 채우기 문제 자막 박스 */}
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'flex-end',
-                        gap: '4px',
-                        alignSelf: 'stretch'
-                      }}>
-
-                        {/* 빈칸 채우기 문제 질문 */}
-                        <p style={{ 
-                          alignSelf: 'stretch',
-                          color: '#01030D',
-                          fontFamily: 'Pretendard',
-                          fontSize: '16px',
-                          fontStyle: 'normal',
-                          fontWeight: '700',
-                          lineHeight: 'normal'
-                        }}>
-                          {/* 회색 박스 대신 _____ 사용 */}
-                          {currentQuiz?.content.replace('[ ]', tempChoice || '[ ]')}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* 빈칸 채우기 문제 번역 */}
-                    <p style={{
-                      alignSelf: 'stretch',
-                      color: '#9198A3',
-                      fontFamily: 'Pretendard',
-                      fontSize: '16px',
-                      fontStyle: 'normal',
-                      fontWeight: '700',
-                      lineHeight: 'normal'
-                    }}>
-                      {currentQuiz?.translation}
-                    </p>
-                  </div>
-                </div>
-
-                {/* 보기 버튼 전체 박스 */}
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  alignContent: 'flex-start',
-                  gap: '8px',
+                {/* 빈칸 채우기 문제 질문 */}
+                <p style={{ 
                   alignSelf: 'stretch',
-                  flexWrap: 'wrap'
+                  color: '#01030D',
+                  fontFamily: 'Pretendard',
+                  fontSize: '16px',
+                  fontStyle: 'normal',
+                  fontWeight: '700',
+                  lineHeight: 'normal'
                 }}>
-
-                  {/* 보기 버튼 */}
-                  {currentQuiz?.options.map((choice, i) => (
-                    <button
-                    key={i}
-                    disabled={isConfirmed}
-                    onClick={() => handleChoice(choice)}
-                    style={{
-                      display: 'flex',
-                      width: '165px',
-                      height: '40px',
-                      padding: buttonPositions[i].padding,
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                      gap: '10px',
-                      borderRadius: '10px',
-                      border: borderColor(choice),
-                      // border: tempChoice === choice ? '2px solid #EEE' : '1px solid #E7E6EB',
-                      background: backgroundColor(choice),
-                      // background: tempChoice === choice ? '#F8F8FA' : '#FFF',
-                      boxShadow: '0 4px 4px 0 rgba(206, 210, 223, 0.16)',
-                      color: textColor(choice),
-                      // color: '#4D525C',
-                      textAlign: 'center',
-                      fontFamily: 'Pretendard',
-                      fontSize: '14px',
-                      fontStyle: 'normal',
-                      fontWeight: '400',
-                      lineHeight: 'normal',
-                    }}>
-                      {choice}
-                    </button>
-                  ))}
-                </div>
+                  {/* 회색 박스 대신 _____ 사용 */}
+                  {currentQuiz?.content.replace('[ ]', tempChoice || '[ ]')}
+                </p>
               </div>
+            </div>
+
+            {/* 빈칸 채우기 문제 번역 */}
+            <p style={{
+              alignSelf: 'stretch',
+              color: '#9198A3',
+              fontFamily: 'Pretendard',
+              fontSize: '16px',
+              fontStyle: 'normal',
+              fontWeight: '700',
+              lineHeight: 'normal'
+            }}>
+              {currentQuiz?.translation}
+            </p>
+          </div>
+        </div>
+
+        {/* 보기 버튼 전체 박스 */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          alignContent: 'flex-start',
+          gap: '8px',
+          alignSelf: 'stretch',
+          flexWrap: 'wrap'
+        }}>
+
+          {/* 보기 버튼 */}
+          {currentQuiz?.options.map((choice, i) => (
+            <button
+            key={i}
+            disabled={isConfirmed}
+            onClick={() => handleChoice(choice)}
+            style={{
+              display: 'flex',
+              width: '165px',
+              height: '40px',
+              padding: buttonPositions[i].padding,
+              justifyContent: 'center',
+              alignItems: 'center',
+              gap: '10px',
+              borderRadius: '10px',
+              border: borderColor(choice),
+              background: backgroundColor(choice),
+              boxShadow: '0 4px 4px 0 rgba(206, 210, 223, 0.16)',
+              color: textColor(choice),
+              textAlign: 'center',
+              fontFamily: 'Pretendard',
+              fontSize: '14px',
+              fontStyle: 'normal',
+              fontWeight: '400',
+              lineHeight: 'normal',
+            }}>
+              {choice}
+            </button>
+          ))}
+        </div>
+      </div>
     );
   }
 
 
 
-
-
-    // ox 퀴즈 타입별 나타나는 박스
+  // ox 퀴즈 타입별 나타나는 박스
   const oxQuiz = () => {
     if (!currentQuiz) return null;
     return(
-              // {/* 전체 퀴즈 박스 */}
+      // {/* 전체 퀴즈 박스 */}
+      <div style={{
+        display: 'flex',
+        width: '370px',
+        padding: '24px 16px 20px 16px',
+        flexDirection: 'column',
+        justifyContent: 'flex-end',
+        alignItems: 'flex-start',
+        gap: '24px',
+        borderRadius: '24px',
+        background: '#FFF'
+      }}>
+
+        {/* 문제 박스 */}
+        <div style={{
+          display: 'flex',
+          width: '334px',
+          padding: '0 4px',
+          flexDirection: 'column',
+          alignItems: 'flex-start',
+          gap: '12px',
+        }}>
+
+          {/* 빈칸 채우기 박스 */}
+          <div style={{
+            display: 'flex',
+            padding: '6px 12px',
+            justifyContent: 'center',
+            alignItems: 'center',
+            borderRadius: '999px',
+            background: '#F5F3FF',
+          }}>
+
+            <p style={{
+              color: '#01030D',
+              fontFamily: 'Pretendard',
+              fontSize: '12px',
+              fontStyle: 'normal',
+              fontWeight: '400',
+              lineHeight: 'normal'
+            }}>
+              OX 퀴즈
+            </p>
+          </div>
+
+          {/* ox 문제 질문, 뜻 들어가는 박스 */}
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-start',
+            gap: '8px',
+            alignSelf: 'stretch'
+          }}>
+
+            {/* ox 문제 질문 전용 박스 */}
+            <div style={{
+              display: 'flex',
+              width: '191px',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              gap: '4px'
+            }}>
+
+              {/* ox 문제 질문 박스 */}
               <div style={{
                 display: 'flex',
-                width: '370px',
-                padding: '24px 16px 20px 16px',
-                flexDirection: 'column',
-                justifyContent: 'flex-end',
-                alignItems: 'flex-start',
-                gap: '24px',
-                borderRadius: '24px',
-                background: '#FFF'
+                alignItems: 'flex-end',
+                gap: '4px',
+                alignSelf: 'stretch'
               }}>
 
-                {/* 문제 박스 */}
-                <div style={{
-                  display: 'flex',
-                  width: '334px',
-                  padding: '0 4px',
-                  flexDirection: 'column',
-                  alignItems: 'flex-start',
-                  gap: '12px',
-                }}>
-
-                  {/* 빈칸 채우기 박스 */}
-                  <div style={{
-                    display: 'flex',
-                    padding: '6px 12px',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    borderRadius: '999px',
-                    background: '#F5F3FF',
-                  }}>
-
-
-                    <p style={{
-                      color: '#01030D',
-                      fontFamily: 'Pretendard',
-                      fontSize: '12px',
-                      fontStyle: 'normal',
-                      fontWeight: '400',
-                      lineHeight: 'normal'
-                    }}>
-                      OX 퀴즈
-                    </p>
-                  </div>
-
-                  {/* ox 문제 질문, 뜻 들어가는 박스 */}
-                  <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'flex-start',
-                    gap: '8px',
-                    alignSelf: 'stretch'
-                  }}>
-
-                    {/* ox 문제 질문 전용 박스 */}
-                    <div style={{
-                      display: 'flex',
-                      width: '191px',
-                      flexDirection: 'column',
-                      alignItems: 'flex-start',
-                      gap: '4px'
-                    }}>
-
-                      {/* ox 문제 질문 박스 */}
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'flex-end',
-                        gap: '4px',
-                        alignSelf: 'stretch'
-                      }}>
-
-                        {/* ox 문제 질문 */}
-                        <p>
-                          {highlightWord(currentQuiz?.content, currentQuiz?.question?.match(/[a-zA-Z]+/)?.[0])}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* ox 문제 질문 뜻 */}
-                    <p style={{
-                      alignSelf: 'stretch',
-                      color: '#9198A3',
-                      fontFamily: 'Pretendard',
-                      fontSize: '16px',
-                      fontStyle: 'normal',
-                      fontWeight: '700',
-                      lineHeight: 'normal'
-                    }}>
-                      {currentQuiz?.translation}
-                    </p>
-                  </div>
-                </div>
-
-                {/* 보기 버튼 전체 박스 */}
-                <div style={{
-                  display: 'inline-grid',
-                  height: '60px',
-                  columnGap: '8px',
-                  gridTemplateRows: 'repeat(1,fit-content(100%))',
-                  gridTemplateColumns: 'repeat(2,fit-content(100%))',
-                }}>
-
-                  {/* O 버튼 */}
-                  <button
-                  disabled={isConfirmed}
-                  onClick={() => handleChoice('O')}
-                  style={{
-                    display: 'flex',
-                    width: '165px',
-                    height: '60px',
-                    padding: '11px 63px 12px 63px',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    gap: '10px',
-                    gridRow: '1 / span 1',
-                    gridColumn: '1 / span 1',
-                    borderRadius: '14px',
-                    border: oxBorderColor('O'),
-                    background: oxBackgroundColor('O'),
-                    boxShadow: tempChoice === 'O' ? '0 4px 4px 0 rgba(206, 210, 223, 0.16)' : 'none',
-                  }}>
-                    O
-                  </button>
-
-                  {/* X 버튼 */}
-                  <button
-                  disabled={isConfirmed}
-                  onClick={() => handleChoice('X')}
-                  style={{
-                    display: 'flex',
-                    width: '165px',
-                    height: '60px',
-                    padding: '11px 63px 12px 63px',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    gap: '10px',
-                    gridRow: '1 / span 1',
-                    gridColumn: '2 / span 1',
-                    borderRadius: '14px',
-                    border: oxBorderColor('X'),
-                    background: oxBackgroundColor('X'),
-                    boxShadow: tempChoice === 'X' ? '0 4px 4px 0 rgba(206, 210, 223, 0.16)' : 'none',
-                  }}>
-                    X
-                  </button>
-                </div>
+                {/* ox 문제 질문 */}
+                <p>
+                  {highlightWord(currentQuiz?.content, currentQuiz?.question?.match(/[a-zA-Z]+/)?.[0])}
+                </p>
               </div>
+            </div>
+
+            {/* ox 문제 질문 뜻 */}
+            <p style={{
+              alignSelf: 'stretch',
+              color: '#9198A3',
+              fontFamily: 'Pretendard',
+              fontSize: '16px',
+              fontStyle: 'normal',
+              fontWeight: '700',
+              lineHeight: 'normal'
+            }}>
+              {currentQuiz?.translation}
+            </p>
+          </div>
+        </div>
+
+        {/* 보기 버튼 전체 박스 */}
+        <div style={{
+          display: 'inline-grid',
+          height: '60px',
+          columnGap: '8px',
+          gridTemplateRows: 'repeat(1,fit-content(100%))',
+          gridTemplateColumns: 'repeat(2,fit-content(100%))',
+        }}>
+
+          {/* O 버튼 */}
+          <button
+          disabled={isConfirmed}
+          onClick={() => handleChoice('O')}
+          style={{
+            display: 'flex',
+            width: '165px',
+            height: '60px',
+            padding: '11px 63px 12px 63px',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: '10px',
+            gridRow: '1 / span 1',
+            gridColumn: '1 / span 1',
+            borderRadius: '14px',
+            border: oxBorderColor('O'),
+            background: oxBackgroundColor('O'),
+            boxShadow: tempChoice === 'O' ? '0 4px 4px 0 rgba(206, 210, 223, 0.16)' : 'none',
+          }}>
+            O
+          </button>
+
+          {/* X 버튼 */}
+          <button
+          disabled={isConfirmed}
+          onClick={() => handleChoice('X')}
+          style={{
+            display: 'flex',
+            width: '165px',
+            height: '60px',
+            padding: '11px 63px 12px 63px',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: '10px',
+            gridRow: '1 / span 1',
+            gridColumn: '2 / span 1',
+            borderRadius: '14px',
+            border: oxBorderColor('X'),
+            background: oxBackgroundColor('X'),
+            boxShadow: tempChoice === 'X' ? '0 4px 4px 0 rgba(206, 210, 223, 0.16)' : 'none',
+          }}>
+            X
+          </button>
+        </div>
+      </div>
     );
   }
 
 
 
-
-
-
-    // 매칭 퀴즈 타입별 나타나는 박스
+  // 매칭 퀴즈 타입별 나타나는 박스
   const matchingQuiz = () => {
     if (!quizzes?.length || !matchingShuffledMeanings?.length) return null;
     return(
-              // {/* 전체 퀴즈 박스 */}
-              <div style={{
-                display: 'flex',
-                width: '370px',
-                padding: '24px 16px 20px 16px',
-                flexDirection: 'column',
-                alignItems: 'flex-start',
-                gap: '24px',
-                borderRadius: '24px',
-                background: '#FFF'
-              }}>
+      // {/* 전체 퀴즈 박스 */}
+      <div style={{
+        display: 'flex',
+        width: '370px',
+        padding: '24px 16px 20px 16px',
+        flexDirection: 'column',
+        alignItems: 'flex-start',
+        gap: '24px',
+        borderRadius: '24px',
+        background: '#FFF'
+      }}>
 
-                {/* 문제 박스 */}
-                <div style={{
-                  display: 'flex',
-                  width: '334px',
-                  padding: '0 4px',
-                  flexDirection: 'column',
-                  alignItems: 'flex-start',
-                  gap: '12px',
-                }}>
+        {/* 문제 박스 */}
+        <div style={{
+          display: 'flex',
+          width: '334px',
+          padding: '0 4px',
+          flexDirection: 'column',
+          alignItems: 'flex-start',
+          gap: '12px',
+        }}>
 
-                  {/* 단어와 뜻 매칭하기 박스 */}
-                  <div style={{
+          {/* 단어와 뜻 매칭하기 박스 */}
+          <div style={{
+            display: 'flex',
+            padding: '6px 12px',
+            justifyContent: 'center',
+            alignItems: 'center',
+            borderRadius: '999px',
+            background: '#F5F3FF',
+          }}>
+
+            <p style={{
+              color: '#01030D',
+              fontFamily: 'Pretendard',
+              fontSize: '12px',
+              fontStyle: 'normal',
+              fontWeight: '400',
+              lineHeight: 'normal'
+            }}>
+              단어와 뜻 매칭하기
+            </p>
+          </div>
+
+          {/* 단어와 뜻 들어가는 박스 */}
+          <div style={{
+            display: 'inline-grid',
+            rowGap: '8px',
+            columnGap: '8px',
+            alignSelf: 'stretch',
+            gridTemplateRows: 'repeat(3,fit-content(100%))',
+            gridTemplateColumns: 'repeat(2,minmax(0,1fr))',
+          }}>
+
+            {/* 매칭 퀴즈 보기 버튼 */}
+            {quizzes?.map((quiz, i) => (
+              <React.Fragment key={i}>
+                {/* 영어 단어 */}
+                <button
+                  disabled={matchingMatchedPairs.some(p => p.word === quiz.question)}
+                  onClick={() => matchingHandleWordClick(quiz.question)}
+                  style={{
                     display: 'flex',
-                    padding: '6px 12px',
+                    width: '165px',
+                    height: '40px',
                     justifyContent: 'center',
                     alignItems: 'center',
-                    borderRadius: '999px',
-                    background: '#F5F3FF',
-                  }}>
+                    borderRadius: '10px',
+                    ...matchingGetWordStyle(quiz.question),
+                }}>
+                  {quiz.question}
+                </button>
 
-
-                    <p style={{
-                      color: '#01030D',
-                      fontFamily: 'Pretendard',
-                      fontSize: '12px',
-                      fontStyle: 'normal',
-                      fontWeight: '400',
-                      lineHeight: 'normal'
-                    }}>
-                      단어와 뜻 매칭하기
-                    </p>
-                  </div>
-
-                  {/* 단어와 뜻 들어가는 박스 */}
-                  <div style={{
-                    display: 'inline-grid',
-                    rowGap: '8px',
-                    columnGap: '8px',
-                    alignSelf: 'stretch',
-                    gridTemplateRows: 'repeat(3,fit-content(100%))',
-                    gridTemplateColumns: 'repeat(2,minmax(0,1fr))',
-                  }}>
-
-
-
-
-
-
-
-                    {/* 매칭 퀴즈 보기 버튼 */}
-                    {quizzes?.map((quiz, i) => (
-  <React.Fragment key={i}>
-    {/* 영어 단어 */}
-    <button
-      disabled={matchingMatchedPairs.some(p => p.word === quiz.question)}
-      onClick={() => matchingHandleWordClick(quiz.question)}
-      style={{
-        display: 'flex',
-        width: '165px',
-        height: '40px',
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderRadius: '10px',
-        ...matchingGetWordStyle(quiz.question),
-      }}
-    >
-      {quiz.question}
-    </button>
-
-    {/* 단어 뜻 */}
-    <button
-      disabled={matchingMatchedPairs.some(p => p.meaning === matchingShuffledMeanings[i])}
-      onClick={() => matchingHandleMeaningClick(matchingShuffledMeanings[i])}
-      style={{
-        display: 'flex',
-        width: '165px',
-        height: '40px',
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderRadius: '10px',
-        ...matchingGetMeaningStyle(matchingShuffledMeanings[i]),
-      }}
-    >
-      {matchingShuffledMeanings[i]}
-    </button>
-  </React.Fragment>
-))}
-
-
-
-
-
-
-
-
-
-
-                  </div>
-                </div>
-
-              </div>
+                {/* 단어 뜻 */}
+                <button
+                  disabled={matchingMatchedPairs.some(p => p.meaning === matchingShuffledMeanings[i])}
+                  onClick={() => matchingHandleMeaningClick(matchingShuffledMeanings[i])}
+                  style={{
+                    display: 'flex',
+                    width: '165px',
+                    height: '40px',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    borderRadius: '10px',
+                    ...matchingGetMeaningStyle(matchingShuffledMeanings[i]),
+                }}>
+                  {matchingShuffledMeanings[i]}
+                </button>
+              </React.Fragment>
+            ))}
+          </div>
+        </div>
+      </div>
     );
   }
-
-
 
 
 
@@ -1087,6 +980,7 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
   };
 
 
+
   // 정답 오답 선택 미선택에 따른 background 색상 변화 (빈칸 퀴즈)
   const backgroundColor = (choice) => {
     // feedback에서 정답 가져오기
@@ -1109,6 +1003,7 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
     // 확정 후: 미선택이면
     return '#F7F7F7';
   };
+
 
 
   // 정답 오답 선택 미선택에 따른 color 색상 변화 (빈칸 퀴즈)
@@ -1136,9 +1031,6 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
 
 
 
-
-
-
   // 정답 오답 선택 미선택에 따른 border 색상 변화 (ox 퀴즈)
   const oxBorderColor = (choice) => {
     // feedback에서 정답 가져오기
@@ -1163,7 +1055,8 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
   };
 
 
-    // 정답 오답 선택 미선택에 따른 background 색상 변화 (ox 퀴즈)
+
+  // 정답 오답 선택 미선택에 따른 background 색상 변화 (ox 퀴즈)
   const oxBackgroundColor = (choice) => {
     // feedback에서 정답 가져오기
     const correctAnswer = feedback?.correctAnswer;
@@ -1188,235 +1081,160 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
 
 
 
+  // 매칭 퀴즈 영단어 클릭
+  const matchingHandleWordClick = (word) => {
+    // 이미 맞춘 단어면 무시
+    if (matchingMatchedPairs.some(pair => pair.word === word)) return;
 
+    // 다른 단어 클릭하면 선택 변경
+    setMatchingSelectedWord(word);
 
-
-// 매칭 퀴즈 선택한 영단어
-const [matchingSelectedWord, setMatchingSelectedWord] = useState(null);
-// 매칭 퀴즈 선택한 뜻
-const [matchingSelectedMeaning, setMatchingSelectedMeaning] = useState(null);
-// 매칭 퀴즈 맞춘 쌍들
-const [matchingMatchedPairs, setMatchingMatchedPairs] = useState([]);
-// 매칭 퀴즈 틀린 쌍 (1초 표시용)
-const [matchingWrongPair, setMatchingWrongPair] = useState(null);
-
-
-
-// 매칭 퀴즈 영단어 클릭
-const matchingHandleWordClick = (word) => {
-  // 이미 맞춘 단어면 무시
-  if (matchingMatchedPairs.some(pair => pair.word === word)) return;
-
-  // 다른 단어 클릭하면 선택 변경
-  setMatchingSelectedWord(word);
-
-  // 뜻이 이미 선택되어 있으면 매칭 시도
-  if (matchingSelectedMeaning) {
-    checkMatch(word, matchingSelectedMeaning);
-  }
-};
-
-// 매칭 퀴즈 뜻 클릭
-const matchingHandleMeaningClick = (meaning) => {
-  // 이미 맞춘 뜻이면 무시
-  if (matchingMatchedPairs.some(pair => pair.meaning === meaning)) return;
-  
-  // 다른 뜻 클릭하면 선택 변경
-  setMatchingSelectedMeaning(meaning);
-  
-  // 단어가 이미 선택되어 있으면 매칭 시도
-  if (matchingSelectedWord) {
-    checkMatch(matchingSelectedWord, meaning);
-  }
-};
-
-
-// 매칭 퀴즈 매칭확인
-const checkMatch = async (word, meaning) => {
-  // 정답 찾기
-  const quiz = quizzes.find(q => q.question === word);
-  const isMatchingCorrect = quiz?.answer === meaning;
-
-  // 이미 전송한 quizId면 서버 전송 스킵
-  const alreadySubmitted = submittedQuizIds.includes(quiz?.quizId);
-
-  
-  console.log('checkMatch 호출');
-  console.log('word:', word);
-  console.log('meaning:', meaning);
-  console.log('quizId:', quiz?.quizId);
-  console.log('이미 전송됨?:', alreadySubmitted);
-  console.log('현재 submittedQuizIds:', submittedQuizIds);
-
-  // 정답일 경우
-  if (isMatchingCorrect) {
-    // 전송하지 않은 quizId인 경우 전송
-    if (!alreadySubmitted) {
-      try {
-        await apiFetch('/quiz/submit', {
-          method: 'POST',
-          body: JSON.stringify({
-            sessionId,
-            quizId: quiz?.quizId,
-            userAnswer: meaning
-          })
-        });
-        setSubmittedQuizIds(prev => [...prev, quiz?.quizId]);
-        console.log('Matching 정답 POST /quiz/submit', quiz?.quizId, meaning);
-      } catch (error) {
-        console.error('매칭 정답 전송 실패:', error);
-      }
+    // 뜻이 이미 선택되어 있으면 매칭 시도
+    if (matchingSelectedMeaning) {
+      checkMatch(word, matchingSelectedMeaning);
     }
+  };
+
+
+
+  // 매칭 퀴즈 뜻 클릭
+  const matchingHandleMeaningClick = (meaning) => {
+    // 이미 맞춘 뜻이면 무시
+    if (matchingMatchedPairs.some(pair => pair.meaning === meaning)) return;
+
+    // 다른 뜻 클릭하면 선택 변경
+    setMatchingSelectedMeaning(meaning);
+
+    // 단어가 이미 선택되어 있으면 매칭 시도
+    if (matchingSelectedWord) {
+      checkMatch(matchingSelectedWord, meaning);
+    }
+  };
+
+
+
+  // 매칭 퀴즈 매칭확인
+  const checkMatch = async (word, meaning) => {
+    // 정답 찾기
+    const quiz = quizzes.find(q => q.question === word);
+    const isMatchingCorrect = quiz?.answer === meaning;
+
+    // 이미 전송한 quizId면 서버 전송 스킵
+    const alreadySubmitted = submittedQuizIds.includes(quiz?.quizId);
+
+    // 정답일 경우
+    if (isMatchingCorrect) {
+      // 전송하지 않은 quizId인 경우 전송
+      if (!alreadySubmitted) {
+        try {
+          await apiFetch('/quiz/submit', {
+            method: 'POST',
+            body: JSON.stringify({
+              sessionId,
+              quizId: quiz?.quizId,
+              userAnswer: meaning
+            })
+          });
+          setSubmittedQuizIds(prev => [...prev, quiz?.quizId]);
+        } catch (error) {
+          console.error('매칭 정답 전송 실패:', error);
+        }
+      }
 
     // 화면 업데이트
     setMatchingMatchedPairs(prev => [...prev, { word, meaning }]);
     setMatchingSelectedWord(null);
     setMatchingSelectedMeaning(null);
-    
-  } else {
-    // 오답일 경우
-    // 전송하지 않은 quizId인 경우 전송
-    if (!alreadySubmitted) {
+    } else {
+      // 오답일 경우
+      // 전송하지 않은 quizId인 경우 전송
+      if (!alreadySubmitted) {
+        try {
+          await apiFetch('/quiz/submit', {
+            method: 'POST',
+            body: JSON.stringify({
+              sessionId,
+              quizId: quiz?.quizId,
+              userAnswer: meaning
+            })
+          });
+          setSubmittedQuizIds(prev => [...prev, quiz?.quizId]);
+        } catch (error) {
+          console.error('매칭 오답 전송 실패:', error);
+        }
+      }
+      setMatchingWrongPair({ word, meaning });
+
+      // 1초 후 초기화
+      setTimeout(() => {
+        setMatchingWrongPair(null);
+        setMatchingSelectedWord(null);
+        setMatchingSelectedMeaning(null);
+      }, 1000);
+    }
+  };
+
+
+
+  // 단어 버튼의 정답 오답 선택 미선택에 따른 background, border, box-shadow 색상 변화 (매칭)
+  const matchingGetWordStyle = (word) => {
+    // 맞춘 단어 - 파란색 유지
+    if (matchingMatchedPairs.some(pair => pair.word === word)) {
+      return { background: '#F0F3FF', border: '1px solid #C1C0FC', boxShadow: '0 4px 4px 0 rgba(206, 210, 223, 0.16)' };
+    }
+    // 틀린 단어 - 주황색
+    if (matchingWrongPair?.word === word) {
+      return { background: '#FFF4EE', border: '1px solid #FFB484', boxShadow: '0 4px 4px 0 rgba(206, 210, 223, 0.16)'};
+    }
+    // 선택된 단어 - 파란색
+    if (matchingSelectedWord === word) {
+      return { background: '#FFF', border: '1px solid #9B87E8', boxShadow: '0 4px 4px 0 rgba(206, 210, 223, 0.16)' };
+    }
+    // 미선택
+    return { background: '#F7F7F7', border: 'none', boxShadow: 'none' };
+  };
+
+
+
+  // 뜻 버튼의 정답 오답 선택 미선택에 따른 background, border, box-shadow 색상 변화 (매칭)
+  const matchingGetMeaningStyle = (meaning) => {
+    // 맞춘 뜻 - 파란색 유지
+    if (matchingMatchedPairs.some(pair => pair.meaning === meaning)) {
+      return { background: '#F0F3FF', border: '1px solid #C1C0FC', boxShadow: '0 4px 4px 0 rgba(206, 210, 223, 0.16)'};
+    }
+    // 틀린 뜻 - 주황색
+    if (matchingWrongPair?.meaning === meaning) {
+      return { background: '#FFF4EE', border: '1px solid #FFB484', boxShadow: '0 4px 4px 0 rgba(206, 210, 223, 0.16)'};
+    }
+    // 선택된 뜻 - 파란색
+    if (matchingSelectedMeaning === meaning) {
+      return { background: '#FFF', border: '1px solid #9B87E8', boxShadow: '0 4px 4px 0 rgba(206, 210, 223, 0.16)'};
+    }
+    // 미선택
+    return { background: '#F7F7F7', border: 'none', boxShadow: 'none' };
+  };
+
+
+
+  // 매칭 퀴즈 결과 보기 버튼
+  const handleMatchingComplete = async () => {
+    // 모든 매칭 완료했는지 확인
+    if (matchingMatchedPairs.length === quizzes.length) {
       try {
-        await apiFetch('/quiz/submit', {
-          method: 'POST',
-          body: JSON.stringify({
-            sessionId,
-            quizId: quiz?.quizId,
-            userAnswer: meaning
-          })
+        const finalResult = await apiFetch(`/quiz/sessions/${sessionId}/complete`, {
+          method: 'POST'
         });
-        setSubmittedQuizIds(prev => [...prev, quiz?.quizId]);
-        console.log('Matching 오답 POST /quiz/submit', quiz?.quizId, meaning);
+        // 저장된 진행 상황 삭제
+        chrome.storage.local.remove('quizState');
+        // 정산 페이지로 이동
+        onSettlementPage(finalResult.data);
       } catch (error) {
-        console.error('매칭 오답 전송 실패:', error);
+        console.error('handleMatchingComplete 세션 종료 실패', error);
+        console.error('handleMatchingComplete 에러 메시지:', error.message);
+        console.error('handleMatchingComplete 에러 스택:', error.stack);
       }
     }
-    setMatchingWrongPair({ word, meaning });
-    
-    // 1초 후 초기화
-    setTimeout(() => {
-      setMatchingWrongPair(null);
-      setMatchingSelectedWord(null);
-      setMatchingSelectedMeaning(null);
-    }, 1000);
-
-    // // 서버에 오답 전송
-    // try {
-    //   await apiFetch('/quiz/submit', {
-    //     method: 'POST',
-    //     body: JSON.stringify({
-    //       sessionId,
-    //       quizId: quiz.quizId,
-    //       userAnswer: meaning
-    //       // selectedAnswer: meaning,
-    //       // isCorrect: false
-    //     })
-    //   });
-    // } catch (error) {
-    //   console.log('오답 전송 실패', error);
-    // }
-  }
-};
-
-
-// 단어 버튼의 정답 오답 선택 미선택에 따른 background, border, box-shadow 색상 변화 (매칭)
-const matchingGetWordStyle = (word) => {
-  // 맞춘 단어 - 파란색 유지
-  if (matchingMatchedPairs.some(pair => pair.word === word)) {
-    return { background: '#F0F3FF', border: '1px solid #C1C0FC', boxShadow: '0 4px 4px 0 rgba(206, 210, 223, 0.16)' };
-  }
-  // 틀린 단어 - 주황색
-  if (matchingWrongPair?.word === word) {
-    return { background: '#FFF4EE', border: '1px solid #FFB484', boxShadow: '0 4px 4px 0 rgba(206, 210, 223, 0.16)'};
-  }
-  // 선택된 단어 - 파란색
-  if (matchingSelectedWord === word) {
-    return { background: '#FFF', border: '1px solid #9B87E8', boxShadow: '0 4px 4px 0 rgba(206, 210, 223, 0.16)' };
-  }
-  // 미선택
-  return { background: '#F7F7F7', border: 'none', boxShadow: 'none' };
-};
-
-
-// 뜻 버튼의 정답 오답 선택 미선택에 따른 background, border, box-shadow 색상 변화 (매칭)
-const matchingGetMeaningStyle = (meaning) => {
-  // 맞춘 뜻 - 파란색 유지
-  if (matchingMatchedPairs.some(pair => pair.meaning === meaning)) {
-    return { background: '#F0F3FF', border: '1px solid #C1C0FC', boxShadow: '0 4px 4px 0 rgba(206, 210, 223, 0.16)'};
-  }
-  // 틀린 뜻 - 주황색
-  if (matchingWrongPair?.meaning === meaning) {
-    return { background: '#FFF4EE', border: '1px solid #FFB484', boxShadow: '0 4px 4px 0 rgba(206, 210, 223, 0.16)'};
-  }
-  // 선택된 뜻 - 파란색
-  if (matchingSelectedMeaning === meaning) {
-    return { background: '#FFF', border: '1px solid #9B87E8', boxShadow: '0 4px 4px 0 rgba(206, 210, 223, 0.16)'};
-  }
-  // 미선택
-  return { background: '#F7F7F7', border: 'none', boxShadow: 'none' };
-};
-
-
-// 퀴즈 셔플용
-const [matchingShuffledMeanings, setMatchingShuffledMeanings] = useState([]);
-
-
-
-// 매칭 퀴즈 결과 보기 버튼
-const handleMatchingComplete = async () => {
-  // 모든 매칭 완료했는지 확인
-  if (matchingMatchedPairs.length === quizzes.length) {
-
-    // try {
-    //   // 5개 단어쌍 각각 전송
-    //   for (const pair of matchingMatchedPairs) {
-    //     const quiz = quizzes.find(q => q.question === pair.word);
-
-    //     await apiFetch('/quiz/submit', {
-    //       method: 'POST',
-    //       body: JSON.stringify({
-    //         sessionId,
-    //         quizId: quiz?.quizId,
-    //         // 매칭한 뜻
-    //         userAnswer: pair.meaning
-    //       })
-    //     });
-    //   }
-    // } catch (error) {
-    //   console.error('5개 단어쌍 각각 제출 실패', error);
-    // }
-  console.log('/complete 호출 전');
-  console.log('sessionId:', sessionId);
-  console.log('matchingMatchedPairs:', matchingMatchedPairs.length);
-
-    try {
-      const finalResult = await apiFetch(`/quiz/sessions/${sessionId}/complete`, {
-        method: 'POST'
-      });
-      console.log('정산완료');
-      console.log(finalResult.data);
-      // 저장된 진행 상황 삭제
-      chrome.storage.local.remove('quizState');
-      // 정산 페이지로 이동
-      onSettlementPage(finalResult.data);
-    } catch (error) {
-      console.error('handleMatchingComplete 세션 종료 실패', error);
-      console.error('handleMatchingComplete 에러 메시지:', error.message);
-  console.error('handleMatchingComplete 에러 스택:', error.stack);
-    }
-  }
-};
-
-
-
-
-
-
-
-
-
-
+  };
 
 
 
@@ -1424,7 +1242,6 @@ const handleMatchingComplete = async () => {
   useEffect(() => {
     // 크롬 저장소에서 이전 진행 상황 확인
     chrome.storage.local.get('quizState', async (result) => {
-
       // 같은 영상의 저장된 퀴즈가 있으면 이어하기
       if (result.quizState?.videoId === videoId) {
         setQuizzes(result.quizState.quizzes);
@@ -1454,16 +1271,11 @@ const handleMatchingComplete = async () => {
 
     // content.jsx에서 새 퀴즈 받기
     const listener = (message) => {
-      console.log('퀴즈 받음2:', message.type, Date.now());
       if (message.type === 'QUIZ_READY') {
-        console.log('퀴즈 페이지 자막 받음', Date.now());
         // 새 퀴즈로 초기화
         setSessionId(message.sessionId);
         setQuizzes(message.quizzes);
         if (message.quizzes[0]?.quizType === 'MATCHING') {
-            console.log('quizzes:', message.quizzes);
-  console.log('answers:', message.quizzes.map(q => q.answer));
-  console.log('shuffle 전:', message.quizzes.map(q => q.answer));
           setMatchingShuffledMeanings(shuffle(message.quizzes.map(q => q.answer)));
         } else {
           setMatchingShuffledMeanings([]);
@@ -1474,12 +1286,11 @@ const handleMatchingComplete = async () => {
         setAnswers([]);
         setIsConfirmed(false);
         setTempChoice(null);
-
-            setMatchingSelectedWord(null);
-    setMatchingSelectedMeaning(null);
-    setMatchingMatchedPairs([]);
-    setMatchingWrongPair(null);
-    setSubmittedQuizIds([]);
+        setMatchingSelectedWord(null);
+        setMatchingSelectedMeaning(null);
+        setMatchingMatchedPairs([]);
+        setMatchingWrongPair(null);
+        setSubmittedQuizIds([]);
 
       // 영상 일시정지 메시지 전송
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -1494,6 +1305,7 @@ const handleMatchingComplete = async () => {
   }, [videoId]);
 
 
+
   // 다음 목표 뱃지 조회하기
   useEffect(() => {
     const fetchBadge = async () => {
@@ -1501,14 +1313,12 @@ const handleMatchingComplete = async () => {
         const badge = await apiFetch(`/badges/video/${videoId}`, {
           method: 'GET'
         });
-        console.log(`GET /badges/video/${videoId}`, badge);
         setNextBadge(badge?.data?.nextBadge);
       } catch (error) {
         console.log('목표 뱃지 조회 에러', error);
       }}
     fetchBadge();
   }, [videoId]);
-
 
 
 
@@ -1527,7 +1337,6 @@ const handleMatchingComplete = async () => {
           answers,
           isConfirmed,
           tempChoice,
-
           matchingSelectedWord,
           matchingSelectedMeaning,
           matchingMatchedPairs,
@@ -1537,6 +1346,7 @@ const handleMatchingComplete = async () => {
       });
     }
   }, [currentIndex, correctCount, wrongCount, answers, isConfirmed, sessionId, tempChoice, videoId, isRestoring, quizzes, matchingSelectedWord, matchingSelectedMeaning, matchingMatchedPairs, matchingShuffledMeanings, submittedQuizIds]);
+
 
 
   // 답안 제출
@@ -1550,14 +1360,9 @@ const handleMatchingComplete = async () => {
         body: JSON.stringify({
           sessionId,
           quizId: currentQuiz?.quizId,
-          // word: currentQuiz?.word,
-          // quizType: 'BLANK',
-          // question: currentQuiz?.question,
-          // correctAnswer: currentQuiz?.correctAnswer,
           userAnswer: tempChoice
         })
       });
-      console.log('POST /quiz/submit', result);
       setFeedback(result.data);
       setIsConfirmed(true);
 
@@ -1580,6 +1385,7 @@ const handleMatchingComplete = async () => {
   };
 
 
+
   // 다음 문제 또는 정산 완료
   const handleNext = async () => {
     // 매칭 퀴즈면 바로 정산 페이지
@@ -1588,13 +1394,10 @@ const handleMatchingComplete = async () => {
         const finalResult = await apiFetch(`/quiz/sessions/${sessionId}/complete`, {
           method: 'POST'
         });
-        console.log(`MATCHING POST /quiz/sessions/${sessionId}/complete`, finalResult);
         chrome.storage.local.remove('quizState');
         onSettlementPage(finalResult.data);
       } catch (error) {
         console.error('MATCHING handleNext 세션 종료 실패', error);
-          console.error('MATCHING handleNext 에러 메시지:', error.message);
-        console.error('MATCHING handleNext 에러 스택:', error.stack);
       }
       return;
     }
@@ -1609,32 +1412,30 @@ const handleMatchingComplete = async () => {
     } else {
       // 마지막 문제였으면 퀴즈 종료
       try {
-
-
         // 저장된 진행 상황 삭제
         chrome.storage.local.remove('quizState');
 
-      // 영상 재생 신호
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        if (tabs[0]) {
-          chrome.tabs.sendMessage(tabs[0].id, { type: 'RESUME_VIDEO' });
-        }
-      });
+        // 영상 재생 신호
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+          if (tabs[0]) {
+            chrome.tabs.sendMessage(tabs[0].id, { type: 'RESUME_VIDEO' });
+          }
+        });
 
-  // 퀴즈 상태만 초기화
-    setCurrentIndex(0);
-    setQuizzes([]);
-    setTempChoice(null);
-    setIsConfirmed(false);
-    setFeedback(null);
-    setDictionaryData(null);
-    setSubmittedQuizIds([]);
-
+        // 퀴즈 상태만 초기화
+        setCurrentIndex(0);
+        setQuizzes([]);
+        setTempChoice(null);
+        setIsConfirmed(false);
+        setFeedback(null);
+        setDictionaryData(null);
+        setSubmittedQuizIds([]);
       } catch (error) {
         console.error('빈칸,ox handleNext 세션 종료 실패', error);
       }
     }
   };
+
 
 
   // 퀴즈 보기 버튼 선택
@@ -1645,17 +1446,16 @@ const handleMatchingComplete = async () => {
   };
 
 
+
   // 퀴즈 중간에 나가기
   const handleExit = async () => {
     // 디폴트페이지로 이동
     onExitPage();
   };
 
-
   return (
     // 사이드패널 고정
     <div>
-
       {/* 최상위 박스 */}
       <div style={{
         display: 'flex',
@@ -1754,7 +1554,6 @@ const handleMatchingComplete = async () => {
                         justifyContent: 'center',
                         background: 'transparent',
                         border: 'none', 
-                        // background: '#E1E1E1'
                         }}>
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
                               <path d="M7.84 13.75L9.17 12.26L6.64 10.01H15.01C17.22 10.01 19.01 11.8 19.01 14.01C19.01 16.22 17.22 18.01 15.01 18.01H12.01V20.01H15.01C18.32 20.01 21.01 17.32 21.01 14.01C21.01 10.7 18.32 8.01 15.01 8.01H6.63L9.16 5.76L7.83 4.27L2.49 9.02L7.83 13.77L7.84 13.75Z" fill="black"/>
@@ -1778,7 +1577,6 @@ const handleMatchingComplete = async () => {
                           height: '24px',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          // background: '#E1E1E1'
                         background: 'transparent',
                         border: 'none',
                         }}>
@@ -1788,7 +1586,6 @@ const handleMatchingComplete = async () => {
                         </button>
                       </div>
 
-
                       <div style={{
                         display: 'flex',
                         height: '38px',
@@ -1797,7 +1594,6 @@ const handleMatchingComplete = async () => {
                         alignItems: 'center',
                         gap: '10px'
                       }}>
-
 
                         <p style={{
                           color: '#FFF',
@@ -1823,7 +1619,6 @@ const handleMatchingComplete = async () => {
                     alignItems: 'center',
                     gap: '12px'
                   }}>
-
 
                     <div style={{
                       width: '36px',
@@ -1919,7 +1714,6 @@ const handleMatchingComplete = async () => {
                             position: 'absolute',
                             right: '-18px',
                             top: '-11px',
-                            // background: `url(${frog2}) transparent -42.788px -1.005px / 228.637% 225.776% no-repeat`
                             background: `url(${frog2}) center / contain no-repeat`,
                             }}>
                           </div>
@@ -1934,7 +1728,6 @@ const handleMatchingComplete = async () => {
                     width: '36px',
                     height: '36px',
                     alignItems: 'center',
-                    // background: '#E1E1E1'
                         background: 'transparent',
                         border: 'none',
                   }}>
@@ -1962,11 +1755,9 @@ const handleMatchingComplete = async () => {
 
                 <div style={{
                   display: 'flex',
-                  // width: '370px',
                   width: '100%',
                   flexDirection: 'column',
                   alignItems: 'flex-start',
-                  // alignItems: 'center',
                 }}>
 
                   {/* 개구리 마스코트1 */}
@@ -1980,7 +1771,6 @@ const handleMatchingComplete = async () => {
                     backgroundSize: 'contain',
                     // 가운데 정렬
                     backgroundPosition: 'center',
-                    // alignSelf: 'flex-start',
                   }}>
                   </div>
 
@@ -1990,8 +1780,6 @@ const handleMatchingComplete = async () => {
                     flexDirection: 'column',
                     alignItems: 'flex-start',
                     alignSelf: 'stretch',
-                    // alignItems: 'center',
-                    // alignSelf: 'stretch',
                   }}>
 
                     {/* 전체 문제 박스 */}
@@ -2124,9 +1912,8 @@ const handleMatchingComplete = async () => {
                           justifyContent: 'center',
                           alignItems: 'center',
                           borderRadius: '999px',
-                          // background: '#E1E1E1',
-                        background: 'transparent',
-                        border: 'none',
+                          background: 'transparent',
+                          border: 'none',
                         }}>
                           <svg xmlns="http://www.w3.org/2000/svg" width="35" height="35" viewBox="0 0 35 35" fill="none">
                             <path d="M25.4625 8.91042C24.9812 8.6625 24.3979 8.70625 23.9458 9.02708L13.7375 16.3187C13.3583 16.5958 13.125 17.0333 13.125 17.5C13.125 17.9667 13.3583 18.4188 13.7375 18.6813L23.9458 25.9729C24.1938 26.1479 24.5 26.25 24.7917 26.25C25.025 26.25 25.2437 26.1917 25.4625 26.0896C25.9437 25.8417 26.25 25.3458 26.25 24.7917V10.2083C26.25 9.66875 25.9437 9.15833 25.4625 8.91042ZM23.3333 21.9625L17.0917 17.5L23.3333 13.0375V21.9479V21.9625ZM8.75 8.75H11.6667V26.25H8.75V8.75Z" fill="black"/>
@@ -2142,7 +1929,6 @@ const handleMatchingComplete = async () => {
                           height: '32px',
                           justifyContent: 'center',
                           alignItems: 'center',
-                          // background: '#E1E1E1',
                         background: 'transparent',
                         border: 'none',
                         }}>
@@ -2161,7 +1947,6 @@ const handleMatchingComplete = async () => {
                           justifyContent: 'center',
                           alignItems: 'center',
                           borderRadius: '999px',
-                          // background: '#E1E1E1',
                         background: 'transparent',
                         border: 'none',
                         }}>
@@ -2232,7 +2017,6 @@ const handleMatchingComplete = async () => {
                   <div style={{
                     display: 'flex',
                     width: '370px',
-                    // height: '68px',
                     minHeight: '68px',
                     padding: '16px 24px 16px 16px',
                     flexDirection: 'column',
@@ -2274,7 +2058,6 @@ const handleMatchingComplete = async () => {
                         fontWeight: '700',
                         lineHeight: '18px', /* 150% */
                       }}>
-                        {/* {feedback?.correctAnswer}이 정답인 이유!<br/> */}
                         {feedback?.explanation}
                       </div>
                     </div>
@@ -2284,7 +2067,6 @@ const handleMatchingComplete = async () => {
                   <div style={{
                     display: 'flex',
                     width: '370px',
-                    // height: '68px',
                     minHeight: '68px',
                     padding: '16px 24px 16px 16px',
                     flexDirection: 'column',
@@ -2325,7 +2107,6 @@ const handleMatchingComplete = async () => {
                         fontWeight: '700',
                         lineHeight: '18px', /* 150% */
                       }}>
-                        {/* {feedback?.correctAnswer}이 정답인 이유!<br/> */}
                         {feedback?.explanation}
                       </div>
                     </div>
@@ -2333,158 +2114,9 @@ const handleMatchingComplete = async () => {
                 )
               )}
 
-
-
-              {/* 전체 퀴즈 박스
-              <div style={{
-                display: 'flex',
-                width: '370px',
-                padding: '24px 16px 20px 16px',
-                flexDirection: 'column',
-                alignItems: 'flex-start',
-                gap: '24px',
-                borderRadius: '24px',
-                background: '#FFF'
-              }}>
-
-                문제 박스
-                <div style={{
-                  display: 'flex',
-                  width: '334px',
-                  padding: '0 4px',
-                  flexDirection: 'column',
-                  alignItems: 'flex-start',
-                  gap: '12px',
-                }}>
-
-                  빈칸 채우기 박스
-                  <div style={{
-                    display: 'flex',
-                    padding: '6px 12px',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    borderRadius: '999px',
-                    background: '#F5F3FF',
-                  }}>
-
-
-                    <p style={{
-                      color: '#01030D',
-                      fontFamily: 'Pretendard',
-                      fontSize: '12px',
-                      fontStyle: 'normal',
-                      fontWeight: '400',
-                      lineHeight: 'normal'
-                    }}>
-                      빈칸채우기
-                    </p>
-                  </div>
-
-                  자막, 뜻 들어가는 박스
-                  <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'flex-start',
-                    gap: '8px',
-                    alignSelf: 'stretch'
-                  }}>
-
-                    자막 전용 박스
-                    <div style={{
-                      display: 'flex',
-                      width: '191px',
-                      flexDirection: 'column',
-                      alignItems: 'flex-start',
-                      gap: '4px'
-                    }}>
-
-                      빈칸 채우기 문제 자막 박스
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'flex-end',
-                        gap: '4px',
-                        alignSelf: 'stretch'
-                      }}>
-
-
-                        <p style={{ 
-                          alignSelf: 'stretch',
-                          color: '#01030D',
-                          fontFamily: 'Pretendard',
-                          fontSize: '16px',
-                          fontStyle: 'normal',
-                          fontWeight: '700',
-                          lineHeight: 'normal'
-                        }}>
-                          회색 박스 대신 _____ 사용
-                          {currentQuiz?.question.replace('____', tempChoice || '____')}
-                        </p>
-                      </div>
-                    </div>
-
-
-                    <p style={{
-                      alignSelf: 'stretch',
-                      color: '#9198A3',
-                      fontFamily: 'Pretendard',
-                      fontSize: '16px',
-                      fontStyle: 'normal',
-                      fontWeight: '700',
-                      lineHeight: 'normal'
-                    }}>
-                      {currentQuiz?.sentence}
-                    </p>
-                  </div>
-                </div>
-
-                보기 버튼 전체 박스
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  alignContent: 'flex-start',
-                  gap: '8px',
-                  alignSelf: 'stretch',
-                  flexWrap: 'wrap'
-                }}>
-
-                  보기 버튼
-                  {currentQuiz?.options.map((choice, i) => (
-                    <button
-                    key={i}
-                    disabled={isConfirmed}
-                    onClick={() => handleChoice(choice)}
-                    style={{
-                      display: 'flex',
-                      width: '165px',
-                      height: '40px',
-                      padding: buttonPositions[i].padding,
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                      gap: '10px',
-                      borderRadius: '10px',
-                      border: borderColor(choice),
-                      // border: tempChoice === choice ? '2px solid #EEE' : '1px solid #E7E6EB',
-                      background: backgroundColor(choice),
-                      // background: tempChoice === choice ? '#F8F8FA' : '#FFF',
-                      boxShadow: '0 4px 4px 0 rgba(206, 210, 223, 0.16)',
-                      color: textColor(choice),
-                      // color: '#4D525C',
-                      textAlign: 'center',
-                      fontFamily: 'Pretendard',
-                      fontSize: '14px',
-                      fontStyle: 'normal',
-                      fontWeight: '400',
-                      lineHeight: 'normal',
-                    }}>
-                      {choice}
-                    </button>
-                  ))}
-                </div>
-              </div> */}
-                  {currentQuiz?.quizType === 'BLANK' && blankQuiz()}
-{currentQuiz?.quizType === 'OX' && oxQuiz()}
-{currentQuiz?.quizType === 'MATCHING' &&  matchingShuffledMeanings?.length > 0 &&  matchingQuiz()}
-
+              {currentQuiz?.quizType === 'BLANK' && blankQuiz()}
+              {currentQuiz?.quizType === 'OX' && oxQuiz()}
+              {currentQuiz?.quizType === 'MATCHING' &&  matchingShuffledMeanings?.length > 0 &&  matchingQuiz()}
 
               {/* 럭키 미스테이크 전체 배경 박스 */}
               {currentQuiz?.quizType === 'BLANK' && isConfirmed && !feedback?.correct && (
@@ -2607,9 +2239,6 @@ const handleMatchingComplete = async () => {
                   </div>
                 </div>
                 )}
-
-
-
             </div>
           </div>
         </div>
@@ -2801,11 +2430,6 @@ const handleMatchingComplete = async () => {
               alignItems: 'center',
               gap: '4px',
               justifyContent: 'center',
-              // position: 'absolute',
-              // top: '23.65px',
-              // bottom: '132.6px',
-              // left: '15.77px',
-              // right: '167.94px',
               width: '86.289px',
               height: '31.959px',
               zIndex: '999',
@@ -2818,21 +2442,14 @@ const handleMatchingComplete = async () => {
 
               {/* 사전 아이콘 들어갈 자리 */}
               <div style={{
-                // position: 'absolute',
-                // top: '5.59x',
-                // bottom: '7.19px',
-                // left: '9.59px',
-                // right: '57.53px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 width: '19.175px',
                 height: '19.175px',
-                // background: '#CFCFD7',
-                        background: 'transparent',
-                        border: 'none',
+                background: 'transparent',
+                border: 'none',
                 zIndex: '999',
-                // boxSizing: 'border-box',
                 flexShrink: 0,
               }}>
                 {isCollected ? (
@@ -2847,16 +2464,6 @@ const handleMatchingComplete = async () => {
               </div>
 
               <span style={{
-                // position: 'absolute',
-                // top: '9.59x',
-                // bottom: '11.19px',
-                // left: '35.16px',
-                // right: '9.59px',
-                // display: 'flex',
-                // width: '41.547px',
-                // height: '11.186px',
-                // flexDirection: 'column',
-                // justifyContent: 'center',
                 color: '#01030D',
                 fontFamily: 'Pretendard',
                 fontSize: '11.186px',
@@ -2874,27 +2481,12 @@ const handleMatchingComplete = async () => {
             <button 
             onClick= {() => closePopup()}
             style={{
-              // position: 'absolute',
-              // top: '23.65px',
-              // bottom: '135.8px',
-              // left: '224.67px',
-              // right: '16.57px',
               width: '28.763px',
               height: '28.763px',
               zIndex: '999',
-                        background: 'transparent',
-                        border: 'none',
+              background: 'transparent',
+              border: 'none',
             }}>
-
-
-              {/* <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="29"
-              height="29"
-              viewBox="0 0 29 29"
-              fill="none">
-                <rect width="28.7631" height="28.7631" rx="14.3815" fill="#E1E1E1"/>
-              </svg> */}
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
                 <path d="M14.83 7.76001L12 10.59L9.17001 7.76001L7.76001 9.17001L10.59 12L7.76001 14.83L9.17001 16.24L12 13.41L14.83 16.24L16.24 14.83L13.41 12L16.24 9.17001L14.83 7.76001Z" fill="black"/>
                 <path d="M12 2.00001C9.33 2.00001 6.82 3.04001 4.93 4.93001C3.04 6.82001 2 9.33001 2 12C2 14.67 3.04 17.18 4.93 19.07C6.88 21.02 9.44 21.99 12 21.99C14.56 21.99 17.12 21.02 19.07 19.07C21.02 17.12 22 14.67 22 12C22 9.33001 20.96 6.82001 19.07 4.93001C18.1439 3.99824 17.0422 3.25949 15.8286 2.75654C14.615 2.25359 13.3137 1.99645 12 2.00001ZM17.66 17.66C14.54 20.78 9.47 20.78 6.35 17.66C4.84 16.15 4.01 14.14 4.01 12C4.01 9.86001 4.84 7.85001 6.35 6.34001C7.86 4.83001 9.87 4.00001 12.01 4.00001C14.15 4.00001 16.16 4.83001 17.67 6.34001C19.18 7.85001 20.01 9.86001 20.01 12C20.01 14.14 19.18 16.15 17.67 17.66H17.66Z" fill="black"/>
@@ -2904,11 +2496,6 @@ const handleMatchingComplete = async () => {
 
             {/* 해당하는 품사 반환 */}
             <p style={{
-              // position: 'absolute',
-              // top: '71.75px',
-              // bottom: '105.46px',
-              // left: '15.95px',
-              // right: '237.05px',
               zIndex: '999',
               color: '#9198A3',
               fontFamily: 'Pretendard',
@@ -2922,11 +2509,6 @@ const handleMatchingComplete = async () => {
 
             {/* 단어 */}
             <p style={{
-              // position: 'absolute',
-              // top: '82.93x',
-              // bottom: '77.28px',
-              // left: '15.95px',
-              // right: '166.05px',
               zIndex: '999',
               color: '#7C3AED',
               fontFamily: 'Pretendard',
@@ -2941,11 +2523,6 @@ const handleMatchingComplete = async () => {
 
             {/* 미국식 발음 */}
             <p style={{
-              // position: 'absolute',
-              // top: '117.29px',
-              // bottom: '57.92px',
-              // left: '15.95px',
-              // right: '147.05px',
               color: '#9198A3',
               fontFamily: 'Pretendard',
               fontSize: '11.186px',
@@ -2960,11 +2537,6 @@ const handleMatchingComplete = async () => {
 
             {/* 줄? */}
             <div style={{
-              // position: 'absolute',
-              // top: '143.66px',
-              // bottom: '43.74px',
-              // left: '15.95px',
-              // right: '15.95px',
               width: '238.094px',
               height: '0.799px',
               background: '#E7E6EB',
@@ -2974,12 +2546,6 @@ const handleMatchingComplete = async () => {
 
             {/* 단어 뜻 번역 */}
             <p style={{
-              // position: 'absolute',
-              // top: '157.24px',
-              // bottom: '15.97px',
-              // left: '15.95px',
-              // // 양쪽 여백 동일하게 변경
-              // right: '15.95px',
               color: '#01030D',
               fontFamily: 'Pretendard',
               fontSize: '12.784px',
@@ -3006,8 +2572,8 @@ const handleMatchingComplete = async () => {
               strokeWidth: '0.985px',
               stroke: '#E7E6EB',
               zIndex: '999',
-                        background: 'transparent',
-                        border: 'none',
+              background: 'transparent',
+              border: 'none',
             }}>
 
               <svg
