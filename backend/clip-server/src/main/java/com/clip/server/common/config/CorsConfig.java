@@ -13,7 +13,7 @@ public class CorsConfig implements WebMvcConfigurer {
                 // allowedOrigins 대신 allowedOriginPatterns를 사용하세요!
                 .allowedOriginPatterns(
                         "chrome-extension://nodoegcapbckibocgdleinfoniaboejg",
-                        "chrome-extension://mkmkdednenecdnanbmigooccjcmnjnab",
+                        "chrome-extension://hbhkcidgpjdniofchhofhekjfdcdkkde",
                         "chrome-extension://hchkjnbfbmfgfidilneahojmiddkdeaj",
                         "chrome-extension://eaodakmjolhkaoaofnkfbcodihnncmkn",
                         "chrome-extension://hldepbmgooakmbnbobafccbngfflhilj",
