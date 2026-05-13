@@ -17,6 +17,7 @@ public class CorsConfig implements WebMvcConfigurer {
                         "chrome-extension://hchkjnbfbmfgfidilneahojmiddkdeaj",
                         "chrome-extension://eaodakmjolhkaoaofnkfbcodihnncmkn",
                         "chrome-extension://nklhdbnbcagmflafofhjdcfhkhmlomkb",
+                        "chrome-extension://hldepbmgooakmbnbobafccbngfflhilj",
                         "http://clip-server.com",
                         "https://clip-server.com",
                         "https://*.youtube.com"
