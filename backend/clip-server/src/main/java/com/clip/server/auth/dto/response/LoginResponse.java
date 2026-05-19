@@ -6,8 +6,8 @@ import lombok.Getter;
 
 @Getter
 @Builder
-public class TokenResponse {
+public class LoginResponse {
 
     private String accessToken;
-    private UserResponse from;
+    private UserResponse user;
 }

@@ -11,6 +11,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -24,11 +25,11 @@ public class SubtitleController {
     @Operation(summary = "영상 자막 저장 API(자막 1개)")
     @PostMapping
     ResponseEntity<ApiResponse<SubtitleResponse>> postSubtitle(
+            @AuthenticationPrincipal Long userId,
             @PathVariable String videoId,
             @Valid @RequestBody SubtitleRequest subtitleRequest
     ) {
-        Long tempUserId = 1L;
-        SubtitleResponse subtitleResponse = subtitleService.saveSubtitle(tempUserId, videoId, subtitleRequest);
+        SubtitleResponse subtitleResponse = subtitleService.saveSubtitle(userId, videoId, subtitleRequest);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(subtitleResponse,"자막이 성공적으로 저장되었습니다."));
     }
@@ -36,10 +37,10 @@ public class SubtitleController {
     @Operation(summary = "해당 영상의 전체 자막 조회 API")
     @GetMapping
     ApiResponse<SubtitleListResponse> getVideoSubtitles(
-            @PathVariable String videoId
+            @PathVariable String videoId,
+            @AuthenticationPrincipal Long userId
     ) {
-        Long tempUserId = 1L;
-        SubtitleListResponse subtitleListResponse = subtitleService.getSubtitles(videoId, tempUserId);
+        SubtitleListResponse subtitleListResponse = subtitleService.getSubtitles(videoId, userId);
         return ApiResponse.success(subtitleListResponse, "해당 영상의 자막이 성공적으로 조회되었습니다.");
     }
 
