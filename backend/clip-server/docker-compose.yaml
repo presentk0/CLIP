@@ -15,8 +15,11 @@ services:
     build:
       context: .
     container_name: spring-app
+    env_file:
+      - .env
     environment:
-      - SPRING_PROFILES_ACTIVE=prod
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
+      - SERVER_PORT=${SERVER_PORT}
     volumes:
       - /home/ubuntu/app/log:/home/ubuntu/app/log
     # 컨테이너 상태 체크 로직
