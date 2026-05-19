@@ -7,6 +7,7 @@ import frog1 from '../imgs/image_712.png';
 import { apiFetch } from '../utils/api';
 import bulb from '../imgs/image_62.png';
 import frog2 from '../imgs/image_750.png';
+import { log, IS_DEV } from '../utils/logger';
 
 // 렌더링해도 1번만 셔플 (비교값을 -0.5 ~ 0.5으로 설정)
 const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
@@ -102,8 +103,8 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
       if (message.type === 'SUBTITLES_LOADED') {
         const sorted = message.subtitles.sort((a, b) => a.startTime - b.startTime);
         setSubtitles(sorted);
-        setSubtitleIndex(sorted.length - 1);
-        setCurrentSubtitle(sorted[sorted.length - 1]);
+        setSubtitleIndex(0);
+        setCurrentSubtitle(sorted[0]);
       }
 
       // 새 자막 도착
@@ -113,6 +114,7 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
           startTime: message.startTime,
           endTime: message.endTime || null,
           translation: message.translation,
+          // 내가 본 자막 위치 찾기용 고유 id 부여
           id: Date.now()
         };
 
@@ -152,7 +154,7 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
         if (response?.data?.words) {
           setCollectedWords(response.data.words);
         }
-      } catch (error) {console.log('단어 목록 조회 에러', error)}
+      } catch (error) {log.debug('단어 목록 조회 에러', error)}
     };
     fetchCollectedWords();
   }, []);
@@ -161,6 +163,9 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
 
   // 이전 자막 스크립트 이동
   const goPrev = () => {
+    console.log('현재 subtitleIndex:', subtitleIndex);
+    console.log('현재 currentSubtitle:', currentSubtitle);
+    console.log('subtitles 길이:', subtitles.length);
     if (subtitleIndex > 0) {
       const newIndex = subtitleIndex - 1;
       setSubtitleIndex(newIndex);
@@ -172,6 +177,9 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
 
   // 다음 자막 스크립트 이동
   const goNext = () => {
+    console.log('현재 subtitleIndex', subtitleIndex);
+    console.log('현재 currentSubtitle', currentSubtitle);
+    console.log('subtitles 길이', subtitles.length);
     if (subtitleIndex < subtitles.length - 1) {
       const newIndex = subtitleIndex + 1;
       setSubtitleIndex(newIndex);
@@ -183,6 +191,7 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
 
   // 구간 반복 재생 (startTime ~ endTime)
   const toggleLoop = () => {
+    // chrome.tabs.query({ 조건 }, (tabs) => { 로 조건에 맞는 탭 배열 찾기
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (!tabs[0]) return;
 
@@ -224,7 +233,7 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
       });
       return response?.data?.translatedTexts?.[0] || '';
     } catch (error) {
-      console.log('번역 실패', error);
+      log.debug('번역 실패', error);
       return '';
     }
   }
@@ -257,29 +266,42 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
     // 팝업 너비
     const popupWidth = 270;
 
+    // 단어 중앙 위치
+    const wordCenter = rect.left + (rect.width / 2);
+
     // 팝업 left 계산
-    let popupLeft = rect.left + (rect.width / 2) - popupWidth / 2;
-
-    // 화살표가 단어를 가리키는 위치 계산
-    const arrowLeft = rect.left + (rect.width / 2) - popupLeft;
-
-    let left = rect.left + (rect.width / 2);
+    let popupLeft = wordCenter - popupWidth / 2;
 
     // 화면 왼쪽 밖으로 나가면 조정
-    if (left - popupWidth / 2 < 10) {
-      left = popupWidth / 2 + 10;
+    if (popupLeft < 10) {
+      popupLeft = 10;
     }
-  
+
     // 화면 오른쪽 밖으로 나가면 조정
-    if (left + popupWidth / 2 > window.innerWidth - 10) {
-      left = window.innerWidth - popupWidth / 2 - 10;
+    if (popupLeft + popupWidth > window.innerWidth - 10) {
+      popupLeft = window.innerWidth - popupWidth - 10;
     }
+
+    // 화살표 위치 = 단어 중앙 - 팝업 left (조정 후 기준)
+    const arrowLeft = rect.left + (rect.width / 2) - popupLeft;
+
+    // let left = rect.left + (rect.width / 2);
+
+    // // 화면 왼쪽 밖으로 나가면 조정
+    // if (left - popupWidth / 2 < 10) {
+    //   left = popupWidth / 2 + 10;
+    // }
+  
+    // // 화면 오른쪽 밖으로 나가면 조정
+    // if (left + popupWidth / 2 > window.innerWidth - 10) {
+    //   left = window.innerWidth - popupWidth / 2 - 10;
+    // }
 
     setPopupPosition({
       // 단어 위쪽에 표시
-      top: rect.top - 210,
+      top: rect.top - 215,
       // 중앙 정렬
-      left: left - popupWidth / 2,
+      left: popupLeft,
       arrowLeft: arrowLeft,
     });
 
@@ -362,9 +384,15 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
             title: videoTitle
           })
         });
+
+        // 서버에 저장된 단어 추가
+        setCollectedWords(prev => [...prev, {
+          word: word,
+          translation: result.meaningTranslation
+        }]);
       }
     } catch (error) {
-      console.log('사전 조회 실패:', error);
+      log.debug('사전 조회 실패:', error);
       setIsPinned(false);
       setDictionaryData(null);
       setClickedSubtitle(null);
@@ -416,9 +444,15 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
           title: videoTitle
         })
       });
+
+      // 서버에 저장된 단어 추가
+      setCollectedWords(prev => [...prev, {
+        word: dictionaryData.word,
+        translation: clickedSubtitle.translation,
+      }]);
       setIsCollected(true);
     } catch (error) {
-      console.log('단어 수집 실패:', error);
+      log.debug('단어 수집 실패:', error);
     }
   };
 
@@ -1137,7 +1171,7 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
           });
           setSubmittedQuizIds(prev => [...prev, quiz?.quizId]);
         } catch (error) {
-          console.error('매칭 정답 전송 실패:', error);
+          log.debug('매칭 정답 전송 실패:', error);
         }
       }
 
@@ -1160,7 +1194,7 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
           });
           setSubmittedQuizIds(prev => [...prev, quiz?.quizId]);
         } catch (error) {
-          console.error('매칭 오답 전송 실패:', error);
+          log.debug('매칭 오답 전송 실패:', error);
         }
       }
       setMatchingWrongPair({ word, meaning });
@@ -1229,9 +1263,7 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
         // 정산 페이지로 이동
         onSettlementPage(finalResult.data);
       } catch (error) {
-        console.error('handleMatchingComplete 세션 종료 실패', error);
-        console.error('handleMatchingComplete 에러 메시지:', error.message);
-        console.error('handleMatchingComplete 에러 스택:', error.stack);
+        log.debug('handleMatchingComplete 세션 종료 실패', error);
       }
     }
   };
@@ -1244,6 +1276,7 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
     chrome.storage.local.get('quizState', async (result) => {
       // 같은 영상의 저장된 퀴즈가 있으면 이어하기
       if (result.quizState?.videoId === videoId) {
+        log.debug('사이드패널 퀴즈 복원', result, Date.now());
         setQuizzes(result.quizState.quizzes);
         setMatchingShuffledMeanings(result.quizState.matchingShuffledMeanings ?? []);
         setSessionId(result.quizState.sessionId);
@@ -1261,7 +1294,7 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
         setSubmittedQuizIds(result.quizState.submittedQuizIds ?? []);
         // 영상 일시정지 메시지 전송
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-          if (tabs[0]) chrome.tabs.sendMessage(tabs[0].id, { type: 'SET_QUIZ_MODE', active: true }).catch((error) => {console.log('이거 에러22:', error)});
+          if (tabs[0]) chrome.tabs.sendMessage(tabs[0].id, { type: 'SET_QUIZ_MODE', active: true }).catch((error) => {log.debug('이거 에러22:', error)});
         });
       }
 
@@ -1272,6 +1305,7 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
     // content.jsx에서 새 퀴즈 받기
     const listener = (message) => {
       if (message.type === 'QUIZ_READY') {
+        log.debug('사이드패널 퀴즈 받음', message, Date.now());
         // 새 퀴즈로 초기화
         setSessionId(message.sessionId);
         setQuizzes(message.quizzes);
@@ -1294,7 +1328,7 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
 
       // 영상 일시정지 메시지 전송
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        if (tabs[0]) chrome.tabs.sendMessage(tabs[0].id, { type: 'SET_QUIZ_MODE', active: true }).catch((error) => {console.log('이거 에러33:', error)});
+        if (tabs[0]) chrome.tabs.sendMessage(tabs[0].id, { type: 'SET_QUIZ_MODE', active: true }).catch((error) => {log.debug('이거 에러33:', error)});
       });
     }
   };
@@ -1315,7 +1349,7 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
         });
         setNextBadge(badge?.data?.nextBadge);
       } catch (error) {
-        console.log('목표 뱃지 조회 에러', error);
+        log.debug('목표 뱃지 조회 에러', error);
       }}
     fetchBadge();
   }, [videoId]);
@@ -1380,7 +1414,7 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
         isCorrect: result.data?.correct
       }]);
     } catch (error) {
-      console.error('제출 실패', error);
+      log.debug('제출 실패', error);
     }
   };
 
@@ -1397,7 +1431,7 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
         chrome.storage.local.remove('quizState');
         onSettlementPage(finalResult.data);
       } catch (error) {
-        console.error('MATCHING handleNext 세션 종료 실패', error);
+        log.debug('MATCHING handleNext 세션 종료 실패', error);
       }
       return;
     }
@@ -1431,7 +1465,7 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
         setDictionaryData(null);
         setSubmittedQuizIds([]);
       } catch (error) {
-        console.error('빈칸,ox handleNext 세션 종료 실패', error);
+        log.debug('빈칸,ox handleNext 세션 종료 실패', error);
       }
     }
   };
@@ -2562,8 +2596,8 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
             {/* 단어 가리키는 화살표 박스 */}
             <div style={{
               position: 'absolute',
-              top: '175.4px',
-              bottom: '20.69px',
+              // top: '175.4px',
+              bottom: '-32px',
               left: `${popupPosition.arrowLeft}px`,   // 동적 위치로 변경
               transform: 'translateX(-50%)',  // 좌우 중앙 정렬로 변경
               width: '29.562px',

@@ -1,4 +1,16 @@
+import { useAuth } from "../hooks/useAuth";
+import { useNavigate } from "react-router-dom";
+
 function DefaultPage() {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logout();
+    // ProtectedRoute가 자동으로 /login 보내지만, 명시적으로 해도 OK
+    navigate('/login');
+  };
+
   return (
     // 전체 박스
     <div style={{
@@ -171,7 +183,9 @@ function DefaultPage() {
             </div>
 
             {/* 로그아웃 전체 박스 */}
-            <div style={{
+            <button 
+            onClick={handleLogout}
+            style={{
               display: 'flex',
               width: '66px',
               height: '32px',
@@ -197,7 +211,7 @@ function DefaultPage() {
               }}>
                 로그아웃
               </p>
-            </div>
+            </button>
           </div>
 
           {/* 프로필 전체 박스 */}
