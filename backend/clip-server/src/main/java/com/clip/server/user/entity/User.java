@@ -22,8 +22,15 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 255)
+    @Column(nullable = false, length = 20)
+    private String oauth_provider;
+
+    @Column(nullable = false, length = 100)
+    private String oauth_id;
+
+    @Column(nullable = false, length = 255, unique = true)
     private String email;
+
     @Column(nullable = false, length = 20)
     private String name;
 
@@ -31,6 +38,7 @@ public class User {
     private String profileImageUrl;
 
     private Integer level = 0;
+
     private Integer exp = 0;
 
     @CreatedDate

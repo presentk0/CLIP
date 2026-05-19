@@ -2,8 +2,22 @@ spring:
   config:
     import: ""
 
+  # AWS Secrets Manager 같은 외부 의존성 비활성화
+  cloud:
+    aws:
+      secretsmanager:
+        enabled: false
+      credentials:
+        access-key: test-key
+        secret-key: test-key
+      region:
+        static: ap-northeast-2
+      stack:
+        auto: false
+
+
   datasource:
-    url: jdbc:h2:mem:testdb;MODE=MySQL;DB_CLOSE_DELAY=-1
+    url: jdbc:h2:mem:testdb;MODE=MySQL;NON_KEYWORDS=USER;DB_CLOSE_DELAY=-1   # ← NON_KEYWORDS=USER 추가
     driver-class-name: org.h2.Driver
     username: sa
     password: ""
@@ -14,25 +28,18 @@ spring:
       ddl-auto: create-drop
     show-sql: true
 
-  cloud:
-    aws:
-      credentials:
-        access-key: test-key
-        secret-key: test-key
-      region:
-        static: ap-northeast-2
-      stack:
-        auto: false
+# JWT 더미값 (테스트용)
+jwt:
+  secret: test-secret-key-for-junit-testing-purpose-only-must-be-at-least-256-bits-long-string
+  access-expiration: 3600000
+  refresh-expiration: 1209600000
 
+# 외부 API 더미값
 openai:
   api:
     key: test-key
     url: https://api.openai.com/v1/chat/completions
   model: gpt-5.4-mini
-
-jwt:
-  secret: vmxkdlaltmxjsmsepdlstksmsdlf rjsmsepdlstksmsdlf
-  expiration: 3600000
 
 aws:
   access-key: mock
