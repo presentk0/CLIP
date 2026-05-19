@@ -1,6 +1,7 @@
 #!/bin/bash
 PROJECT_ROOT="/home/ubuntu/app"
 cd $PROJECT_ROOT
+cp /home/ubuntu/config/.env ./.env
 
 # 1. 기존에 실행 중인 컨테이너가 있다면 중지
 # 처음 배포 시에는 컨테이너가 없으므로 에러를 무시하도록 || true 추가

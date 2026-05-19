@@ -1,15 +1,22 @@
 /* global chrome */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { MemoryRouter, Routes, Route, useNavigate } from 'react-router-dom';
+import { AuthProvider } from './contexts/AuthContext';
+
 import QuizPage from './components/QuizPage';
 import DefaultPage from './components/DefaultPage';
 import SettlementPage from './components/SettlementPage';
+import LoginPage from './components/LoginPage';
+import ProtectedRoute from './components/ProtectedRoute';
+import { log, IS_DEV } from './utils/logger';
 import './App.css';
 
 
-function App() {
-  // 현재 페이지 번호 (0: 기본, 1: 퀴즈, 2: 정산)
-  const [move, setMove] = useState(0);
+// 실제 라우팅 + 메시지 처리
+function AppContent() {
+  const navigate = useNavigate();
+
   // 퀴즈 결과 데이터 (정산 페이지에서 사용)
   const [settlementData, setSettlementData] = useState(null);
   // 현재 영상에 퀴즈 중간 저장 데이터가 있는지 확인용
@@ -24,6 +31,14 @@ function App() {
   const [resetKey, setResetKey] = useState(0);
 
 
+  // useCallback(의존성이 안 바뀌면 같은 함수 재사용)으로 감싸기
+  // 영상 이동 시 퀴즈페이지 리셋 후 디폴트페이지로 이동
+  const goToDefault = useCallback(() => {
+    setResetKey(prev => prev + 1);
+    navigate('/');
+  }, [navigate]);
+
+
 
   // 사이드패널 열림 감지 및 연결
   useEffect(() => {
@@ -33,7 +48,6 @@ function App() {
     const maxRetry = 10;  
     // 패널 열림 중복 요청 방지
     let isSent = false;
-
     // 백그라운드와 연결 (사이드패널 닫힘 감지용)
     chrome.runtime.connect({ name: 'sidepanel' });
 
@@ -48,13 +62,13 @@ function App() {
             isSent = true;
           })
           .catch((error) => {
-            console.log('패널 열림 실패 신호', error.message);
+            log.debug('패널 열림 실패 신호', error.message);
             retryCount++;
             if (retryCount < maxRetry) {
               // 실패하면 1초 후 재시도
               setTimeout(sendPanelOpened, 1000);
             } else {
-              console.log('연결 실패 - 페이지 새로고침 필요', error.message);
+              log.debug('연결 실패 - 페이지 새로고침 필요', error.message);
             }
           });
         }
@@ -65,13 +79,12 @@ function App() {
     // content.js 새로고침 감지
     const listener = (message) => {
       if (message.type === 'CONTENT_LOADED') {
-
     // 성공한 적 있으면 바로 1번만 시도
     if (isSent) {
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         if (tabs[0]) {
           chrome.tabs.sendMessage(tabs[0].id, { type: 'PANEL_OPENED' })
-            .catch((error) => console.log('재전송 실패', error.message));
+            .catch((error) => log.debug('재전송 실패', error.message));
         }
       });
     } else {
@@ -83,7 +96,9 @@ function App() {
     };
 
     chrome.runtime.onMessage.addListener(listener);
-    return () =>  chrome.runtime.onMessage.removeListener(listener);
+    return () =>  {
+      chrome.runtime.onMessage.removeListener(listener);
+    }
   }, []);
 
 
@@ -98,23 +113,27 @@ function App() {
 
         // 최종정산 페이지 전용
         setDuration(message.duration);
-        setMove(1);
+        navigate('/quiz');
       }
       if (message.type === 'GO_TO_DEFAULT') {
         goToDefault();
       }
+      // 로그인 페이지로 이동 신호
+      if (message.type === 'GO_TO_LOGIN') {
+        navigate('/login');
+      }
     };
     chrome.runtime.onMessage.addListener(listener);
     return () => chrome.runtime.onMessage.removeListener(listener);
-  }, []);
+  }, [navigate, goToDefault]);
 
 
 
   // 영상 이동 시 퀴즈페이지 리셋 후 디폴트페이지로 이동
-  const goToDefault = () => {
-    setResetKey(prev => prev + 1);
-    setMove(0);
-  };
+  // const goToDefault = () => {
+  //   setResetKey(prev => prev + 1);
+  //   navigate('/');
+  // };
 
 
 
@@ -123,15 +142,40 @@ function App() {
     // 데이터 저장
     setSettlementData(data);
     // 정산 페이지로 이동
-    setMove(2);
+    navigate('/settlement');
   };
 
 
 
   // 디폴트 페이지로 이동 (중간 이탈)
   const handleExit = () => {
-    setMove(0);
+    navigate('/');
   };
+
+
+
+
+  // // 로그아웃
+  // const handleLogout = async () => {
+  //   await logout();
+  //   // navigate 안 해도 됨! ProtectedRoute가 자동으로 /login 보냄
+  //   // 만약 명시적으로 하고 싶으면:
+  //   // navigate('/login');
+  // };
+
+
+  // // 로그아웃 시 로그인 페이지로 이동
+  // const handleLogout = async () => {
+  //   try {
+  //     await apiFetch('/auth/logout', { method: 'POST' });
+  //   } catch (error) {
+  //     console.warn('로그아웃 실패', error);
+  //   }
+  //   setUser(null);
+  //   await chrome.runtime.sendMessage({ type: 'CLEAR_AUTH' });
+  //   // navigate는 여기서 못 함 (Context는 라우터 밖에 있을 수 있어서)
+  // };
+
 
 
 
@@ -142,35 +186,60 @@ function App() {
       // 최대 너비
       maxWidth: '402px',
     }}>
-
-      {/* 페이지 0: 기본 화면 */}
-      {move === 0 && <DefaultPage />}
-
-      {/* 페이지 1: 퀴즈 화면 */}
-      {move === 1 && (
-        <QuizPage
-          key={resetKey}
-          videoId={videoId}
-          videoTitle={videoTitle}
-          duration={duration}
-          onExitPage={handleExit}
-          onSettlementPage={handleSettlement}
+      <Routes>
+        <Route 
+          path="/" 
+          element={
+            <ProtectedRoute>
+              <DefaultPage />
+            </ProtectedRoute>
+          } 
         />
-      )}
-
-      {/* 페이지 2: 정산 화면 */}
-      {move === 2 && (
-        // data 전달
-        <SettlementPage 
-          data={settlementData}
-          videoId={videoId}
-          videoTitle={videoTitle}
-          channelName={channelName}
-          duration={duration}
-          onExitPage={handleExit}
+        <Route path="/login" element={<LoginPage />} />
+        <Route 
+          path="/quiz" 
+          element={
+            <ProtectedRoute>
+              <QuizPage
+                key={resetKey}
+                videoId={videoId}
+                videoTitle={videoTitle}
+                duration={duration}
+                onExitPage={handleExit}
+                onSettlementPage={handleSettlement}
+              />
+            </ProtectedRoute>
+          } 
         />
-      )}
+        <Route 
+          path="/settlement" 
+          element={
+            <ProtectedRoute>
+              <SettlementPage
+                data={settlementData}
+                videoId={videoId}
+                videoTitle={videoTitle}
+                channelName={channelName}
+                duration={duration}
+                onExitPage={handleExit}
+              />
+            </ProtectedRoute>
+          } 
+        />
+      </Routes>
     </div>
+  );
+}
+
+
+// Router + AuthProvider로 감싸기
+function App() {
+  return (
+    <MemoryRouter>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </MemoryRouter>
   );
 }
 
