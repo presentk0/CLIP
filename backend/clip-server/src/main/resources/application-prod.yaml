@@ -12,6 +12,13 @@ spring:
     username: ${username}
     password: ${password}
 
+  data:
+    redis:
+      host: ${spring.data.redis.host}
+      port: ${spring.data.redis.port}
+      password: ${spring.data.redis.password}
+      ssl:
+        enabled: ${spring.data.redis.ssl.enabled}
 
   jpa:
     hibernate:
