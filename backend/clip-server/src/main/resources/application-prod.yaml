@@ -47,3 +47,8 @@ openai:
 deepl:
   api:
     key: ${deepl.api.key}
+
+jwt:
+  secret: ${JWT_SECRET}
+  access-expiration: 3600000      # 1시간 (Access Token)
+  refresh-expiration: 1209600000 # 14일 (Refresh Token)
