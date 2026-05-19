@@ -143,4 +143,31 @@ public class JwtProvider {
     public long getRefreshTokenExpirationTime() {
         return refreshTokenExpirationTime;
     }
+
+
+    /**
+     * 토큰의 남은 만료 시간(ms) 반환
+     */
+    public long getRemainingExpiration(String token) {
+        Claims claims = parseClaims(token);
+        long expiration = claims.getExpiration().getTime();
+        long now = System.currentTimeMillis();
+        return Math.max(0, expiration - now);
+    }
+
+    /**
+     * 토큰 만료 여부 확인
+     * - 만료됐으면 true
+     * - 다른 오류(서명 등)는 예외 throw
+     */
+    public boolean isExpired(String token) {
+        try {
+            Claims claims = parseClaims(token);
+            return claims.getExpiration().before(new Date());
+        } catch (ExpiredJwtException e) {
+            // 이미 만료된 경우
+            return true;
+        }
+        // 다른 예외(서명 오류 등)는 그대로 throw → 호출자가 처리
+    }
 }
