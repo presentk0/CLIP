@@ -12,6 +12,7 @@ import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,9 +28,10 @@ public class WordController {
     @Operation(summary = "단어 수집")
     @PostMapping("/collect")
     public ResponseEntity<ApiResponse<CollectedWordResponse>> collectWord(
-            @Valid @RequestBody CollectedWordRequest collectedWordRequest) {
-            Long tempUserId = 1L; // TODO: 나중에 시큐리티 적용 시 토큰에서 추출
-            CollectedWordResponse collectedWordResponse = wordService.save(tempUserId, collectedWordRequest);
+            @AuthenticationPrincipal Long userId,
+            @Valid @RequestBody CollectedWordRequest collectedWordRequest
+    ) {
+            CollectedWordResponse collectedWordResponse = wordService.save(userId, collectedWordRequest);
             return ResponseEntity.status(HttpStatus.CREATED)
                             .body(ApiResponse.success(collectedWordResponse,"단어가 성공적으로 수집되었습니다."));
     }
@@ -37,12 +39,12 @@ public class WordController {
     @Operation(summary = "수집된 단어 조회")
     @GetMapping("/my-collection")
     public ApiResponse<WordListResponse> getMyCollection(
+            @AuthenticationPrincipal Long userId,
             @RequestParam(defaultValue = "0") @Min(value = 0, message = "페이지 번호는 0 이상이어야 합니다. (입력값: ${validatedValue})")int page,
             @RequestParam(defaultValue = "10") @Min(1)int size,
             @RequestParam(required = false) String videoId
     ) {
-        Long tempUserId = 1L;
-        WordListResponse wordListResponse = wordService.getWords(tempUserId, page,size,videoId);
+        WordListResponse wordListResponse = wordService.getWords(userId, page,size,videoId);
         return ApiResponse.success(wordListResponse,"단어장이 성공적으로 조회됐습니다.");
     }
 }

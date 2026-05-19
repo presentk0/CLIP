@@ -17,9 +17,10 @@ public enum ErrorCode {
 
     // 401 Unauthorized
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "인증이 필요합니다."),
-    INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "INVALID_TOKEN", "유효하지 않은 토큰입니다."),
+    INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "BusinessException", "유효하지 않은 토큰입니다."),
     TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "TOKEN_EXPIRED", "토큰이 만료되었습니다."),
     REFRESH_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "REFRESH_TOKEN_EXPIRED", "다시 로그인해주세요."),
+    REFRESH_TOKEN_MISMATCH(HttpStatus.UNAUTHORIZED, "REFRESH_TOKEN_MISMATCH", "Refresh 토큰이 일치하지 않습니다."),
 
     // 403 Forbidden
     FORBIDDEN(HttpStatus.FORBIDDEN, "FORBIDDEN", "권한이 없습니다."),
@@ -33,6 +34,8 @@ public enum ErrorCode {
     QUIZ_NOT_FOUND(HttpStatus.NOT_FOUND, "QUIZ_NOT_FOUND", "퀴즈를 찾을 수 없습니다."),
     SUBTITLE_NOT_FOUND(HttpStatus.NOT_FOUND, "SUBTITLE_NOT_FOUND", "해당 영상의 자막을 찾을 수 없습니다."),
     LEARNING_HISTORY_NOT_FOUND(HttpStatus.NOT_FOUND, "LEARNING_HISTORY_NOT_FOUND", "해당 학습 이력을 찾을 수 없습니다."),
+    REFRESH_TOKEN_NOT_FOUND(HttpStatus.NOT_FOUND, "REFRESH_TOKEN_NOT_FOUND", "Refresh 토큰을 찾을 수 없습니다."),
+
     // 409 Conflict
     WORD_ALREADY_COLLECTED(HttpStatus.CONFLICT, "WORD_ALREADY_COLLECTED", "이미 수집한 단어입니다."),
     PREFERENCE_ALREADY_EXISTS(HttpStatus.CONFLICT, "PREFERENCE_ALREADY_EXISTS", "이미 온보딩을 완료했습니다."),

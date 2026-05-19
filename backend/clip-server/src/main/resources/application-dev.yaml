@@ -1,7 +1,7 @@
 spring:
   config:
     import:
-      - "aws-secretsmanager:CLIP/spring-app/prod/env"
+      - "aws-secretsmanager:CLIP/spring-app/dev/env"
       - "aws-secretsmanager:MVP/spring-app/OpenAI"
       - "aws-secretsmanager:MVP/spring-app/DeepL"
       - "aws-secretsmanager:rds!db-4db1156f-53de-4604-8b82-75c5758d41ae"
@@ -22,7 +22,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQL8Dialect
