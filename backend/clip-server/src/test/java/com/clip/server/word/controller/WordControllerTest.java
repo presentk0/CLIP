@@ -1,6 +1,8 @@
 package com.clip.server.word.controller;
 
 import com.clip.server.common.response.PaginationResponse;
+import com.clip.server.common.security.JwtAuthenticationFilter;
+import com.clip.server.config.TestSecurityConfig;
 import com.clip.server.word.contorller.WordController;
 import com.clip.server.word.dto.request.CollectedWordRequest;
 import com.clip.server.word.dto.response.CollectedWordResponse;
@@ -12,8 +14,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -31,6 +36,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(WordController.class)
+@AutoConfigureMockMvc(addFilters = false)
+@ActiveProfiles("test")
 public class WordControllerTest {
 
     @Autowired
@@ -38,6 +45,9 @@ public class WordControllerTest {
 
     @MockitoBean
     private WordService wordService;
+
+    @MockitoBean
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     // DTO를 JSON으로 바꿀 도구
     private final ObjectMapper objectMapper = new ObjectMapper();
