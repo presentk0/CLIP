@@ -52,6 +52,20 @@ dependencies {
 
 	// 날짜/시간 타입을 JSON으로 변환
 	implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+
+	// Spring Security
+	implementation 'org.springframework.boot:spring-boot-starter-security'
+
+	// 구글 ID Token 검증
+	implementation 'com.google.api-client:google-api-client:2.2.0'
+
+	// JWT (자체 토큰 발급/검증)
+	implementation 'io.jsonwebtoken:jjwt-api:0.12.5'
+	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.5'
+	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.5'
+
+	// Redis
+	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 }
 
 tasks.named('test') {
