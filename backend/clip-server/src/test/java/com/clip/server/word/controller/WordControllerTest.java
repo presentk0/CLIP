@@ -2,7 +2,6 @@ package com.clip.server.word.controller;
 
 import com.clip.server.common.response.PaginationResponse;
 import com.clip.server.common.security.JwtAuthenticationFilter;
-import com.clip.server.config.TestSecurityConfig;
 import com.clip.server.word.contorller.WordController;
 import com.clip.server.word.dto.request.CollectedWordRequest;
 import com.clip.server.word.dto.response.CollectedWordResponse;
@@ -16,21 +15,19 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
-
 import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -49,7 +46,6 @@ public class WordControllerTest {
     @MockitoBean
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    // DTO를 JSON으로 바꿀 도구
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
@@ -62,7 +58,8 @@ public class WordControllerTest {
                 .collectedAt(LocalDateTime.now())
                 .totalCollectedWords(5L)
                 .build();
-        given(wordService.save(eq(1L), any(CollectedWordRequest.class)))
+
+        given(wordService.save(any(), any(CollectedWordRequest.class)))
                 .willReturn(mockResponse);
 
         // 2. When
@@ -72,10 +69,10 @@ public class WordControllerTest {
                 .andDo(print());
 
         // 3. Then
-        result.andExpect(status().isCreated()) // 201 Created 확인
+        result.andExpect(status().isCreated())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.wordId").value(1))
-                .andExpect(jsonPath("$.message").value("단어가 성공적으로 수집되었습니다."));
+                .andExpect(jsonPath("$.message").value("단어가 성공적으로 수집되었습니다."))
+                .andExpect(jsonPath("$.data.wordId").value(1));
     }
 
     @Test
@@ -118,7 +115,7 @@ public class WordControllerTest {
                 .pagination(paginationResponse)
                 .build();
 
-        given(wordService.getWords(anyLong(), anyInt(), anyInt(), any()))
+        given(wordService.getWords(any(), anyInt(), anyInt(), any()))
                 .willReturn(wordListResponse);
 
         // When & Then
@@ -126,6 +123,7 @@ public class WordControllerTest {
                         .param("page", "0")
                         .param("size", "10")
                         .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.words[0].word").value("apple"))
@@ -137,12 +135,12 @@ public class WordControllerTest {
     void get_collectWord_fail_invalidPage() throws Exception {
         // When & Then
         mockMvc.perform(get("/api/words/my-collection")
-                .param("page", "-1")
-                .param("size", "10"))
+                        .param("page", "-1")
+                        .param("size", "10"))
+                .andDo(print())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.error.message").value("페이지 번호는 0 이상이어야 합니다. (입력값: -1)"))
                 .andExpect(jsonPath("$.error.code").value("INVALID_INPUT_VALUE"));
-
     }
 }

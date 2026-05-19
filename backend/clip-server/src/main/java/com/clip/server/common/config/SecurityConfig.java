@@ -2,6 +2,7 @@ package com.clip.server.common.config;
 
 import com.clip.server.common.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -28,6 +29,9 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    @Value("#{'${cors.allowed-origins:}'.split(',')}")
+    private List<String> allowedOrigins;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -63,23 +67,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        configuration.setAllowedOriginPatterns(List.of(
-                // ===== 크롬 확장 프로그램 =====
-                "chrome-extension://nodoegcapbckibocgdleinfoniaboejg",
-                "chrome-extension://hbhkcidgpjdniofchhofhekjfdcdkkde",
-                "chrome-extension://hchkjnbfbmfgfidilneahojmiddkdeaj",
-                "chrome-extension://eaodakmjolhkaoaofnkfbcodihnncmkn",
-                "chrome-extension://hldepbmgooakmbnbobafccbngfflhilj",
-                "chrome-extension://fiikffmgckeladckjjoalgbeljanpbal",
-
-                "chrome-extension://mcgnjdjgakffdoagkocfgemnmlndplai",
-                // ===== 백엔드 도메인 =====
-                "https://clip-server.com",
-
-                // ===== YouTube (확장이 YouTube 페이지 조작 시) =====
-                "https://*.youtube.com"
-
-        ));
+        configuration.setAllowedOriginPatterns(allowedOrigins);
 
         configuration.setAllowedMethods(List.of(
                 "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"

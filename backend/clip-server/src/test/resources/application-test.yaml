@@ -51,3 +51,10 @@ aws:
 deepl:
   api:
     key: test-key
+
+google:
+  client-id: "mock-google-client-id"
+
+cors:
+  allowed-origins:
+    - "http://localhost:3000"
