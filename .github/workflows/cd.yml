@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 env:
-  CODE_DEPLOY_APP_NAME: CLIP-App
+  CODE_DEPLOY_APP_NAME: CLIP-CodeDeploy-App
 
 jobs:
   deploy:
