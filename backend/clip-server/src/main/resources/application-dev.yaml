@@ -37,6 +37,18 @@ spring:
   jackson:
     serialization:
       write-dates-as-timestamps: false
+cors:
+  allowed-origins:
+    - "chrome-extension://nodoegcapbckibocgdleinfoniaboejg"
+    - "chrome-extension://hbhkcidgpjdniofchhofhekjfdcdkkde"
+    - "chrome-extension://hchkjnbfbmfgfidilneahojmiddkdeaj"
+    - "chrome-extension://eaodakmjolhkaoaofnkfbcodihnncmkn"
+    - "chrome-extension://hldepbmgooakmbnbobafccbngfflhilj"
+    - "chrome-extension://fiikffmgckeladckjjoalgbeljanpbal"
+    - "chrome-extension://mcgnjdjgakffdoagkocfgemnmlndplai"
+    - "https://*.youtube.com"
+    - "http://localhost:3000"
+    - "https://dev.clip-server.com"
 
 openai:
   api:
