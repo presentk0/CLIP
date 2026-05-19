@@ -1,40 +1,12 @@
 spring:
   config:
     import: ""
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
-      - org.springframework.boot.autoconfigure.security.servlet.SecurityFilterAutoConfiguration
-      - org.springframework.boot.autoconfigure.security.oauth2.client.servlet.OAuth2ClientWebSecurityAutoConfiguration
-      - org.springframework.boot.autoconfigure.security.oauth2.resource.servlet.OAuth2ResourceServerAutoConfiguration
-      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
-      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
-      -
-  datasource:
-    url: jdbc:h2:mem:testdb;MODE=MySQL;DB_CLOSE_DELAY=-1
-    driver-class-name: org.h2.Driver
-    username: sa
-    password: ""
 
-  data:
-    redis:
-      host: localhost
-      port: 6379
-      password: test
-      ssl:
-        enabled: false
-
-  jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
-    hibernate:
-      ddl-auto: create-drop
-    show-sql: true
-
-security:
-  enabled: false
-
+  # AWS Secrets Manager 같은 외부 의존성 비활성화
   cloud:
     aws:
+      secretsmanager:
+        enabled: false
       credentials:
         access-key: test-key
         secret-key: test-key
@@ -43,16 +15,31 @@ security:
       stack:
         auto: false
 
+
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=MySQL;NON_KEYWORDS=USER;DB_CLOSE_DELAY=-1   # ← NON_KEYWORDS=USER 추가
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+
+# JWT 더미값 (테스트용)
+jwt:
+  secret: test-secret-key-for-junit-testing-purpose-only-must-be-at-least-256-bits-long-string
+  access-expiration: 3600000
+  refresh-expiration: 1209600000
+
+# 외부 API 더미값
 openai:
   api:
     key: test-key
     url: https://api.openai.com/v1/chat/completions
   model: gpt-5.4-mini
-
-jwt:
-  secret: test-secret-key-for-junit-testing-purpose-only-must-be-at-least-256-bits-long-string
-  access-expiration: 3600000        # 1시간 (ms)
-  refresh-expiration: 1209600000
 
 aws:
   access-key: mock
