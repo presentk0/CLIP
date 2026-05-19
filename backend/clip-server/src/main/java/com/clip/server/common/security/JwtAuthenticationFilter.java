@@ -28,7 +28,6 @@ import java.util.Collections;
  */
 @Slf4j
 @Component
-@Profile("!test")
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
