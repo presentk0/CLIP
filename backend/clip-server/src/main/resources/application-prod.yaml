@@ -22,7 +22,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQL8Dialect
@@ -38,6 +38,18 @@ spring:
     serialization:
       write-dates-as-timestamps: false
 
+cors:
+  allowed-origins:
+    - "chrome-extension://nodoegcapbckibocgdleinfoniaboejg"
+    - "chrome-extension://hbhkcidgpjdniofchhofhekjfdcdkkde"
+    - "chrome-extension://hchkjnbfbmfgfidilneahojmiddkdeaj"
+    - "chrome-extension://eaodakmjolhkaoaofnkfbcodihnncmkn"
+    - "chrome-extension://hldepbmgooakmbnbobafccbngfflhilj"
+    - "chrome-extension://fiikffmgckeladckjjoalgbeljanpbal"
+    - "chrome-extension://mcgnjdjgakffdoagkocfgemnmlndplai"
+    - "https://*.youtube.com"
+    - "https://clip-server.com"
+
 openai:
   api:
     key: ${openai.api.key}
@@ -52,3 +64,6 @@ jwt:
   secret: ${JWT_SECRET}
   access-expiration: 3600000      # 1시간 (Access Token)
   refresh-expiration: 1209600000 # 14일 (Refresh Token)
+
+google:
+  client-id: ${google.client-id}

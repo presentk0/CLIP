@@ -2,8 +2,10 @@ package com.clip.server.common.config;
 
 import com.clip.server.common.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -16,18 +18,14 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 
-/**
- * [SecurityConfig]
- * - 크롬 확장 프로그램과 백엔드 API 통신을 위한 CORS 정책
- * - JWT 기반 Stateless 인증
- * - HttpOnly 쿠키 (Refresh Token) 송수신 지원
- */
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
+@Slf4j
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final CorsProperties corsProperties;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -40,6 +38,7 @@ public class SecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/health",
@@ -53,48 +52,16 @@ public class SecurityConfig {
         return http.build();
     }
 
-    /**
-     * CORS 설정
-     * - allowCredentials(true)와 함께 사용하기 위해 allowedOriginPatterns 사용
-     * - 크롬 확장 프로그램의 chrome-extension:// 오리진 허용
-     * - HttpOnly 쿠키 송수신 지원
-     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
+        log.info("=== CORS Allowed Origins: {} ===", corsProperties.getAllowedOrigins());
+
         CorsConfiguration configuration = new CorsConfiguration();
-
-        configuration.setAllowedOriginPatterns(List.of(
-                // ===== 크롬 확장 프로그램 =====
-                "chrome-extension://nodoegcapbckibocgdleinfoniaboejg",
-                "chrome-extension://hbhkcidgpjdniofchhofhekjfdcdkkde",
-                "chrome-extension://hchkjnbfbmfgfidilneahojmiddkdeaj",
-                "chrome-extension://eaodakmjolhkaoaofnkfbcodihnncmkn",
-                "chrome-extension://hldepbmgooakmbnbobafccbngfflhilj",
-                "chrome-extension://fiikffmgckeladckjjoalgbeljanpbal",
-
-                "chrome-extension://mcgnjdjgakffdoagkocfgemnmlndplai",
-                // ===== 백엔드 도메인 =====
-                "https://clip-server.com",
-
-                // ===== YouTube (확장이 YouTube 페이지 조작 시) =====
-                "https://*.youtube.com"
-
-        ));
-
-        configuration.setAllowedMethods(List.of(
-                "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"
-        ));
-
-        // 모든 헤더 허용 (크롬 확장은 다양한 헤더 사용 가능성 있음)
+        configuration.setAllowedOriginPatterns(corsProperties.getAllowedOrigins());
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
-
-        // 프론트엔드가 응답 헤더를 읽을 수 있도록 노출
-        configuration.setExposedHeaders(List.of("Authorization", "Set-Cookie"));
-
-        // HttpOnly 쿠키(refreshToken) 송수신을 위해 필수
+        configuration.setExposedHeaders(List.of("Authorization"));  // Set-Cookie 제거
         configuration.setAllowCredentials(true);
-
-        // Preflight 요청 캐시 (1시간)
         configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
