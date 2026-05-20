@@ -2,91 +2,9 @@
 
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-// import { useAuth } from '../contexts/AuthContext';
 import { useAuth } from '../hooks/useAuth';
 import { handleApiError } from '../utils/errorHandler';
-// import { apiFetch } from '../utils/api';
-
-
-// import { forwardRef } from 'react';
-
-// import inputStyles from './InputBox.module.css';
-
 import buttonStyles from './ButtonBox.module.css';
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// const authContext = createContext(null);
-
-
-
-
-
-
-
-
-
-// //  forwardRef - ref 전달용
-// // 부모가 자식 컴포넌트의 실제 DOM에 접근하고 싶을 때 사용
-// // 일반 컴포넌트는 ref를 prop으로 못 받아서 forwardRef로 감싸야함
-// // 예: 로그인 실패 시 이메일 input에 자동 focus
-// const InputBox = forwardRef(
-//   // props 구조분해 할당
-//   // label:	라벨 텍스트 ("이메일")
-//   // error:	에러 메시지
-//   // fullWidth:	가로 100% 여부
-//   // className:	추가 CSS 클래스
-//   // id:	input의 id 속성
-//   // ...props: type, value, onChange, placeholder, name, required 등 input 기본 속성
-//   ({ label, error, fullWidth = false, className = '', id, ...props }, ref) => {
-//     // inputId 자동 생성
-//     // <label htmlFor>와 <input id>를 연결하려면 id가 필요
-//     // id를 안 줬으면 name을 대신 사용. (label 클릭 시 input 포커스되는 효과)
-//     const inputId = id || props.name;
-
-//     return (
-//       // 항상 wrapper 클래스 적용, fullWidth={true}면 fullWidth 클래스 추가
-//       <div className={`${inputStyles.wrapper} ${fullWidth ? inputStyles.fullWidth : ''}`}>
-//         {/* label prop이 있을 때만 <label> 렌더링 */}
-//         {label && (
-//           <label htmlFor={inputId} className={inputStyles.label}>
-//             {label}
-//             {/* required={true}면 빨간 별표 * 추가 */}
-//             {props.required && <span className={inputStyles.required}>*</span>}
-//           </label>
-//         )}
-//         <input
-//           // ref 연결
-//           ref={ref}
-//           // label과 연결
-//           id={inputId}
-//           // error가 있으면 빨간 테두리 클래스 추가
-//           className={`${inputStyles.input} ${error ? inputStyles.error : ''} ${className}`}
-//           // 나머지 속성 자동 적용
-//           {...props}
-//         />
-//         {/* 에러가 있을 때만 빨간 에러 메시지 표시 */}
-//         {error && <span className={inputStyles.errorMessage}>{error}</span>}
-//       </div>
-//     );
-//   }
-// );
-
-// // React DevTools에서 컴포넌트 이름이 ForwardRef가 아닌 InputBox로 표시
-// InputBox.displayName = 'InputBox';
 
 
 
@@ -175,7 +93,6 @@ export default function LoginPage() {
 // CLIENT_ID는 내 앱 식별표.
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
-
   try {
     // 리다이렉트 URI (Google Console에 등록한 것과 같아야 함) 가져오기
     // 크롬이 자동으로 만들어주는 확장프로그램 전용 주소
@@ -261,50 +178,12 @@ const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
     navigate(from, { replace: true });
   } catch (error) {
     // setError(SAFE_LOGIN_ERRORS[error.code] || '로그인에 실패했습니다');
-    setError(handleApiError(error, SAFE_LOGIN_ERRORS) || '로그인에 실패했습니다');
+    setError(handleApiError(error, '로그인', SAFE_LOGIN_ERRORS) || '로그인에 실패했습니다');
   } finally {
     setIsLoading(false);
   }
-
-
-    // try {
-    //   // Chrome Identity API로 idToken 받기
-    //   const idToken = await new Promise((resolve, reject) => {
-    //     chrome.identity.getAuthToken({ interactive: true }, (token) => {
-    //       if (chrome.runtime.lastError) {
-    //         reject(chrome.runtime.lastError);
-    //       } else {
-    //         resolve(token);
-    //       }
-    //     });
-    //   });
-
-    //   await loginWithGoogle(idToken);
-    //   navigate(from, { replace: true });
-    // } catch (error) {
-    //   setError(error.message || '로그인에 실패했습니다');
-    // } finally {
-    //   setIsLoading(false);
-    // }
   };
 
-
-  // const handleSubmit = async (FormEvent) => {
-  //   FormEvent.preventDefault();
-  //   setApiError('');
-
-  //   if (!validate()) return;
-
-  //   try {
-  //     setIsLoading(true);
-  //     await login({ email, password });
-  //     navigate(from, { replace: true });
-  //   } catch (err) {
-  //     setApiError(err instanceof Error ? err.message : '로그인에 실패했습니다');
-  //   } finally {
-  //     setIsLoading(false);
-  //   }
-  // };
 
 
 function decodeJwtPayload(token) {
@@ -326,43 +205,6 @@ function decodeJwtPayload(token) {
   // 디코딩
   return JSON.parse(atob(padded));
 }
-
-
-
-
-
-
-
-
-  // const [email, setEmail] = useState('');
-  // const [password, setPassword] = useState('');
-
-
-  // const [apiError, setApiError] = useState('');
-
-
-
-
-
-  // const validate = () => {
-  //   const newErrors = {};
-
-  //   if (!email.trim()) {
-  //     newErrors.email = '이메일을 입력해주세요';
-  //   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-  //     newErrors.email = '올바른 이메일 형식이 아닙니다';
-  //   }
-
-  //   if (!password) {
-  //     newErrors.password = '비밀번호를 입력해주세요';
-  //   }
-
-  //   setErrors(newErrors);
-  //   // 에러 없으면 true, 에러 있으면 false
-  //   return Object.keys(newErrors).length === 0;
-  // };
-
-
 
 
 
@@ -392,52 +234,6 @@ function decodeJwtPayload(token) {
           로그인
         </h1>
 
-        {/* {apiError && 
-        <div style={{
-          padding: '0.75rem 1rem',
-          backgroundColor: '#fef2f2',
-          border: '1px solid #fecaca',
-          borderRadius: '8px',
-          color: '#dc2626',
-          fontSize: '0.875rem',
-          marginBottom: '1rem',
-        }}>
-          {apiError}
-        </div>} */}
-{/* 
-        <form 
-        onSubmit={handleSubmit}
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '1.25rem',
-        }}>
-          <InputBox
-            type="email"
-            label="이메일"
-            name="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="example@email.com"
-            error={errors?.email}
-            fullWidth
-          />
-
-          <InputBox
-            type="password"
-            label="비밀번호"
-            name="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="비밀번호를 입력하세요"
-            error={errors.password}
-            fullWidth
-          />
-
-          <ButtonBox type="submit" fullWidth isLoading={isLoading}>
-            로그인
-          </ButtonBox>
-        </form> */}
 
         {error && (
           <div style={{
@@ -461,41 +257,7 @@ function decodeJwtPayload(token) {
           Google로 로그인
         </ButtonBox>
 
-        {/* <p style={{
-          color: '#3b82f6',
-          fontWeight: '500',
-        }}>
-          계정이 없으신가요? <Link to="/signup">회원가입</Link>
-        </p>
-
-        <div style={{
-          marginTop: '1.5rem',
-          padding: '1rem',
-          backgroundColor: '#f3f4f6',
-          borderRadius: '8px',
-          textAlign: 'center',
-        }}>
-
-          <p style={{
-            fontSize: '0.75rem',
-            color: '#6b7280',
-            marginBottom: '0.5rem',
-          }}>
-            테스트 계정
-          </p>
-
-          <code style={{
-            fontSize: '0.8125rem',
-            color: '#374151',
-            backgroundColor: 'white',
-            padding: '0.25rem 0.5rem',
-            borderRadius: '4px',
-          }}>
-            test@example.com / password123
-          </code> */}
-
         </div>
       </div>
-    // </div>
   );
 }
