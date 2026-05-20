@@ -57,4 +57,4 @@ google:
 
 cors:
   allowed-origins:
-    - "http://localhost:3000"
+    - "https://test-environment-bypass.clip-server.com"
