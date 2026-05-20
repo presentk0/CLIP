@@ -1,5 +1,24 @@
 import { useAuth } from "../hooks/useAuth";
 import { useNavigate } from "react-router-dom";
+import { apiFetch } from "../utils/api";
+import { useState, useEffect } from "react";
+
+
+function truncateEmail(email, maxLength) {
+  if (email.length <= maxLength) return email;
+  
+  const [local, domain] = email.split('@');
+  const domainPart = '@' + domain;
+
+  // "..." 3자 빼기
+  const remaining = maxLength - domainPart.length - 3;
+
+  if (remaining <= 0) return email.slice(0, maxLength) + '...';
+
+  return local.slice(0, remaining) + '...' + domainPart;
+}
+
+
 
 function DefaultPage() {
   const { logout } = useAuth();
@@ -7,9 +26,48 @@ function DefaultPage() {
 
   const handleLogout = async () => {
     await logout();
-    // ProtectedRoute가 자동으로 /login 보내지만, 명시적으로 해도 OK
+    // ProtectedRoute가 자동으로 /login 보내지만, 명시적으로 해도 됨
     navigate('/login');
   };
+
+  // 상태로 데이터 관리
+  const [data, setData] = useState(null);
+
+
+  // 컴포넌트 mount 시 API 호출
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const result = await apiFetch('/users/me/dashboard', { method: 'GET' });
+        setData(result.data);
+      } catch (error) {
+        console.error('데이터 로딩 실패:', error);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+
+
+
+  // 데이터 없으면 에러 화면
+  if (!data) {
+    return <div>데이터를 불러올 수 없습니다.</div>;
+  }
+
+  // 데이터에서 꺼내기
+  const { user, levelInfo, stats } = data;
+
+  const MAX_LEVEL = 99;
+  const nextLevel = levelInfo.currentLevel >= MAX_LEVEL ? 'MAX' : `LV.${levelInfo.currentLevel + 1}`;
+
+
+
+
+
+
+
 
   return (
     // 전체 박스
@@ -177,7 +235,7 @@ function DefaultPage() {
                   fontWeight: '400',
                   lineHeight: 'normal',
                 }}>
-                  7일 연속
+                  {stats.streak}일 연속
                 </p>
               </div>
             </div>
@@ -252,7 +310,7 @@ function DefaultPage() {
                 fontWeight: '700',
                 lineHeight: 'normal',
               }}>
-                성이름 님
+                {user.name}
               </p>
 
               {/* 이메일 및 출석 박스 */}
@@ -274,7 +332,7 @@ function DefaultPage() {
                   fontWeight: '400',
                   lineHeight: 'normal',
                 }}>
-                  unnamed@gmail.com
+                  {truncateEmail(user.email, 15)}
                 </p>
 
                 {/* 연속 출석일 */}
@@ -287,7 +345,7 @@ function DefaultPage() {
                   fontWeight: '400',
                   lineHeight: 'normal',
                 }}>
-                  연속 7일 출석 (총 30일)
+                  연속 {stats.streak}일 출석 (총 30일)
                 </p>
               </div>
             </div>
@@ -342,7 +400,7 @@ function DefaultPage() {
                 lineHeight: 'normal',
                 letterSpacing: '-0.028px',
               }}>
-                LV. 12
+                LV. {levelInfo.currentLevel}
               </p>
 
               {/* 다음 레벨 */}
@@ -362,7 +420,7 @@ function DefaultPage() {
                 lineHeight: 'normal',
                 letterSpacing: '-0.028px',
               }}>
-                LV. 13
+                {nextLevel}
               </p>
             </div>
 
@@ -377,21 +435,23 @@ function DefaultPage() {
               <div style={{
                 width: '306px',
                 height: '6px',
-                position: 'absolute',
+                // position: 'absolute',
                 borderRadius: '999px',
                 background: '#EDEDF2',
               }}>
+
+                {/* 보라색 현재 레벨바 */}
+                <div style={{
+                  width: `${levelInfo.progressPercentage}%`,
+                  height: '6px',
+                  flexShrink: '0',
+                  borderRadius: '999px',
+                  background: '#9B87E8',
+                }}>
+                </div>
               </div>
 
-              {/* 보라색 현재 레벨바 */}
-              <div style={{
-                width: '114px',
-                height: '6px',
-                flexShrink: '0',
-                borderRadius: '999px',
-                background: '#9B87E8',
-              }}>
-              </div>
+
             </div>
 
             {/* 다음 레벨 안내 */}
@@ -404,7 +464,7 @@ function DefaultPage() {
               fontWeight: '400',
               lineHeight: 'normal',
             }}>
-              다음 레벨까지 65%남았어요!
+              다음 레벨까지 {levelInfo.progressPercentage}%남았어요!
             </p>
           </div>
         </div>
