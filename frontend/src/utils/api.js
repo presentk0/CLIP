@@ -47,15 +47,34 @@ function parseBody(body) {
 
 
 // 서버 주소가 생기면 false로 바꾸고 URL을 실제 서버 주소로 변경하기
-const IS_MOCK = false; 
-const BASE_URL = import.meta.env.VITE_BASE_URL;
+const IS_MOCK = true; 
+const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 export const apiFetch = async (endpoint, options = {}) => {
+
+  // 백그라운드에서 토큰 가져오기
+  let accessToken = null;
+  try {
+    const auth = await chrome.runtime.sendMessage({ type: 'GET_AUTH' });
+    accessToken = auth?.accessToken;
+  } catch (error) {
+    console.warn('토큰 조회 실패', error);
+  }
+
+  // headers에 토큰 자동 추가 (Mock/실제 공통)
+  const headersWithAuth = {
+    'Content-Type': 'application/json',
+    ...(accessToken && { 'Authorization': `Bearer ${accessToken}` }),
+    // 호출자가 명시적으로 헤더 주면 그걸로 덮어쓰기
+    ...options.headers,
+  };
+
   if (IS_MOCK) {
     // 네트워크 지연 시뮬레이션
     await new Promise(resolve => setTimeout(resolve, 500)); 
 
-    const { method = 'GET', headers = {}, body = null } = options;
+    const { method = 'GET', body = null } = options;
+    const headers = headersWithAuth;
 
     // 로그인 요청
     if (endpoint === '/auth/google/login' && method === 'POST') {
@@ -227,6 +246,88 @@ export const apiFetch = async (endpoint, options = {}) => {
           progressPercentage: 91,
           createdAt: "2024-01-15T10:30:00Z"
         }
+      };
+    }
+
+
+
+    // 대시보드 조회
+    if (endpoint === '/users/me/dashboard' && method === 'GET') {
+      const authError = checkAuth(headers);
+      if (authError) return authError;
+
+      return {
+        success: true,
+        data: {
+          user: {
+            id: 1,
+            name: "홍길동",
+            email: "user@gmail.com",
+            profileImageUrl: "https://...",
+            level: 12,
+            exp: 3450
+          },
+          levelInfo: {
+            currentLevel: 12,
+            currentExp: 1650,
+            nextLevelExp: 1800,
+            progressPercentage: 91,
+            recentEarnedExp: 185,
+            expToNextLevel: 150
+          },
+          stats: {
+            totalWords: 247,
+            streak: 7,
+            avgAccuracy: 84,
+            conqueredVideos: 12
+          },
+          ongoingMasteryBadge: {
+            videoId: "dQw4w9WgXcQ",
+            videoTitle: "Contrary to popular belief...",
+            thumbnailUrl: "https://...",
+            currentBadge: "SILVER",
+            wordsCollected: 23
+          }
+        },
+      };
+    }
+
+
+
+    // 성장 지표 조회 (마이페이지)
+    if (endpoint.startsWith('/users/me/growth') && method === 'GET') {
+      const authError = checkAuth(headers);
+      if (authError) return authError;
+
+      return {
+        success: true,
+        data: {
+          period: 7,
+          dailyStats: [
+            {
+              date: "2024-01-15",
+              wordsCollected: 35,
+              quizzesCompleted: 20,
+              accuracy: 85,
+              studyTime: 1200
+            }
+          ],
+          weeklyGrowth: {
+            wordsGrowth: "+12%",
+            accuracyGrowth: "+5%",
+            studyTimeGrowth: "+20%"
+          },
+          weeklyAccuracy: {
+            thisWeek: 84,
+            lastWeek: 80,
+            growthRate: 4,
+            weeklyData: [
+              { week: "4주 전", accuracy: 76, quizCount: 2 },
+              { week: "이번 주", accuracy: 84, quizCount: 5 }
+            ]
+          }
+        },
+        message: "성장 지표가 성공적으로 조회되었습니다."
       };
     }
 
@@ -599,15 +700,6 @@ if (endpoint === '/quiz/sessions/generate/section') {
     return { success: true };
   }
 
-  // 백그라운드에서 토큰 가져오기
-  let accessToken = null;
-  try {
-    const auth = await chrome.runtime.sendMessage({ type: 'GET_AUTH' });
-    accessToken = auth?.accessToken;
-  } catch (error) {
-    console.warn('토큰 조회 실패', error);
-  }
-
   // // 실제 서버 통신 로직 (나중에 사용)
   // const { accessToken } = await chrome.storage.session.get(['accessToken']);
 
@@ -619,12 +711,7 @@ if (endpoint === '/quiz/sessions/generate/section') {
     // 확장프로그램과 서버 간 도메인이 다르기에 같은 도메인만 보내는 기본값인 'same-origin'는 쿠키를 보낼 수 없음
     // include를 사용해서 도메인이 달라도 항상 브라우저에서 쿠키를 보내게 함
     credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(accessToken && { 'Authorization': `Bearer ${accessToken}` }),
-      // 호출자가 명시적으로 헤더 주면 그걸로 덮어쓰기
-      ...options.headers,
-    }
+    headers: headersWithAuth,
   });
 
   // result = JSON으로 파싱된 데이터
@@ -635,7 +722,6 @@ if (endpoint === '/quiz/sessions/generate/section') {
       result.error?.code || 'UNKNOWN'
     );
   }
-    // throw new Error(result.error?.message || 'API Error');
 
   return result;
 };
