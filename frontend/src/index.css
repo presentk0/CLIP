@@ -8,6 +8,6 @@
 /* ============================================
   디자인 시스템 + 전역 스타일
 ============================================ */
-@import "./styles/global.css";
-@import "./styles/reset.css";
 @import "./styles/tokens.css";
+@import "./styles/reset.css";
+@import "./styles/global.css";

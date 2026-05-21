@@ -127,6 +127,7 @@
   --semantic-radius-section: var(--primitive-corner-24);   /* 섹션 */
   --semantic-radius-pill: var(--primitive-corner-999);     /* 알약 (완전 둥근) */
 
+  --semantic-radius-hero: var(--primitive-corner-48);     /* 페이지 상단의 큰 영역 */
 
 
 
@@ -183,16 +184,18 @@
   --primitive-font-size-16: 16px;
   --primitive-font-size-18: 18px;
   --primitive-font-size-20: 20px;
-  --primitive-font-size-24: 24px;
+
+  --primitive-font-size-24: 24px;  /* 추가함 */
+
   --primitive-font-size-28: 28px;
 
   /* Font Weight — Pretendard 지원 굵기 */
   --primitive-font-weight-regular: 400;
   --primitive-font-weight-medium: 500;
   --primitive-font-weight-semibold: 600;
-  --primitive-font-weight-bold: 700;
+  --primitive-font-weight-bold: 700;  /* 사용 */
 
-  /* Line Height */
+  /* Line Height = font-size / line-height */
   --primitive-line-height-tight: 1.3;    /* 제목 (한글은 너무 좁으면 답답) */
   --primitive-line-height-normal: 1.5;   /* 본문 */
   --primitive-line-height-relaxed: 1.7;  /* 긴 본문 */
@@ -211,7 +214,7 @@
   --semantic-font-display: var(--primitive-font-size-28);
 
   /* Heading — 제목 */
-  --semantic-font-heading-lg: var(--primitive-font-size-24);
+  --semantic-font-heading-lg: var(--primitive-font-size-24);  /* 추가함 */
   --semantic-font-heading-md: var(--primitive-font-size-20);
   --semantic-font-heading-sm: var(--primitive-font-size-18);
 
