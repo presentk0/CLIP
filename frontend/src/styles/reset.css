@@ -11,8 +11,9 @@
 html,
 body,
 #root {
-  width: 402px;
+  width: 100%;
   min-width: 402px;
+  overflow-x: hidden;
 }
 
 /* 링크 기본 스타일 제거 */
