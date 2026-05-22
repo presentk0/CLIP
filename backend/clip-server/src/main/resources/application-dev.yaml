@@ -47,7 +47,6 @@ cors:
     - "chrome-extension://fiikffmgckeladckjjoalgbeljanpbal"
     - "chrome-extension://mcgnjdjgakffdoagkocfgemnmlndplai"
     - "https://*.youtube.com"
-    - "http://localhost:3000"
     - "https://dev.clip-server.com"
 
 openai:

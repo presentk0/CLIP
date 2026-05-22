@@ -47,7 +47,8 @@ public class CollectedWord {
     @Column(nullable = false, length = 10)
     private String timestamp;
 
-    @Column(nullable = false, length = 10)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type", nullable = false, length = 10)
     private WordType wordType; // 호버 단어 or 수집 단어 여부 판별
 
     // 자막(예문) 번역
