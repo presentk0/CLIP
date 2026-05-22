@@ -12,12 +12,13 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 public interface CollectedWordRepository extends JpaRepository<CollectedWord, Long> {
-    boolean existsByUserAndWord(User user, String word);
-    int countByUser(User user);
+    long countByUser(User user);
     Page<CollectedWord> findAll(Pageable pageable);
     Page<CollectedWord> findAllByUserIdAndVideo_VideoIdAndWordType(Long userId, String videoId, WordType type, Pageable pageable);
     Page<CollectedWord> findAllByUserIdAndWordType(Long userId, WordType type, Pageable pageable);
@@ -28,6 +29,15 @@ public interface CollectedWordRepository extends JpaRepository<CollectedWord, Lo
             String videoId,
             WordType wordType
     );
+
+    @Query("SELECT COUNT(cw) > 0 FROM CollectedWord cw " +
+            "WHERE cw.user.id = :userId " +
+            "AND cw.collectedAt >= :startOfDay " +
+            "AND cw.collectedAt < :endOfDay")
+    boolean existsCollectedWordToday(@Param("userId") Long userId,
+                                     @Param("startOfDay") LocalDateTime stateOfDay,
+                                     @Param("endOfDay")LocalDateTime endOfDay
+                                    );
 
 
 }

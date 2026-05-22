@@ -17,10 +17,12 @@ import com.clip.server.user.dto.response.BadgeAwardResponse;
 import com.clip.server.user.entity.User;
 import com.clip.server.user.entity.badge.BadgeType;
 import com.clip.server.user.entity.badge.UserBadge;
+import com.clip.server.user.entity.exp.ExpSourceType;
 import com.clip.server.user.entity.learning.LearningHistory;
 import com.clip.server.user.repository.LearningHistoryRepository;
 import com.clip.server.user.repository.UserBadgeRepository;
 import com.clip.server.user.repository.UserRepository;
+import com.clip.server.user.service.ExpLogService;
 import com.clip.server.video.entity.Video;
 import com.clip.server.video.repository.VideoRepository;
 import com.clip.server.word.entity.WordType;
@@ -52,6 +54,7 @@ public class QuizProcessor {
     private final OpenAIService openAIService;
     private final QuizFeedbackGenerator quizFeedbackGenerator;
     private final QuizFallbackService quizFallbackService;
+    private final ExpLogService expLogService;
 
     private static final double DENSITY_FACTOR = 0.8;
     private static final int VIDEO_COMPENSATION = 200;
@@ -329,12 +332,29 @@ public class QuizProcessor {
         // 배지 획득
         BadgeAwardResponse badgeAward = awardBadgeAndBonusExp(user, video, learningHistory.getCompletionCount());
 
+        // 레벨업 체크용
+        int oldLevel = user.getLevel();
+
+        // 1. 퀴즈 정답 보상
+        if(baseQuizExp>0) {
+            String description = String.format("퀴즈 정답 (%d문제)", correctCount);
+            expLogService.addExp(user, ExpSourceType.QUIZ_CORRECT, sessionId, description, baseQuizExp);
+        }
+
+        // 2. 영상 완주 보상
+        expLogService.addExp(user, ExpSourceType.VIDEO_COMPLETE, sessionId, VIDEO_COMPENSATION);
+
+        // 3. 배지 보상
+        if (badgeAward.getBadgeType() != null && badgeAward.getBonusExp() > 0) {
+            ExpSourceType badgeSource = mapBadgeToExpSource(badgeAward.getBadgeType());
+            if (badgeSource != null) {
+                expLogService.addExp(user, badgeSource, sessionId, badgeAward.getBonusExp());
+            }
+        }
+
         // 최종 경험치
         int totalEarnedExp = baseQuizExp + VIDEO_COMPENSATION + badgeAward.getBonusExp();
 
-        // 레벨업 처리
-        int oldLevel = user.getLevel();
-        user.addExp(totalEarnedExp);
         int newLevel = user.getLevel();
         boolean levelUp = newLevel > oldLevel;
 
@@ -362,6 +382,16 @@ public class QuizProcessor {
 
 
     // ==================== 유틸리티 메서드 ====================
+
+    // 헬퍼 메서드
+    private ExpSourceType mapBadgeToExpSource(BadgeType badgeType) {
+        return switch (badgeType) {
+            case BRONZE -> ExpSourceType.BADGE_BRONZE;
+            case SILVER -> ExpSourceType.BADGE_SILVER;
+            case GOLD -> ExpSourceType.BADGE_GOLD;
+            case NONE, COMPLETION -> null;
+        };
+    }
 
     private List<QuizWordRequest> deduplicateAndLimit(List<QuizWordRequest> requests, int limit) {
         return requests.stream()
