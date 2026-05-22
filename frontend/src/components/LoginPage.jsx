@@ -7,7 +7,6 @@ import { handleApiError } from '../utils/errorHandler';
 import buttonStyles from './ButtonBox.module.css';
 
 
-
 function ButtonBox({
   variant = 'primary',
   size = 'medium',

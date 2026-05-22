@@ -139,7 +139,7 @@ public class WordServiceTest {
         given(userRepository.findById(TEST_USER_ID)).willReturn(Optional.of(fakeUser));
         given(collectedWordRepository.findByUserIdAndVideo_VideoIdAndWord(TEST_USER_ID, videoId, wordText))
                 .willReturn(Optional.of(existingPopupWord));
-        given(collectedWordRepository.countByUser(fakeUser)).willReturn(1);
+        given(collectedWordRepository.countByUser(fakeUser)).willReturn(1L);
 
         // 2. When
         CollectedWordResponse response = wordService.save(TEST_USER_ID, request);

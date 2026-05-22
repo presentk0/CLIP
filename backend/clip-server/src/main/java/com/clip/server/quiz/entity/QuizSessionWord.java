@@ -32,6 +32,7 @@ public class QuizSessionWord {
     @Column(nullable = false, length = 200)
     private String translation;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private WordType wordType; // 단어 타입: 수집, 호버, 자막 필터링 단어
 
