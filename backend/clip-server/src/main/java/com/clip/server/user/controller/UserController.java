@@ -38,7 +38,7 @@ public class UserController {
             @AuthenticationPrincipal Long userId
     ) {
         UserDashBoardResponse response = userService.showDashBoard(userId);
-        return ApiResponse.success(response, "사용자의 대시보드가 성공적으로 조회되었습니다.");
+        return ApiResponse.success(response, "사용자 대시보드가 성공적으로 조회되었습니다.");
     }
 
     @Operation(summary = "사용자 성장 지표 조회")
@@ -47,7 +47,7 @@ public class UserController {
             @AuthenticationPrincipal Long userId
     ) {
         UserGrowthResponse response = userService.showGrowth(userId);
-        return ApiResponse.success(response, "사용자의 성장 지표가 성공적으로 조회되었습니다.");
+        return ApiResponse.success(response, "사용자 성장 지표가 성공적으로 조회되었습니다.");
     }
 
 

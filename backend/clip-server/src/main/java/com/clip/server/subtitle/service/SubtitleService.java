@@ -42,14 +42,18 @@ public class SubtitleService {
     /**
      * 번역 후 자막 전체 저장
      */
-    public void bulkSaveSubtitles(String videoId, String title, Integer duration,
+    public void bulkSaveSubtitles(String videoId,
+                                  String title,
+                                  Integer duration,
+                                  String channelName,
+                                  String thumbnailUrl,
                                   List<TranslationRequest.SubtitleDetail> requests,
                                   List<String> translatedTexts) {
 
         log.info("### [Subtitle] 벌크 저장 시작 - videoId: {}, count: {}", videoId, requests.size());
 
         // 1. Video 생성/조회 (REQUIRES_NEW → 즉시 커밋)
-        Video video = videoService.getOrCreateVideo(videoId, title, duration);
+        Video video = videoService.getOrCreateVideo(videoId, title, duration, channelName, thumbnailUrl);
 
         // 2. 자막 벌크 저장 (별도 Bean 호출)
         subtitleProcessor.bulkSaveSubtitlesInternal(video.getVideoId(), requests, translatedTexts);
