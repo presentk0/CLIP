@@ -2,9 +2,12 @@ package com.clip.server.user.service;
 
 import com.clip.server.common.exception.BusinessException;
 import com.clip.server.common.exception.ErrorCode;
+import com.clip.server.quiz.repository.QuizSessionRepository;
+import com.clip.server.user.dto.response.UserGrowthResponse;
 import com.clip.server.user.dto.response.UserProfileResponse;
 import com.clip.server.user.entity.User;
 import com.clip.server.user.repository.UserRepository;
+import com.clip.server.word.repository.CollectedWordRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -19,7 +22,8 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
@@ -32,7 +36,38 @@ class UserServiceTest {
 
     @Mock
     private UserRepository userRepository;
+    @Mock
+    private QuizSessionRepository quizSessionRepository;
+    @Mock
+    private CollectedWordRepository collectedWordRepository;
 
+    /**
+     * 테스트용 기본 유저 생성
+     */
+    private User createTestUser(Long userId) {
+        User user = User.builder()
+                .email("test@clip.com")
+                .name("테스트유저")
+                .build();
+        ReflectionTestUtils.setField(user, "id", userId);
+        ReflectionTestUtils.setField(user, "level", 5);
+        ReflectionTestUtils.setField(user, "exp", 1000);
+        return user;
+    }
+
+    /**
+     * 학습 안 한 상태로 모든 Mock 기본 설정 (성장 지표용)
+     */
+    private void mockNoLearning(Long userId) {
+        given(quizSessionRepository.existsCompletedQuizToday(eq(userId), any(), any()))
+                .willReturn(false);
+        given(collectedWordRepository.existsCollectedWordToday(eq(userId), any(), any()))
+                .willReturn(false);
+        given(quizSessionRepository.sumTotalQuizCountBetween(eq(userId), any(), any()))
+                .willReturn(0L);
+        given(quizSessionRepository.sumCorrectCountBetween(eq(userId), any(), any()))
+                .willReturn(0L);
+    }
     @Nested
     @DisplayName("프로필 조회 (showProfile)")
     class ShowProfile {
@@ -43,7 +78,6 @@ class UserServiceTest {
             // given
             Long userId = 1L;
 
-            // 테스트용 유저 객체 생성
             User user = User.builder()
                     .email("senior@clip.com")
                     .name("개발자")
@@ -52,7 +86,7 @@ class UserServiceTest {
 
             ReflectionTestUtils.setField(user, "id", userId);
             ReflectionTestUtils.setField(user, "level", 1);
-            ReflectionTestUtils.setField(user, "exp", 2000); // 1레벨(기존 누적 1500 필요)에서 500 더 쌓은 상태
+            ReflectionTestUtils.setField(user, "exp", 2000);
             ReflectionTestUtils.setField(user, "createdAt", LocalDateTime.of(2026, 5, 19, 0, 0));
 
             given(userRepository.findById(userId)).willReturn(Optional.of(user));
@@ -65,16 +99,10 @@ class UserServiceTest {
             assertThat(response.getId()).isEqualTo(userId);
             assertThat(response.getEmail()).isEqualTo("senior@clip.com");
             assertThat(response.getLevel()).isEqualTo(1);
-
-            // 수학적 검증 (이전 단계에서 검증한 1레벨 -> 2레벨 구간 데이터)
-            // 다음 레벨까지 필요한 총 누적(3,360) - 현재 누적(2,000) = 1,360
             assertThat(response.getNextLevelExp()).isEqualTo(1360);
-            // 현재 레벨 구간 총량(1,860) 중 500 채웠으므로 약 26.9%
             assertThat(response.getProgressPercentage()).isEqualTo(26.9);
-
             assertThat(response.getCreatedAt()).isEqualTo(LocalDateTime.of(2026, 5, 19, 0, 0));
 
-            // 가짜 객체가 실제로 한 번 호출되었는지 검증
             verify(userRepository).findById(userId);
         }
 
@@ -95,5 +123,247 @@ class UserServiceTest {
 
             verify(userRepository).findById(nonExistentUserId);
         }
+    }
+
+        @Nested
+        @DisplayName("평균 정확도 계산")
+        class AverageAccuracy {
+
+            @Test
+            @DisplayName("성공: 정답 16/총 20인 경우 80%를 반환한다")
+            void success_calculate80Percent() {
+                // given
+                Long userId = 1L;
+                User user = createTestUser(userId);
+
+                given(userRepository.findById(userId)).willReturn(Optional.of(user));
+                given(quizSessionRepository.sumTotalQuizCount(userId)).willReturn(20L);
+                given(quizSessionRepository.sumCorrectCount(userId)).willReturn(16L);
+                mockNoLearning(userId);
+
+                // when
+                UserGrowthResponse response = userService.showGrowth(userId);
+
+                // then
+                assertThat(response.getAverageAccuracy()).isEqualTo(80);
+            }
+
+            @Test
+            @DisplayName("성공: 퀴즈 기록이 없으면 0을 반환한다")
+            void success_noQuizReturnsZero() {
+                // given
+                Long userId = 1L;
+                User user = createTestUser(userId);
+
+                given(userRepository.findById(userId)).willReturn(Optional.of(user));
+                given(quizSessionRepository.sumTotalQuizCount(userId)).willReturn(0L);
+                given(quizSessionRepository.sumCorrectCount(userId)).willReturn(0L);
+                mockNoLearning(userId);
+
+                // when
+                UserGrowthResponse response = userService.showGrowth(userId);
+
+                // then
+                assertThat(response.getAverageAccuracy()).isEqualTo(0);
+            }
+
+            @Test
+            @DisplayName("성공: 정답 16/총 19 (84.21%)는 반올림되어 84를 반환한다")
+            void success_roundingDown() {
+                // given
+                Long userId = 1L;
+                User user = createTestUser(userId);
+
+                given(userRepository.findById(userId)).willReturn(Optional.of(user));
+                given(quizSessionRepository.sumTotalQuizCount(userId)).willReturn(19L);
+                given(quizSessionRepository.sumCorrectCount(userId)).willReturn(16L);
+                mockNoLearning(userId);
+
+                // when
+                UserGrowthResponse response = userService.showGrowth(userId);
+
+                // then
+                assertThat(response.getAverageAccuracy()).isEqualTo(84);
+            }
+
+            @Test
+            @DisplayName("성공: 모두 정답인 경우 100을 반환한다")
+            void success_allCorrect() {
+                // given
+                Long userId = 1L;
+                User user = createTestUser(userId);
+
+                given(userRepository.findById(userId)).willReturn(Optional.of(user));
+                given(quizSessionRepository.sumTotalQuizCount(userId)).willReturn(20L);
+                given(quizSessionRepository.sumCorrectCount(userId)).willReturn(20L);
+                mockNoLearning(userId);
+
+                // when
+                UserGrowthResponse response = userService.showGrowth(userId);
+
+                // then
+                assertThat(response.getAverageAccuracy()).isEqualTo(100);
+            }
+        }
+
+    @Nested
+    @DisplayName("연속 학습 일수 계산")
+    class Streak {
+
+        @Test
+        @DisplayName("성공: 오늘과 어제 모두 학습 안 했으면 streak는 0이다")
+        void success_noLearningReturnsZero() {
+            // given
+            Long userId = 1L;
+            User user = createTestUser(userId);
+
+            given(userRepository.findById(userId)).willReturn(Optional.of(user));
+            given(quizSessionRepository.sumTotalQuizCount(userId)).willReturn(0L);
+            given(quizSessionRepository.sumCorrectCount(userId)).willReturn(0L);
+
+            // 모든 날 학습 안 함
+            given(quizSessionRepository.existsCompletedQuizToday(eq(userId), any(), any()))
+                    .willReturn(false);
+            given(collectedWordRepository.existsCollectedWordToday(eq(userId), any(), any()))
+                    .willReturn(false);
+
+            given(quizSessionRepository.sumTotalQuizCountBetween(eq(userId), any(), any()))
+                    .willReturn(0L);
+            given(quizSessionRepository.sumCorrectCountBetween(eq(userId), any(), any()))
+                    .willReturn(0L);
+
+            // when
+            UserGrowthResponse response = userService.showGrowth(userId);
+
+            // then
+            assertThat(response.getStreak()).isEqualTo(0);
+        }
+
+        @Test
+        @DisplayName("성공: 매일 학습했으면 streak는 1 이상이다")
+        void success_everyDayLearning() {
+            // given
+            Long userId = 1L;
+            User user = createTestUser(userId);
+
+            given(userRepository.findById(userId)).willReturn(Optional.of(user));
+            given(quizSessionRepository.sumTotalQuizCount(userId)).willReturn(0L);
+            given(quizSessionRepository.sumCorrectCount(userId)).willReturn(0L);
+
+            // 매일 학습 (퀴즈)
+            given(quizSessionRepository.existsCompletedQuizToday(eq(userId), any(), any()))
+                    .willReturn(true);
+            given(quizSessionRepository.sumTotalQuizCountBetween(eq(userId), any(), any()))
+                    .willReturn(0L);
+            given(quizSessionRepository.sumCorrectCountBetween(eq(userId), any(), any()))
+                    .willReturn(0L);
+
+            // when
+            UserGrowthResponse response = userService.showGrowth(userId);
+
+            // then
+            // 9999일까지 카운트하다가 break (안전 장치)
+            assertThat(response.getStreak()).isGreaterThanOrEqualTo(1);
+        }
+
+        @Test
+        @DisplayName("성공: 단어 수집만 매일 했어도 streak는 1 이상이다")
+        void success_onlyCollectedWord() {
+            // given
+            Long userId = 1L;
+            User user = createTestUser(userId);
+
+            given(userRepository.findById(userId)).willReturn(Optional.of(user));
+            given(quizSessionRepository.sumTotalQuizCount(userId)).willReturn(0L);
+            given(quizSessionRepository.sumCorrectCount(userId)).willReturn(0L);
+
+            // 퀴즈는 X, 단어 수집만 O
+            given(quizSessionRepository.existsCompletedQuizToday(eq(userId), any(), any()))
+                    .willReturn(false);
+            given(collectedWordRepository.existsCollectedWordToday(eq(userId), any(), any()))
+                    .willReturn(true);
+
+            given(quizSessionRepository.sumTotalQuizCountBetween(eq(userId), any(), any()))
+                    .willReturn(0L);
+            given(quizSessionRepository.sumCorrectCountBetween(eq(userId), any(), any()))
+                    .willReturn(0L);
+
+            // when
+            UserGrowthResponse response = userService.showGrowth(userId);
+
+            // then
+            assertThat(response.getStreak()).isGreaterThanOrEqualTo(1);
+        }
+    }
+
+        @Nested
+        @DisplayName("주간 정확도 계산")
+        class WeeklyAccuracy {
+
+            @Test
+            @DisplayName("성공: 4주치 데이터가 정상적으로 반환된다")
+            void success_returns4Weeks() {
+                // given
+                Long userId = 1L;
+                User user = createTestUser(userId);
+
+                given(userRepository.findById(userId)).willReturn(Optional.of(user));
+                given(quizSessionRepository.sumTotalQuizCount(userId)).willReturn(0L);
+                given(quizSessionRepository.sumCorrectCount(userId)).willReturn(0L);
+                given(quizSessionRepository.existsCompletedQuizToday(eq(userId), any(), any()))
+                        .willReturn(false);
+                given(collectedWordRepository.existsCollectedWordToday(eq(userId), any(), any()))
+                        .willReturn(false);
+
+                // 모든 주에 동일하게 80% (8/10)
+                given(quizSessionRepository.sumTotalQuizCountBetween(eq(userId), any(), any()))
+                        .willReturn(10L);
+                given(quizSessionRepository.sumCorrectCountBetween(eq(userId), any(), any()))
+                        .willReturn(8L);
+
+                // when
+                UserGrowthResponse response = userService.showGrowth(userId);
+
+                // then
+                UserGrowthResponse.WeeklyAccuracyInfo weekly = response.getWeeklyAccuracy();
+                assertThat(weekly.getWeeklyData()).hasSize(4);
+                assertThat(weekly.getWeeklyData().get(0).getWeek()).isEqualTo("3주 전");
+                assertThat(weekly.getWeeklyData().get(1).getWeek()).isEqualTo("2주 전");
+                assertThat(weekly.getWeeklyData().get(2).getWeek()).isEqualTo("저번 주");
+                assertThat(weekly.getWeeklyData().get(3).getWeek()).isEqualTo("이번 주");
+
+                // 모두 80%
+                assertThat(weekly.getWeeklyData().get(0).getAccuracy()).isEqualTo(80);
+                assertThat(weekly.getWeeklyData().get(3).getAccuracy()).isEqualTo(80);
+                assertThat(weekly.getThisWeek()).isEqualTo(80);
+                assertThat(weekly.getLastWeek()).isEqualTo(80);
+                assertThat(weekly.getGrowthRate()).isEqualTo(0);
+            }
+
+            @Test
+            @DisplayName("성공: 주간 데이터가 전혀 없으면 모두 0%로 반환된다")
+            void success_noDataReturnsZero() {
+                // given
+                Long userId = 1L;
+                User user = createTestUser(userId);
+
+                given(userRepository.findById(userId)).willReturn(Optional.of(user));
+                given(quizSessionRepository.sumTotalQuizCount(userId)).willReturn(0L);
+                given(quizSessionRepository.sumCorrectCount(userId)).willReturn(0L);
+                mockNoLearning(userId);
+
+                // when
+                UserGrowthResponse response = userService.showGrowth(userId);
+
+                // then
+                UserGrowthResponse.WeeklyAccuracyInfo weekly = response.getWeeklyAccuracy();
+                assertThat(weekly.getThisWeek()).isEqualTo(0);
+                assertThat(weekly.getLastWeek()).isEqualTo(0);
+                assertThat(weekly.getGrowthRate()).isEqualTo(0);
+                assertThat(weekly.getWeeklyData()).hasSize(4);
+                assertThat(weekly.getWeeklyData())
+                        .allSatisfy(data -> assertThat(data.getAccuracy()).isEqualTo(0));
+            }
+
     }
 }
