@@ -2,9 +2,7 @@ spring:
   config:
     import:
       - "aws-secretsmanager:CLIP/spring-app/dev/env"
-      - "aws-secretsmanager:MVP/spring-app/OpenAI"
-      - "aws-secretsmanager:MVP/spring-app/DeepL"
-      - "aws-secretsmanager:rds!db-4db1156f-53de-4604-8b82-75c5758d41ae"
+      - "aws-secretsmanager:CLIP/spring-app/ExternalAPIs"
 
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
