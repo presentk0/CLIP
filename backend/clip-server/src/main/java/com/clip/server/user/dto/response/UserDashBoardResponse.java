@@ -12,6 +12,7 @@ public class UserDashBoardResponse {
     private LevelInfo levelInfo;
     private StatsInfo stats;
     private List<ExpLogInfo> expLogs;
+    private WeeklyAttendance weeklyAttendance;
 
     @Getter
     @Builder
@@ -25,7 +26,6 @@ public class UserDashBoardResponse {
     @Getter
     @Builder
     public static class StatsInfo {
-        private boolean isLearnedToday; // 오늘 학습 여부
         private int totalWords; // 총 수집 단어
         private int conqueredVideos; // 완료된 영상 수
     }
@@ -36,6 +36,22 @@ public class UserDashBoardResponse {
         private String date; // 로그 획득 날짜
         private String title; // 로그 획득 타이틀
         private int amount; // 획득한 exp
+    }
+
+    @Getter
+    @Builder
+    public static class WeeklyAttendance {
+        private String today;
+        private List<DailyAttendance> days;
+    }
+
+    @Getter
+    @Builder
+    public static class DailyAttendance {
+        private String dayOfWeek;
+        private String date;
+        private boolean attended;
+        private boolean isToday;
     }
 
 }
