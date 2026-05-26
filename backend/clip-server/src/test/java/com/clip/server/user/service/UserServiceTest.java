@@ -115,7 +115,7 @@ class UserServiceTest {
             given(userRepository.findById(userId)).willReturn(Optional.of(user));
             given(learningHistoryRepository.findFirstByUserOrderByLastAccessAtDesc(user))
                     .willReturn(Optional.of(mockHistory));
-            given(userBadgeRepository.findTopByUserIdAndVideoIdOrderByEarnedAtDesc(userId, "dQw4w9WgXcQ"))
+            given(userBadgeRepository.findTopByUserIdAndVideo_VideoIdOrderByEarnedAtDesc(userId, "dQw4w9WgXcQ"))
                     .willReturn(Optional.of(mockBadge));
 
             // when
