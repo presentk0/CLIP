@@ -22,28 +22,30 @@ public class Video {
     private String videoId;
 
     @Column(nullable = false, length = 255)
-    private String title;
+    private String title; // 영상 제목
 
     @Column(name = "thumbnail_url", length = 500)
-    private String url;
+    private String thumbnailUrl; // 썸네일  URL
 
-    // 영상 길이
-    private Integer duration;
+    private Integer duration;   // 영상 길이
 
     @Column(name ="channel_name", length = 100)
-    private String channelName;
+    private String channelName; // 채널명
+
+    @Column(name = "channel_profile_image_url", length = 500)
+    private String channelProfileImageUrl; // 영상 프로필 URL
     
-    // 영상 등록일
     @CreatedDate
     @Column(name = "created_at")
-    private LocalDateTime createdAt;
+    private LocalDateTime createdAt; // 영상 등록일
 
     @Builder
-    public Video(String videoId, String title, String url, Integer duration, String channelName) {
+    public Video(String videoId, String title, String thumbnailUrl, Integer duration, String channelName, String channelProfileImageUrl) {
         this.videoId = videoId;
         this.title = title;
-        this.url = url;
+        this.thumbnailUrl = thumbnailUrl;
         this.duration = duration;
         this.channelName = channelName;
+        this.channelProfileImageUrl = channelProfileImageUrl;
     }
 }

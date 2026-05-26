@@ -66,7 +66,9 @@ public class SubtitleServiceTest {
                 .totalSections(1)
                 .build();
 
-        given(videoService.getOrCreateVideo(anyString(), anyString(), anyInt())).willReturn(video);
+        given(videoService.getOrCreateVideo(
+                anyString(), anyString(), anyInt()
+        )).willReturn(video);
         given(subtitleProcessor.saveSubtitleInternal(anyLong(), anyString(), any(SubtitleRequest.class)))
                 .willReturn(expectedResponse);
 
@@ -77,10 +79,9 @@ public class SubtitleServiceTest {
         assertThat(response).isNotNull();
         assertThat(response.getText()).isEqualTo("The quick brown fox");
 
-        // 호출 순서 검증
         var inOrder = inOrder(videoService, subtitleProcessor);
         inOrder.verify(videoService).getOrCreateVideo(videoId, "title1", 600);
-        inOrder.verify(subtitleProcessor).saveSubtitleInternal(userId, videoId, request);
+                inOrder.verify(subtitleProcessor).saveSubtitleInternal(userId, videoId, request);
     }
 
     @Test
@@ -92,15 +93,22 @@ public class SubtitleServiceTest {
         List<TranslationRequest.SubtitleDetail> requests = List.of(detail1, detail2);
         List<String> translations = List.of("번역1", "번역2");
 
-        given(videoService.getOrCreateVideo(anyString(), anyString(), anyInt())).willReturn(video);
+        String channelName = "Test Channel";
+        String thumbnailUrl = "https://i.ytimg.com/vi/v12345/hqdefault.jpg";
+
+        given(videoService.getOrCreateVideo(
+                anyString(), anyString(), anyInt(), anyString(), anyString()))
+                .willReturn(video);
         doNothing().when(subtitleProcessor).bulkSaveSubtitlesInternal(anyString(), anyList(), anyList());
 
         // when
-        subtitleService.bulkSaveSubtitles(videoId, "Title", 600, requests, translations);
+        subtitleService.bulkSaveSubtitles(
+                videoId, "Title", 600, channelName, thumbnailUrl, requests, translations);
 
         // then
         var inOrder = inOrder(videoService, subtitleProcessor);
-        inOrder.verify(videoService).getOrCreateVideo(videoId, "Title", 600);
+        inOrder.verify(videoService).getOrCreateVideo(
+                videoId, "Title", 600, channelName, thumbnailUrl);
         inOrder.verify(subtitleProcessor).bulkSaveSubtitlesInternal(videoId, requests, translations);
     }
 

@@ -50,6 +50,8 @@ public class TranslationService {
                 request.getVideoId(),
                 request.getTitle(),
                 request.getDuration(),
+                request.getChannelName(),
+                request.getThumbnailUrl(),
                 request.getSubtitleRequests(),
                 translatedList
         );

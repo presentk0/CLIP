@@ -1,8 +1,10 @@
 spring:
   config:
     import:
-      - "aws-secretsmanager:CLIP/spring-app/dev/env"
-      - "aws-secretsmanager:CLIP/spring-app/ExternalAPIs"
+      - "aws-secretsmanager:CLIP/spring-app/prod/env"
+      - "aws-secretsmanager:MVP/spring-app/OpenAI"
+      - "aws-secretsmanager:MVP/spring-app/DeepL"
+      - "aws-secretsmanager:rds!db-4db1156f-53de-4604-8b82-75c5758d41ae"
 
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -20,7 +22,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQL8Dialect
@@ -35,6 +37,7 @@ spring:
   jackson:
     serialization:
       write-dates-as-timestamps: false
+
 cors:
   allowed-origins:
     - "chrome-extension://nodoegcapbckibocgdleinfoniaboejg"
@@ -45,7 +48,7 @@ cors:
     - "chrome-extension://fiikffmgckeladckjjoalgbeljanpbal"
     - "chrome-extension://mcgnjdjgakffdoagkocfgemnmlndplai"
     - "https://*.youtube.com"
-    - "https://dev.clip-server.com"
+    - "https://clip-server.com"
 
 openai:
   api:
@@ -69,4 +72,3 @@ youtube:
   api:
     key: ${YOUTUBE_API_KEY}
     base-url: https://www.googleapis.com/youtube/v3
-

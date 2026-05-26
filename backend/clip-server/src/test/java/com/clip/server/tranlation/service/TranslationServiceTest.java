@@ -55,7 +55,7 @@ class TranslationServiceTest {
     void translateAndSave_Success() {
         // given
         TranslationRequest.SubtitleDetail detail = new TranslationRequest.SubtitleDetail("Hello", 0.0, 1.0);
-        TranslationRequest request = new TranslationRequest("v1", "Title", 100, List.of(detail));
+        TranslationRequest request = new TranslationRequest("v1", "Title", 100, "channel1", "www.youtube.com", List.of(detail));
         List<String> mockTranslated = List.of("안녕");
 
         given(userRepository.findById(anyLong())).willReturn(Optional.of(user));
@@ -71,6 +71,8 @@ class TranslationServiceTest {
                 eq("v1"),
                 eq("Title"),
                 eq(100),
+                eq("channel1"),
+                eq("www.youtube.com"),
                 anyList(),
                 eq(mockTranslated)
         );
@@ -80,7 +82,7 @@ class TranslationServiceTest {
     @DisplayName("빈 리스트 요청 시 아무것도 수행하지 않는다")
     void translateAndSave_Empty() {
         // given
-        TranslationRequest request = new TranslationRequest("v1", "T", 10, List.of());
+        TranslationRequest request = new TranslationRequest("v1", "T", 10, "channel1", "www.youtube.com", List.of());
         given(userRepository.findById(anyLong())).willReturn(Optional.of(user));
 
         // when
@@ -88,7 +90,7 @@ class TranslationServiceTest {
 
         // then
         verify(translationClient, never()).translateBatch(any());
-        verify(subtitleService, never()).bulkSaveSubtitles(any(), any(), any(), any(), any());
+        verify(subtitleService, never()).bulkSaveSubtitles(any(), any(), any(), any(),any(), any(), any());
     }
 }
 

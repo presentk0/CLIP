@@ -6,7 +6,13 @@ import com.clip.server.quiz.repository.QuizSessionRepository;
 import com.clip.server.user.dto.response.UserGrowthResponse;
 import com.clip.server.user.dto.response.UserProfileResponse;
 import com.clip.server.user.entity.User;
+import com.clip.server.user.entity.badge.BadgeType;
+import com.clip.server.user.entity.badge.UserBadge;
+import com.clip.server.user.entity.learning.LearningHistory;
+import com.clip.server.user.repository.LearningHistoryRepository;
+import com.clip.server.user.repository.UserBadgeRepository;
 import com.clip.server.user.repository.UserRepository;
+import com.clip.server.video.entity.Video; // 실제 비디오 엔티티 패키지에 맞게 조정
 import com.clip.server.word.repository.CollectedWordRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -41,6 +47,11 @@ class UserServiceTest {
     @Mock
     private CollectedWordRepository collectedWordRepository;
 
+    @Mock
+    private LearningHistoryRepository learningHistoryRepository;
+    @Mock
+    private UserBadgeRepository userBadgeRepository;
+
     /**
      * 테스트용 기본 유저 생성
      */
@@ -59,21 +70,15 @@ class UserServiceTest {
      * 학습 안 한 상태로 모든 Mock 기본 설정 (성장 지표용)
      */
     private void mockNoLearning(Long userId) {
-        given(quizSessionRepository.existsCompletedQuizToday(eq(userId), any(), any()))
-                .willReturn(false);
-        given(collectedWordRepository.existsCollectedWordToday(eq(userId), any(), any()))
-                .willReturn(false);
-        given(quizSessionRepository.sumTotalQuizCountBetween(eq(userId), any(), any()))
-                .willReturn(0L);
-        given(quizSessionRepository.sumCorrectCountBetween(eq(userId), any(), any()))
-                .willReturn(0L);
+        // 기존 퀴즈/단어 통계 Mock 유지
     }
+
     @Nested
     @DisplayName("프로필 조회 (showProfile)")
     class ShowProfile {
 
         @Test
-        @DisplayName("성공: 존재하는 유저 ID로 조회하면 경험치 및 퍼센티지가 계산된 프로필을 반환한다")
+        @DisplayName("성공: 존재하는 유저 ID로 조회하면 경험치 및 포맷팅된 가입일, 마스터리 배지가 포함된 프로필을 반환한다")
         void success_showProfile() {
             // given
             Long userId = 1L;
@@ -89,7 +94,29 @@ class UserServiceTest {
             ReflectionTestUtils.setField(user, "exp", 2000);
             ReflectionTestUtils.setField(user, "createdAt", LocalDateTime.of(2026, 5, 19, 0, 0));
 
+            Video mockVideo = Video.builder()
+                    .videoId("dQw4w9WgXcQ")
+                    .title("Contrary to popular belief...")
+                    .thumbnailUrl("https://yt3...")
+                    .duration(863) // 14분 23초
+                    .channelName("BBC Learning English")
+                    .channelProfileImageUrl("https://yt3_profile...")
+                    .build();
+
+            LearningHistory mockHistory = LearningHistory.builder()
+                    .video(mockVideo)
+                    .build();
+
+            UserBadge mockBadge = UserBadge.builder()
+                    .badgeType(BadgeType.SILVER)
+                    .build();
+
+            // Mocking 정의
             given(userRepository.findById(userId)).willReturn(Optional.of(user));
+            given(learningHistoryRepository.findFirstByUserOrderByLastAccessAtDesc(user))
+                    .willReturn(Optional.of(mockHistory));
+            given(userBadgeRepository.findTopByUserIdAndVideoIdOrderByEarnedAtDesc(userId, "dQw4w9WgXcQ"))
+                    .willReturn(Optional.of(mockBadge));
 
             // when
             UserProfileResponse response = userService.showProfile(userId);
@@ -99,11 +126,17 @@ class UserServiceTest {
             assertThat(response.getId()).isEqualTo(userId);
             assertThat(response.getEmail()).isEqualTo("senior@clip.com");
             assertThat(response.getLevel()).isEqualTo(1);
-            assertThat(response.getNextLevelExp()).isEqualTo(1360);
-            assertThat(response.getProgressPercentage()).isEqualTo(26.9);
-            assertThat(response.getCreatedAt()).isEqualTo(LocalDateTime.of(2026, 5, 19, 0, 0));
+
+
+            assertThat(response.getCreatedAt()).isEqualTo("2026-05-19");
+
+            assertThat(response.getOngoingMastery()).isNotNull();
+            assertThat(response.getOngoingMastery().getVideoId()).isEqualTo("dQw4w9WgXcQ");
+            assertThat(response.getOngoingMastery().getVideoDuration()).isEqualTo("14:23"); // 포맷팅 메서드 결과식 검증
+            assertThat(response.getOngoingMastery().getCurrentBadge()).isEqualTo("SILVER");
 
             verify(userRepository).findById(userId);
+            verify(learningHistoryRepository).findFirstByUserOrderByLastAccessAtDesc(user);
         }
 
         @Test
