@@ -78,6 +78,9 @@ public class BadgeService {
                 .build();
     }
 
+    /*
+    * 다음 배지 조회
+     */
     private BadgeType getNextBadge(BadgeType current) {
         if (current == null) return BadgeType.BRONZE;
         return switch (current) {

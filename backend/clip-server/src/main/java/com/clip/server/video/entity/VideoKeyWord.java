@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "VideoKeyWord")
+@Table(name = "video_key_word")
 public class VideoKeyWord {
 
     @Id
@@ -29,7 +29,6 @@ public class VideoKeyWord {
     @Column(length = 200)
     private String translation;
 
-    @Column(length = 10)
     private Double timestamp; // "01:23" 형식
 
     @Builder

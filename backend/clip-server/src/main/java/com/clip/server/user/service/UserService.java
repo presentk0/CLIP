@@ -8,12 +8,17 @@ import com.clip.server.user.dto.response.UserDashBoardResponse;
 import com.clip.server.user.dto.response.UserGrowthResponse;
 import com.clip.server.user.dto.response.UserProfileResponse;
 import com.clip.server.user.entity.User;
+import com.clip.server.user.entity.badge.BadgeType;
 import com.clip.server.user.entity.exp.ExpLog;
+import com.clip.server.user.entity.learning.LearningHistory;
 import com.clip.server.user.repository.ExpLogRepository;
+import com.clip.server.user.repository.LearningHistoryRepository;
+import com.clip.server.user.repository.UserBadgeRepository;
 import com.clip.server.user.repository.UserRepository;
 import com.clip.server.word.repository.CollectedWordRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +29,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -32,10 +38,11 @@ import java.util.List;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final LearningHistoryRepository learningHistoryRepository;
     private final CollectedWordRepository collectedWordRepository;
     private final QuizSessionRepository quizSessionRepository;
     private final ExpLogRepository expLogRepository;
-
+    private final UserBadgeRepository userBadgeRepository;
     private static final int WEEKS_TO_SHOW = 4;
 
     /*
@@ -49,15 +56,51 @@ public class UserService {
         int nextLevelExp = user.calculateNextLevelExp();
         double progressPercentage = user.getProgressPercentage();
 
+        Optional<LearningHistory> latestHistoryOpt = learningHistoryRepository.findFirstByUserOrderByLastAccessAtDesc(user);
+
+        UserProfileResponse.OngoingMastery ongoingMastery = null;
+
+        if (latestHistoryOpt.isPresent()) {
+            LearningHistory latestHistory = latestHistoryOpt.get();
+            var video = latestHistory.getVideo(); // 패치 조인으로 가져온 영상 메타데이터
+
+            // 해당 영상의 현재 뱃지 등급 조회 (.name() 활용 최적화 완료)
+            String currentBadge = userBadgeRepository.findTopByUserIdAndVideo_VideoIdOrderByEarnedAtDesc(user.getId(), video.getVideoId())
+                    .map(badge -> badge.getBadgeType().name())
+                    .orElse("NONE"); // 뱃지가 아직 없으면 NONE 또는 기본값 처리
+
+            // 초 단위 duration을 "MM:SS" 혹은 "HH:MM:SS" 문자열로 예쁘게 변환
+            String formattedDuration = formatDuration(video.getDuration());
+
+            ongoingMastery = UserProfileResponse.OngoingMastery.builder()
+                    .videoId(video.getVideoId())
+                    .videoTitle(video.getTitle())
+                    .thumbnailUrl(video.getThumbnailUrl())
+                    .videoDuration(formattedDuration)
+                    .channelName(video.getChannelName())
+                    .channelProfileImageUrl(video.getChannelProfileImageUrl())
+                    .currentBadge(currentBadge)
+                    .build();
+        }
+
         return UserProfileResponse.builder()
                 .id(user.getId())
                 .email(user.getEmail())
+                .name(user.getName())
                 .profileImageUrl(user.getProfileImageUrl())
                 .level(user.getLevel())
+                .exp(user.getExp())
                 .nextLevelExp(nextLevelExp)
                 .progressPercentage(progressPercentage)
-                .createdAt(user.getCreatedAt())
+                .createdAt(user.getCreatedAt().toLocalDate().toString()) // 가입일 포맷팅
+                .ongoingMastery(ongoingMastery) // 조회 결과 바인딩 - 없으면 null 처리
                 .build();
+    }
+
+    private String formatDuration(int totalSeconds) {
+        int minutes = totalSeconds / 60;
+        int seconds = totalSeconds % 60;
+        return String.format("%02d:%02d", minutes, seconds);
     }
 
     /*
