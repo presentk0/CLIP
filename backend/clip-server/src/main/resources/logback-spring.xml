@@ -4,7 +4,7 @@
     <springProfile name="local">
         <property name="LOG_PATH" value="./logs" />
     </springProfile>
-    <springProfile name="prod">
+    <springProfile name="dev">
         <property name="LOG_PATH" value="/home/ubuntu/app/log" />
     </springProfile>
 
@@ -31,7 +31,7 @@
 
     <root level="INFO">
         <appender-ref ref="CONSOLE" />
-        <springProfile name="prod,local">
+        <springProfile name="dev,local">
             <appender-ref ref="FILE" />
         </springProfile>
     </root>
