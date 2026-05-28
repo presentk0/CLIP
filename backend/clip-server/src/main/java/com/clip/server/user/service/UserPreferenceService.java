@@ -68,17 +68,20 @@ public class UserPreferenceService {
     public PreferenceResponse getUserPreference(Long userId) {
 
         // 학습 설정 확인
-        UserPreference userPreference = userPreferenceRepository.findByUserId(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.PREFERENCE_NOT_FOUND));
-
-        return mapToPreferResponse(userPreference);
+        return userPreferenceRepository.findByUserId(userId)
+                .map(this::mapToPreferResponse) // 데이터가 있으면 DTO로 매핑
+                .orElseGet(() -> PreferenceResponse.builder() // 데이터가 없으면 null 껍데기 DTO 반환
+                        .learningGoal(null)
+                        .difficultyLevel(null)
+                        .updatedAt(null)
+                        .build());
     }
 
     private PreferenceResponse mapToPreferResponse(UserPreference userPreference) {
         return PreferenceResponse.builder()
-                .difficultyLevel(String.valueOf(userPreference.getDifficultyLevel()))
-                .learningGoal(String.valueOf(userPreference.getLearningGoal()))
-                .updatedAt(LocalDateTime.now())
+                .difficultyLevel(userPreference.getDifficultyLevel() == null ? null : userPreference.getDifficultyLevel().name())
+                .learningGoal(userPreference.getLearningGoal() == null ? null : userPreference.getLearningGoal().name())
+                .updatedAt(userPreference.getUpdatedAt())
                 .build();
     }
 }
