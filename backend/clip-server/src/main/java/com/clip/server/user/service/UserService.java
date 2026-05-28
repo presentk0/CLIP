@@ -11,10 +11,7 @@ import com.clip.server.user.entity.User;
 import com.clip.server.user.entity.badge.BadgeType;
 import com.clip.server.user.entity.exp.ExpLog;
 import com.clip.server.user.entity.learning.LearningHistory;
-import com.clip.server.user.repository.ExpLogRepository;
-import com.clip.server.user.repository.LearningHistoryRepository;
-import com.clip.server.user.repository.UserBadgeRepository;
-import com.clip.server.user.repository.UserRepository;
+import com.clip.server.user.repository.*;
 import com.clip.server.word.repository.CollectedWordRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -43,6 +40,7 @@ public class UserService {
     private final QuizSessionRepository quizSessionRepository;
     private final ExpLogRepository expLogRepository;
     private final UserBadgeRepository userBadgeRepository;
+    private final UserPreferenceRepository userPreferenceRepository;
     private static final int WEEKS_TO_SHOW = 4;
 
     /*
@@ -52,6 +50,8 @@ public class UserService {
 
         // 유저확인
         User user = userRepository.findById(userId).orElseThrow(()-> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        boolean needsOnboarding = !userPreferenceRepository.existsByUserId(userId);
 
         int nextLevelExp = user.calculateNextLevelExp();
         double progressPercentage = user.getProgressPercentage();
@@ -92,6 +92,7 @@ public class UserService {
                 .exp(user.getExp())
                 .nextLevelExp(nextLevelExp)
                 .progressPercentage(progressPercentage)
+                .needsOnboarding(needsOnboarding)
                 .createdAt(user.getCreatedAt().toLocalDate().toString()) // 가입일 포맷팅
                 .ongoingMastery(ongoingMastery) // 조회 결과 바인딩 - 없으면 null 처리
                 .build();

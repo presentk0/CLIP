@@ -11,4 +11,6 @@ public interface UserPreferenceRepository extends JpaRepository<UserPreference, 
     // 사용자의 학습 설정 조회
     Optional<UserPreference> findByUser(User user);
     Optional<UserPreference> findByUserId(Long userId);
+    // 사용자의 학습 설정 존재 여부 확인
+    boolean existsByUserId(Long userId);
 }

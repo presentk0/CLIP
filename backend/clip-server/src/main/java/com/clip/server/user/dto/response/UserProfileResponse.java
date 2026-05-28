@@ -20,6 +20,7 @@ public class UserProfileResponse {
     private Integer exp; // 현재 exp
     private Integer nextLevelExp; // 다음 레벨까지 필요한 exp
     private Double progressPercentage; // 다음 레벨대비 진행 퍼센드
+    private boolean needsOnboarding; // 학습 설정 여부
     private String createdAt;
     private OngoingMastery ongoingMastery;
 

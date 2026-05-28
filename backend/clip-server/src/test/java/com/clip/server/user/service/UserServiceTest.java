@@ -11,6 +11,7 @@ import com.clip.server.user.entity.badge.UserBadge;
 import com.clip.server.user.entity.learning.LearningHistory;
 import com.clip.server.user.repository.LearningHistoryRepository;
 import com.clip.server.user.repository.UserBadgeRepository;
+import com.clip.server.user.repository.UserPreferenceRepository;
 import com.clip.server.user.repository.UserRepository;
 import com.clip.server.video.entity.Video; // 실제 비디오 엔티티 패키지에 맞게 조정
 import com.clip.server.word.repository.CollectedWordRepository;
@@ -51,6 +52,8 @@ class UserServiceTest {
     private LearningHistoryRepository learningHistoryRepository;
     @Mock
     private UserBadgeRepository userBadgeRepository;
+    @Mock
+    private UserPreferenceRepository userPreferenceRepository;
 
     /**
      * 테스트용 기본 유저 생성
@@ -118,6 +121,8 @@ class UserServiceTest {
             given(userBadgeRepository.findTopByUserIdAndVideo_VideoIdOrderByEarnedAtDesc(userId, "dQw4w9WgXcQ"))
                     .willReturn(Optional.of(mockBadge));
 
+            given(userPreferenceRepository.existsByUserId(userId)).willReturn(true);
+
             // when
             UserProfileResponse response = userService.showProfile(userId);
 
@@ -126,17 +131,17 @@ class UserServiceTest {
             assertThat(response.getId()).isEqualTo(userId);
             assertThat(response.getEmail()).isEqualTo("senior@clip.com");
             assertThat(response.getLevel()).isEqualTo(1);
-
-
             assertThat(response.getCreatedAt()).isEqualTo("2026-05-19");
 
+            assertThat(response.isNeedsOnboarding()).isFalse();
             assertThat(response.getOngoingMastery()).isNotNull();
             assertThat(response.getOngoingMastery().getVideoId()).isEqualTo("dQw4w9WgXcQ");
-            assertThat(response.getOngoingMastery().getVideoDuration()).isEqualTo("14:23"); // 포맷팅 메서드 결과식 검증
+            assertThat(response.getOngoingMastery().getVideoDuration()).isEqualTo("14:23");
             assertThat(response.getOngoingMastery().getCurrentBadge()).isEqualTo("SILVER");
 
             verify(userRepository).findById(userId);
             verify(learningHistoryRepository).findFirstByUserOrderByLastAccessAtDesc(user);
+            verify(userPreferenceRepository).existsByUserId(userId);
         }
 
         @Test
