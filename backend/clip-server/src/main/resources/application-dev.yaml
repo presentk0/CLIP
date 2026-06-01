@@ -70,3 +70,6 @@ youtube:
     key: ${YOUTUBE_API_KEY}
     base-url: https://www.googleapis.com/youtube/v3
 
+admin:
+  api-key: ${ADMIN_API_KEY}
+

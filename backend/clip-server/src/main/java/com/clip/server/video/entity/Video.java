@@ -88,4 +88,11 @@ public class Video {
         this.difficultyScore = score;
         this.difficultySource = DifficultySource.AUTO;
     }
+
+    public void updateManualLabel(LearningGoal goal, VideoDifficulty difficulty) {
+        this.learningGoal = goal;
+        this.estimatedDifficulty = difficulty;
+        this.difficultySource = DifficultySource.MANUAL;
+        // difficultyScore는 수동 라벨이므로 null 또는 그대로 유지
+    }
 }
