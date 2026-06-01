@@ -1,10 +1,11 @@
-package com.clip.server.video.service;
+package com.clip.server.video.service.admin;
 
 import com.clip.server.video.dto.response.VideoMetadata;
 import com.clip.server.video.dto.request.AdminVideoRequest;
 import com.clip.server.video.entity.DifficultySource;
 import com.clip.server.video.entity.Video;
 import com.clip.server.video.repository.VideoRepository;
+import com.clip.server.video.service.YouTubeApiService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -55,21 +56,6 @@ public class AdminVideoService {
         videoRepository.save(video);
         log.info("큐레이션 영상 등록 완료: videoId={}, title={}, goal={}, difficulty={}",
                 videoId, metadata.getTitle(), request.getLearningGoal(), request.getDifficulty());
-    }
-
-    /**
-     * 일괄 등록
-     */
-    @Transactional
-    public void registerBatchVideos(List<AdminVideoRequest> requests) {
-        for (AdminVideoRequest request : requests) {
-            try {
-                registerCuratedVideo(request);
-            } catch (Exception e) {
-                log.error("영상 등록 실패: videoId={}, error={}", request.getVideoId(), e.getMessage());
-                // 실패한 영상은 스킵하고 계속 진행
-            }
-        }
     }
 
     /**
