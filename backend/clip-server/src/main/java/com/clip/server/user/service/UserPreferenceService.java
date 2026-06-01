@@ -37,7 +37,7 @@ public class UserPreferenceService {
         UserPreference userPreference = userPreferenceRepository.findByUser(user)
                 .orElseGet(() -> UserPreference.builder().user(user).build());
 
-        userPreference.update(request.getLearningGoal(), request.getDifficultyLevel());
+        userPreference.update(request.getLearningGoal(), request.getDifficultyLevel(), request.getAbsoluteLevel());
 
         userPreferenceRepository.save(userPreference);
 
@@ -47,12 +47,12 @@ public class UserPreferenceService {
     /*
      * 학습 설정 수정 (부분 수정)
      * - 온보딩 완료된 유저만 가능
-     * - 둘 다 null이면 에러
+     * - 셋 다 null이면 에러
      */
     @Transactional
     public PreferenceResponse updateUserPreference(Long userId, UpdatePreferenceRequest request) {
 
-        if(request.getLearningGoal()==null && request.getDifficultyLevel()==null) {
+        if(request.getLearningGoal()==null && request.getDifficultyLevel()==null && request.getAbsoluteLevel()==null) {
             throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
         }
 
@@ -60,7 +60,7 @@ public class UserPreferenceService {
         UserPreference userPreference = userPreferenceRepository.findByUserId(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PREFERENCE_NOT_FOUND));
 
-        userPreference.partialUpdate(request.getLearningGoal(), request.getDifficultyLevel());
+        userPreference.partialUpdate(request.getLearningGoal(), request.getDifficultyLevel(), request.getAbsoluteLevel());
 
         return mapToPreferResponse(userPreference);
     }
@@ -73,6 +73,7 @@ public class UserPreferenceService {
                 .orElseGet(() -> PreferenceResponse.builder() // 데이터가 없으면 null 껍데기 DTO 반환
                         .learningGoal(null)
                         .difficultyLevel(null)
+                        .absoluteLevel(null)
                         .updatedAt(null)
                         .build());
     }
@@ -81,6 +82,7 @@ public class UserPreferenceService {
         return PreferenceResponse.builder()
                 .difficultyLevel(userPreference.getDifficultyLevel() == null ? null : userPreference.getDifficultyLevel().name())
                 .learningGoal(userPreference.getLearningGoal() == null ? null : userPreference.getLearningGoal().name())
+                .absoluteLevel(userPreference.getUserAbsoluteLevel()==null ? null : userPreference.getUserAbsoluteLevel().name())
                 .updatedAt(userPreference.getUpdatedAt())
                 .build();
     }
