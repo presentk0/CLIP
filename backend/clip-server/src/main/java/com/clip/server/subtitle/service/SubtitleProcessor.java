@@ -14,6 +14,7 @@ import com.clip.server.subtitle.repository.SubtitleRepository;
 import com.clip.server.translation.dto.request.TranslationRequest;
 import com.clip.server.user.entity.User;
 import com.clip.server.user.repository.UserRepository;
+import com.clip.server.video.analyzer.VideoDifficultyAnalyzer;
 import com.clip.server.video.entity.Video;
 import com.clip.server.video.entity.VideoKeyWord;
 import com.clip.server.video.repository.VideoKeyWordRepository;
@@ -22,6 +23,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.clip.server.video.entity.DifficultySource;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -45,6 +47,7 @@ public class SubtitleProcessor {
     private final UserVideoProgressRepository userVideoProgressRepository;
     private final VideoKeyWordRepository videoKeyWordRepository;
     private final KeywordExtractionService extractionService;
+    private final VideoDifficultyAnalyzer difficultyAnalyzer;
 
     // ==================== 자막 저장 ====================
     @Transactional
@@ -99,15 +102,51 @@ public class SubtitleProcessor {
         Video video = videoRepository.findById(videoId)
                 .orElseThrow(() -> new BusinessException(VIDEO_NOT_FOUND));
 
+        // 자막 저장 (기존 로직)
         for (int i = 0; i < requests.size(); i++) {
             TranslationRequest.SubtitleDetail req = requests.get(i);
             String translation = translatedTexts.get(i);
             String safeTranslation = (translation != null) ? translation : "";
 
-            // 중복 체크 후 저장
             if (subtitleRepository.findByVideoAndStartTimeAndText(video, req.getStartTime(), req.getText()).isEmpty()) {
                 saveSubtitleAndKeywords(video, req.getText(), safeTranslation, req.getStartTime(), req.getEndTime());
             }
+        }
+
+        // 난이도 분석 (수동 라벨 보호 + 이미 분석된 영상 스킵)
+        analyzeDifficultyIfNeeded(video, requests);
+    }
+
+    private void analyzeDifficultyIfNeeded(Video video, List<TranslationRequest.SubtitleDetail> requests) {
+        // 수동 라벨링된 영상은 보호
+        if (video.getDifficultySource() == DifficultySource.MANUAL) {
+            log.info("수동 라벨링 영상 - 난이도 분석 생략: {}", video.getVideoId());
+            return;
+        }
+
+        // 이미 자동 분석된 영상도 스킵 (재분석 방지)
+        if (video.getDifficultySource() == DifficultySource.AUTO) {
+            log.info("이미 자동 분석된 영상 - 난이도 분석 생략: {}", video.getVideoId());
+            return;
+        }
+
+        try {
+            int duration = (video.getDuration() != null) ? video.getDuration() : 0;
+
+            // SubtitleDetail 리스트를 통째로 전달 (시간 정보 포함)
+            VideoDifficultyAnalyzer.DifficultyResult result = difficultyAnalyzer.analyze(requests, duration);
+
+            if (result.isValid()) {
+                video.updateAutoDifficulty(result.getLevel(), result.getScore());
+                log.info("난이도 자동 분석 완료 - videoId: {}, level: {}, score: {}",
+                        video.getVideoId(), result.getLevel(), result.getScore());
+            } else {
+                // 분석 결과 부족 시 로그
+                log.warn("난이도 분석 결과 부족 - videoId: {} (자막 부족 또는 매칭 단어 부족)",
+                        video.getVideoId());
+            }
+        } catch (Exception e) {
+            log.error("난이도 분석 실패 - videoId: {}", video.getVideoId(), e);
         }
     }
 

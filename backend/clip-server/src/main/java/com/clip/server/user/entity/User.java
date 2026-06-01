@@ -102,14 +102,13 @@ public class User {
     }
 
     /**
-     *  다음 레벨업까지 남은 경험치 계산
+     * 다음 레벨업에 필요한 총 경험치
+     * 예: level=0, exp=1300이면 1500 반환
      */
     public int calculateNextLevelExp() {
-        if (this.exp <= 0) return 0;
-
-        int nextLevel = this.level + 1;
-        return getThreshold(nextLevel) - this.exp;
+        return getThreshold(this.level + 1);
     }
+
 
     public double getProgressPercentage() {
         // 1. 현재 레벨을 시작하기 위해 필요했던 총 누적 경험치
