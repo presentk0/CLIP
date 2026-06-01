@@ -73,6 +73,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
         return path.startsWith("/api/auth/") // 로그인 관련 기능
+                || path.startsWith("/api/admin/")  // 관리자 API (AdminApiKeyFilter가 처리)
                 || path.equals("/health") // 헬스체크
                 || path.startsWith("/swagger-ui/") // Swagger 명세서
                 || path.startsWith("/v3/api-docs");
