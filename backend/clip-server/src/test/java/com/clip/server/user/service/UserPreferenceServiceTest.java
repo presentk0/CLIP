@@ -6,6 +6,7 @@ import com.clip.server.user.dto.request.InitialPreferenceRequest;
 import com.clip.server.user.dto.request.UpdatePreferenceRequest;
 import com.clip.server.user.dto.response.PreferenceResponse;
 import com.clip.server.user.entity.User;
+import com.clip.server.user.entity.preference.AbsoluteLevel;
 import com.clip.server.user.entity.preference.DifficultyLevel;
 import com.clip.server.user.entity.preference.LearningGoal;
 import com.clip.server.user.entity.preference.UserPreference;
@@ -47,11 +48,12 @@ class UserPreferenceServiceTest {
         return user;
     }
 
-    private UserPreference createMockPreference(User user, LearningGoal goal, DifficultyLevel level) {
+    private UserPreference createMockPreference(User user, LearningGoal goal, DifficultyLevel level, AbsoluteLevel absoluteLevel) {
         UserPreference preference = UserPreference.builder()
                 .user(user)
                 .learningGoal(goal)
                 .difficultyLevel(level)
+                .userAbsoluteLevel(absoluteLevel)
                 .build();
         ReflectionTestUtils.setField(preference, "updatedAt", LocalDateTime.now());
         return preference;
@@ -72,6 +74,7 @@ class UserPreferenceServiceTest {
 
             when(request.getLearningGoal()).thenReturn(LearningGoal.TRAVEL);
             when(request.getDifficultyLevel()).thenReturn(DifficultyLevel.RELAXED);
+            when(request.getAbsoluteLevel()).thenReturn(AbsoluteLevel.BEGINNER);
 
             when(userRepository.findById(userId)).thenReturn(Optional.of(user));
             when(userPreferenceRepository.findByUser(user)).thenReturn(Optional.empty());
@@ -83,6 +86,7 @@ class UserPreferenceServiceTest {
             assertThat(response).isNotNull();
             assertThat(response.getLearningGoal()).isEqualTo("TRAVEL");
             assertThat(response.getDifficultyLevel()).isEqualTo("RELAXED");
+            assertThat(response.getAbsoluteLevel()).isEqualTo("BEGINNER");
             verify(userPreferenceRepository, times(1)).save(any(UserPreference.class));
         }
 
@@ -112,7 +116,7 @@ class UserPreferenceServiceTest {
             Long userId = 1L;
             User user = createMockUser(userId);
             // 기존 상태: 여행 / 여유롭게
-            UserPreference existingPreference = createMockPreference(user, LearningGoal.TRAVEL, DifficultyLevel.RELAXED);
+            UserPreference existingPreference = createMockPreference(user, LearningGoal.TRAVEL, DifficultyLevel.RELAXED, AbsoluteLevel.BEGINNER);
 
             UpdatePreferenceRequest request = mock(UpdatePreferenceRequest.class);
             when(request.getLearningGoal()).thenReturn(null);
@@ -126,17 +130,19 @@ class UserPreferenceServiceTest {
             // then
             assertThat(response.getLearningGoal()).isEqualTo("TRAVEL"); // 기존 값 보존 확인
             assertThat(response.getDifficultyLevel()).isEqualTo("MAX"); // 새 값 정상 반영 확인
+            assertThat(response.getAbsoluteLevel()).isEqualTo("BEGINNER"); // 기존값 보존 확인
             verify(userPreferenceRepository, never()).save(any());
         }
 
         @Test
-        @DisplayName("실패: 학습 목표와 난이도가 둘 다 null로 들어오면 INVALID_INPUT_VALUE 예외가 발생한다")
+        @DisplayName("실패: 학습 목표와 난이도가 셋 다 null로 들어오면 INVALID_INPUT_VALUE 예외가 발생한다")
         void fail_both_null_inputs() {
             // given
             Long userId = 1L;
             UpdatePreferenceRequest request = mock(UpdatePreferenceRequest.class);
             when(request.getLearningGoal()).thenReturn(null);
             when(request.getDifficultyLevel()).thenReturn(null);
+            when(request.getAbsoluteLevel()).thenReturn(null);
 
             // when & then
             assertThatThrownBy(() -> userPreferenceService.updateUserPreference(userId, request))
@@ -156,7 +162,7 @@ class UserPreferenceServiceTest {
             Long userId = 1L;
             User user = createMockUser(userId);
             // 가상 세팅: 비즈니스 / 지금이 좋아요
-            UserPreference preference = createMockPreference(user, LearningGoal.BUSINESS, DifficultyLevel.CURRENT);
+            UserPreference preference = createMockPreference(user, LearningGoal.BUSINESS, DifficultyLevel.CURRENT, AbsoluteLevel.BEGINNER);
 
             when(userPreferenceRepository.findByUserId(userId)).thenReturn(Optional.of(preference));
 
@@ -167,6 +173,8 @@ class UserPreferenceServiceTest {
             assertThat(response).isNotNull();
             assertThat(response.getLearningGoal()).isEqualTo("BUSINESS");
             assertThat(response.getDifficultyLevel()).isEqualTo("CURRENT");
+            assertThat(response.getAbsoluteLevel()).isEqualTo("BEGINNER");
+
         }
     }
 }

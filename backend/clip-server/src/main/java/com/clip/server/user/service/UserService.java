@@ -51,11 +51,16 @@ public class UserService {
         // 유저확인
         User user = userRepository.findById(userId).orElseThrow(()-> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
+        // 학습 설정 필요 여부 체크
         boolean needsOnboarding = !userPreferenceRepository.existsByUserId(userId);
 
+        // 다음 레벨을 위해 필요한 총 EXP(ex) 1500)
         int nextLevelExp = user.calculateNextLevelExp();
+
+        // 레벨업을 위해 진행된 퍼센트 지수
         double progressPercentage = user.getProgressPercentage();
 
+        // 마지막으로 시청한 영상 정보 조회
         Optional<LearningHistory> latestHistoryOpt = learningHistoryRepository.findFirstByUserOrderByLastAccessAtDesc(user);
 
         UserProfileResponse.OngoingMastery ongoingMastery = null;

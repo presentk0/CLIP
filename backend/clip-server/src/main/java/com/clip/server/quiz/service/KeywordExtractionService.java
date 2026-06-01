@@ -90,4 +90,46 @@ public class KeywordExtractionService {
         return tag.startsWith("NN") || tag.startsWith("VB") || tag.startsWith("JJ") ||
                 tag.contains("NOUN") || tag.contains("VERB") || tag.contains("ADJ") || tag.contains("PROPN");
     }
+
+    /**
+     * 난이도 분석용 - 의미있는 단어를 모두 추출 (중복 허용, 분포 계산용)
+     * extractKeywords()와 달리:
+     * - 중복 제거 X (빈도 계산해야 하므로)
+     * - 더 많은 품사 포함 (부사, 전치사 등)
+     */
+    public List<String> tokenizeForDifficulty(String text) {
+        if (text == null || text.trim().isEmpty() || tokenizer == null || posTagger == null) {
+            return List.of();
+        }
+
+        String[] tokens = tokenizer.tokenize(text);
+        String[] tags = posTagger.tag(tokens);
+
+        List<String> result = new ArrayList<>();
+        for (int i = 0; i < tokens.length; i++) {
+            String word = tokens[i].toLowerCase();
+            String tag = tags[i].toUpperCase();
+
+            if (isAnalyzable(word, tag)) {
+                result.add(word);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * 난이도 분석에 사용할 단어인지 판단 (extractKeywords보다 범위 넓음)
+     */
+    private boolean isAnalyzable(String word, String tag) {
+        if (word.length() < 2 || !word.matches("[a-zA-Z]+")) {
+            return false;
+        }
+
+        // 의미있는 품사: 명사, 동사, 형용사, 부사, 전치사, 접속사, 한정사, 대명사, 조동사
+        return tag.startsWith("NN") || tag.startsWith("VB") || tag.startsWith("JJ") ||
+                tag.startsWith("RB") || tag.startsWith("IN") || tag.startsWith("CC") ||
+                tag.startsWith("DT") || tag.startsWith("PRP") || tag.startsWith("MD") ||
+                tag.contains("NOUN") || tag.contains("VERB") || tag.contains("ADJ") ||
+                tag.contains("ADV") || tag.contains("ADP") || tag.contains("CCONJ");
+    }
 }
