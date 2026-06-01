@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/admin/videos")
+@RequestMapping("api/admin/videos")
 @RequiredArgsConstructor
 public class AdminVideoController {
 
