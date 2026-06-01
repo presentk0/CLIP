@@ -1,7 +1,8 @@
 package com.clip.server.video.controller;
 
 import com.clip.server.video.dto.request.AdminVideoRequest;
-import com.clip.server.video.service.AdminVideoService;
+import com.clip.server.video.service.admin.AdminVideoBatchService;
+import com.clip.server.video.service.admin.AdminVideoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -9,11 +10,12 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("api/admin/videos")
+@RequestMapping("/api/admin/videos")
 @RequiredArgsConstructor
 public class AdminVideoController {
 
     private final AdminVideoService adminVideoService;
+    private final AdminVideoBatchService adminVideoBatchService;
 
     /**
      * 관리자: 큐레이션 영상 등록 (수동 라벨링)
@@ -29,7 +31,7 @@ public class AdminVideoController {
      */
     @PostMapping("/batch")
     public ResponseEntity<Void> registerBatchVideos(@RequestBody List<AdminVideoRequest> requests) {
-        adminVideoService.registerBatchVideos(requests);
+        adminVideoBatchService.registerBatchVideos(requests);
         return ResponseEntity.ok().build();
     }
 }
