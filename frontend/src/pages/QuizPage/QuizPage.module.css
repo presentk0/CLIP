@@ -1698,7 +1698,7 @@ flex-direction: column;
 justify-content: center;
 align-items: center;
 gap: 8px;
-align-self: stretch;
+/* align-self: stretch; */
 }
 
 
