@@ -6,6 +6,8 @@ import { apiFetch } from '../utils/api';
 import { AuthContext } from './AuthContextDefinition';
 import { log, IS_DEV } from '../utils/logger';
 
+
+
 // ============ 인증 API ============
 const authApi = {
   // 구글로 로그인
@@ -39,6 +41,9 @@ const authApi = {
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
+
+  const [needsOnboarding, setNeedsOnboarding] = useState(null);
+
   // const [token, setToken] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -54,6 +59,10 @@ export function AuthProvider({ children }) {
         if (cached?.accessToken && cached?.user) {
           setUser(cached.user);
           setIsLoading(false);
+
+
+          setNeedsOnboarding(cached.user.needsOnboarding);
+
           return;
         }
 
@@ -85,6 +94,10 @@ export function AuthProvider({ children }) {
 
         // 상태 + 백그라운드 저장
         setUser(meRes.data);
+
+        
+        setNeedsOnboarding(meRes.data.needsOnboarding);
+        
         await chrome.runtime.sendMessage({
           type: 'SET_AUTH',
           accessToken: newAccessToken,
@@ -96,109 +109,49 @@ export function AuthProvider({ children }) {
         setIsLoading(false);
       }
     };
-
-
-
-
-    //     const auth = await chrome.runtime.sendMessage({ type: 'GET_AUTH' });
-
-    //     if (auth?.accessToken && auth?.user) {
-    //       setToken(auth.accessToken);
-    //       setUser(auth.user);
-    //     }
-    //   } catch (error) {
-    //     console.error('인증 초기화 실패', error);
-    //   } finally {
-    //     setIsLoading(false);
-    //   }
-    // };
-
     initAuth();
-
-
-
-    // // 백그라운드에서 동기화 신호 받기
-    // const handleMessage = (message) => {
-    //   if (message.type === 'SYNC_AUTH') {
-    //     if (message.accessToken && message.user) {
-    //       setUser(message.user);
-    //     } else {
-    //       setUser(null);
-    //     }
-    //   }
-    // };
-
-    // chrome.runtime.onMessage.addListener(handleMessage);
-    // return () => chrome.runtime.onMessage.removeListener(handleMessage);
   }, []);
-
-
-
-
-  // const login = async (input) => {
-  //   const response = await authApi.login(input);
-
-  //   if (response.success && response.accessToken && response.user) {
-  //     localStorage.setItem('token', response.accessToken);
-  //     if (response.refreshToken) {
-  //       localStorage.setItem('refreshToken', response.refreshToken);
-  //     }
-  //     setToken(response.accessToken);
-  //     setUser(response.user);
-  //   } else {
-  //     throw new Error(response.message || '로그인에 실패했습니다');
-  //   }
-  // };
-
 
   // Google 로그인
   const loginWithGoogle = async (idToken) => {
     const response = await authApi.googleLogin({ idToken });
 
-    // 응답 구조
-    if (response.success && response.data?.accessToken && response.data?.user) {
-      const { accessToken, user } = response.data;
-
-
-      setUser(user);
-
-      // 백그라운드에 저장
-      await chrome.runtime.sendMessage({
-        type: 'SET_AUTH',
-        accessToken,
-        user,
-      });
-    } else {
+    if (!response.success || !response.data?.accessToken) {
       const error = new Error(response.error?.message || '로그인 실패');
       error.code = response.error?.code;
       throw error;
     }
+
+    const { accessToken } = response.data;
+
+    // 상세 정보 가져오기 (needsOnboarding 포함)
+    const meRes = await authApi.me(accessToken);
+
+    if (!meRes.success || !meRes.data) {
+      throw new Error('사용자 정보 조회 실패');
+    }
+
+    // user로 needsOnboarding 가져오기
+    const user = meRes.data;  
+
+    // 상태 + 백그라운드 저장
+    setUser(user);
+    setNeedsOnboarding(user.needsOnboarding);
+
+    await chrome.runtime.sendMessage({
+      type: 'SET_AUTH',
+      accessToken,
+      user,
+    });
+    return user;
   };
 
 
 
-  // const signup = async (input) => {
-  //   const response = await authApi.signup(input);
+  const completeOnboarding = () => {
+    setNeedsOnboarding(false);
+  };
 
-  //   if (response.success && response.accessToken && response.user) {
-  //     localStorage.setItem('token', response.accessToken);
-  //     if (response.refreshToken) {
-  //       localStorage.setItem('refreshToken', response.refreshToken);
-  //     }
-  //     setToken(response.accessToken);
-  //     setUser(response.user);
-  //   } else {
-  //     throw new Error(response.message || '회원가입에 실패했습니다');
-  //   }
-  // };
-
-  // const logout = () => {
-  //   authApi.logout().catch(() => {});
-  //   localStorage.removeItem('token');
-  //   localStorage.removeItem('refreshToken');
-  //   setToken(null);
-  //   setUser(null);
-  // };
 
 
   const logout = async () => {
@@ -209,8 +162,8 @@ export function AuthProvider({ children }) {
     }
 
     // 서버 로그아웃 실패해도 클라이언트 상태는 정리
-
     setUser(null);
+    setNeedsOnboarding(null);
 
     // 백그라운드 클리어
     try {
@@ -228,14 +181,13 @@ export function AuthProvider({ children }) {
     <AuthContext.Provider
       value={{
         user,
-
+        needsOnboarding,
         isAuthenticated,
         isLoading,
         loginWithGoogle,
-        // login,
-        // signup,
         logout,
         updateUser,
+        completeOnboarding,
       }}
     >
       {children}

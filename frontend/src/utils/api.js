@@ -47,19 +47,69 @@ function parseBody(body) {
 
 
 // 서버 주소가 생기면 false로 바꾸고 URL을 실제 서버 주소로 변경하기
-const IS_MOCK = true; 
+const IS_MOCK = false; 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+// 토큰 조회 헬퍼
+async function getAccessToken() {
+  // 백그라운드(서비스워커) 컨텍스트인지 확인
+  // chrome.runtime.sendMessage는 자기 자신(같은 컨텍스트)에겐 메시지 못 보냄
+  // 백그라운드는 저장소에서 조회하게 변경
+  const isServiceWorker = typeof window === 'undefined';
+  
+  try {
+    if (isServiceWorker) {
+      // 백그라운드면 storage 직접 조회
+      const result = await chrome.storage.session.get(['accessToken']);
+      return result.accessToken;
+    } else {
+      // 콘텐츠/사이드패널이면 메시지로 조회
+      const auth = await chrome.runtime.sendMessage({ type: 'GET_AUTH' });
+      return auth?.accessToken;
+    }
+  } catch (error) {
+    console.warn('토큰 조회 실패', error);
+    return null;
+  }
+}
+
+
+
+// 토큰 저장 헬퍼
+async function saveAccessToken(accessToken) {
+  const isServiceWorker = typeof window === 'undefined';
+  
+  if (isServiceWorker) {
+    await chrome.storage.session.set({ accessToken });
+  } else {
+    await chrome.runtime.sendMessage({
+      type: 'SET_AUTH',
+      accessToken,
+    });
+  }
+}
+
+
+// 인증 정리 헬퍼
+async function clearAuthLocal() {
+  // 백그라운드(서비스워커) 컨텍스트인지 확인
+  const isServiceWorker = typeof window === 'undefined';
+  
+  if (isServiceWorker) {
+    
+    await chrome.storage.session.remove(['accessToken', 'user']);
+  } else {
+    
+    await chrome.runtime.sendMessage({ type: 'CLEAR_AUTH' });
+  }
+}
+
+
 
 export const apiFetch = async (endpoint, options = {}) => {
 
   // 백그라운드에서 토큰 가져오기
-  let accessToken = null;
-  try {
-    const auth = await chrome.runtime.sendMessage({ type: 'GET_AUTH' });
-    accessToken = auth?.accessToken;
-  } catch (error) {
-    console.warn('토큰 조회 실패', error);
-  }
+  const accessToken = await getAccessToken();
 
   // headers에 토큰 자동 추가 (Mock/실제 공통)
   const headersWithAuth = {
@@ -68,6 +118,8 @@ export const apiFetch = async (endpoint, options = {}) => {
     // 호출자가 명시적으로 헤더 주면 그걸로 덮어쓰기
     ...options.headers,
   };
+
+
 
   if (IS_MOCK) {
     // 네트워크 지연 시뮬레이션
@@ -242,9 +294,21 @@ export const apiFetch = async (endpoint, options = {}) => {
           profileImageUrl: "https://lh3.googleusercontent.com/...",
           level: 12,
           exp: 3450,
-          nextLevelExp: 1800,
-          progressPercentage: 91,
-          createdAt: "2024-01-15T10:30:00Z"
+
+          nextLevelExp: 37140, // 다음 레벨을 위해 획득해야하는 EXP
+          progressPercentage: 65, // 다음 레벨까지 진행한 퍼센드(사용시에는 100-퍼센트)로 사용
+
+          createdAt: "2024.01.15",
+          needsOnboarding: true,
+          ongoingMastery: {
+            videoId: "dQw4w9WgXcQ",
+  	        videoTitle: "Contrary to popular belief, Lorem Ipsum is not simply ...", // 영상 제목
+  	        videoDuration: "14:23", // 영상 재생 시간
+  	        channelName: "BBC Learning English", // 채널명
+            channelProfileImageUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=BBC", // 테스트용 채널 프로필 URL
+            thumbnailUrl: "https://yt3...",
+            currentBadge: "SILVER"
+          },
         }
       };
     }
@@ -259,34 +323,44 @@ export const apiFetch = async (endpoint, options = {}) => {
       return {
         success: true,
         data: {
-          user: {
-            id: 1,
-            name: "홍길동",
-            email: "user@gmail.com",
-            profileImageUrl: "https://...",
-            level: 12,
-            exp: 3450
-          },
           levelInfo: {
             currentLevel: 12,
-            currentExp: 1650,
-            nextLevelExp: 1800,
-            progressPercentage: 91,
-            recentEarnedExp: 185,
-            expToNextLevel: 150
+            currentExp: 12345,  // 현재 exp
+            nextLevelExp: 37140,  // 다음 레벨까지 exp
+            progressPercentage: 35, // 다음 레벨까지 진행률(35%)
           },
           stats: {
-            totalWords: 247,
-            streak: 7,
-            avgAccuracy: 84,
-            conqueredVideos: 12
+            totalWords: 247, // 수집한 단어
+            conqueredVideos: 12, // 완료된 영상
           },
-          ongoingMasteryBadge: {
-            videoId: "dQw4w9WgXcQ",
-            videoTitle: "Contrary to popular belief...",
-            thumbnailUrl: "https://...",
-            currentBadge: "SILVER",
-            wordsCollected: 23
+          expLogs: [
+            {
+              date: "12.31",
+              title: "마스터리 골드 획득",
+              amount: 500
+            },
+            {
+              date: "12.28",
+              title: "10일 이상 미접속",
+              amount: -150
+            },
+            {
+              date: "12.13",
+              title: "마스터리 실버 획득",
+              amount: 500
+            }
+          ],
+          weeklyAttendance: {
+            today: "Thu",
+            "days": [
+              { "dayOfWeek":"Mon", "date": "2026-05-26", "attended": true,  "today": false },
+              { "dayOfWeek":"Tue", "date": "2026-05-27", "attended": true,  "today": false },
+              { "dayOfWeek":"Wed", "date": "2026-05-28", "attended": true,  "today": false },
+              { "dayOfWeek":"Thu", "date": "2026-05-29", "attended": true,  "today": true  },
+              { "dayOfWeek":"Fri", "date": "2026-05-30", "attended": false, "today": false },
+              { "dayOfWeek":"Sat", "date": "2026-05-31", "attended": false, "today": false },
+              { "dayOfWeek":"Sun", "date": "2026-06-01", "attended": false, "today": false }
+            ]
           }
         },
       };
@@ -302,34 +376,200 @@ export const apiFetch = async (endpoint, options = {}) => {
       return {
         success: true,
         data: {
-          period: 7,
-          dailyStats: [
-            {
-              date: "2024-01-15",
-              wordsCollected: 35,
-              quizzesCompleted: 20,
-              accuracy: 85,
-              studyTime: 1200
-            }
-          ],
-          weeklyGrowth: {
-            wordsGrowth: "+12%",
-            accuracyGrowth: "+5%",
-            studyTimeGrowth: "+20%"
-          },
+          averageAccuracy: 100, // 평균 정확도
+          streak: 999, // 연속 학습습
           weeklyAccuracy: {
             thisWeek: 84,
             lastWeek: 80,
             growthRate: 4,
             weeklyData: [
-              { week: "4주 전", accuracy: 76, quizCount: 2 },
-              { week: "이번 주", accuracy: 84, quizCount: 5 }
+              { "week": "4주 전",  "accuracy": 76 },
+              { "week": "3주 전",  "accuracy": 70 },
+              { "week": "저번 주", "accuracy": 80 },
+              { "week": "이번 주", "accuracy": 84 }
             ]
           }
-        },
-        message: "성장 지표가 성공적으로 조회되었습니다."
+        }
       };
     }
+
+
+
+    // 마이페이지 속 학습 목표 조회
+    if (endpoint.startsWith('/users/me/preferences') && method === 'GET') {
+      const authError = checkAuth(headers);
+      if (authError) return authError;
+
+      return {
+        success: true,
+        data: {
+          learningGoal: null,
+          difficultyLevel: null,
+          absoluteLevel: null,
+          updatedAt: "2024-01-15T10:30:00Z"
+        }
+      };
+    }
+
+
+
+    // 학습 설정 수정
+    if (endpoint.startsWith('/users/me/preferences') && method === 'PATCH') {
+      const authError = checkAuth(headers);
+      if (authError) return authError;
+
+      // 요청 본문 가져오기
+      const { learningGoal, difficultyLevel, absoluteLevel } = body || {};
+
+      // 유효성 검사
+      const validGoals = ['TRAVEL', 'BUSINESS', 'SELF_DEVELOPMENT', 'EXAM', 'DAILY', 'NONE'];
+      const validLevels = ['CURRENT', 'RELAXED', 'EASIER', 'HARDER', 'MAX'];
+      const validAbsoluteLevels = [ 'BEGINNER', 'INTERMEDIATE', 'ADVANCED']
+
+      // 학습 목표 변경
+      if (learningGoal && !validGoals.includes(learningGoal)) {
+        return {
+          success: false,
+          error: {
+            code: 'INVALID_PREFERENCE',
+            message: '올바르지 않은 학습 목표입니다. (TRAVEL, BUSINESS, SELF_DEVELOPMENT, EXAM, DAILY, NONE 중 선택)'
+          }
+        };
+      }
+
+      // 상대적 난이도 변경
+      if (difficultyLevel && !validLevels.includes(difficultyLevel)) {
+        return {
+          success: false,
+          error: {
+            code: 'INVALID_PREFERENCE',
+            message: '올바르지 않은 상대적 난이도입니다. (CURRENT, RELAXED, EASIER, HARDER, MAX 중 선택)'
+          }
+        };
+      }
+
+
+      // 절대적 난이도 변경
+      if (absoluteLevel && !validAbsoluteLevels.includes(absoluteLevel)) {
+        return {
+          success: false,
+          error: {
+            code: 'INVALID_PREFERENCE',
+            message: '올바르지 않은 절대적 난이도입니다. (BEGINNER, INTERMEDIATE, ADVANCED 중 선택)'
+          }
+        };
+      }
+
+
+      // 성공 응답
+      return {
+        success: true,
+        data: {
+          userId: 1,
+          learningGoal: learningGoal ?? "BUSINESS", // 왼쪽이 null 또는 undefined면 오른쪽 값을 사용
+          difficultyLevel: difficultyLevel ?? "CURRENT", // 왼쪽이 null 또는 undefined면 오른쪽 값을 사용
+          absoluteLevel: absoluteLevel ?? "BEGINNER",
+          updatedAt: new Date().toISOString() // 현재 시간을 "2024-11-15T14:23:45.123Z" 형식으로 변환
+        },
+        message: '학습 설정이 변경되었습니다.'
+      };
+    }
+
+
+
+    // 학습 목표 및 난이도 설정
+    if (endpoint.startsWith('/preferences/onboarding') && method === 'POST') {
+      const authError = checkAuth(headers);
+      if (authError) return authError;
+
+      // 요청 본문 변환해서 가져오기
+      const parsedBody = parseBody(body);
+      const { learningGoal, difficultyLevel, absoluteLevel } = parsedBody || {};
+
+      // 유효성 검사
+      const validGoals = ['TRAVEL', 'DAILY', 'BUSINESS'];
+      const validLevels = ['CURRENT', 'RELAXED', 'EASIER', 'HARDER', 'MAX'];
+      const validAbsoluteLevels = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'];
+
+      // 에러 케이스 (임의 추가}
+      if (learningGoal && !validGoals.includes(learningGoal)) {
+        return {
+          success: false,
+          error: {
+            code: 'INVALID_PREFERENCE',
+            message: '올바르지 않은 학습 목표입니다. (TRAVEL, DAILY, BUSINESS 중 선택)'
+          }
+        };
+      }
+
+      // 에러 케이스 (임의 추가}
+      if (difficultyLevel && !validLevels.includes(difficultyLevel)) {
+        return {
+          success: false,
+          error: {
+            code: 'INVALID_PREFERENCE',
+            message: '올바르지 않은 상대적 난이도입니다. (CURRENT, RELAXED, EASIER, HARDER, MAX 중 선택)'
+          }
+        };
+      }
+
+      // 에러 케이스 (임의 추가}
+      if (absoluteLevel && !validAbsoluteLevels.includes(absoluteLevel)) {
+        return {
+          success: false,
+          error: {
+            code: 'INVALID_PREFERENCE',
+            message: '올바르지 않은 절대적 난이도입니다. (BEGINNER, INTERMEDIATE, ADVANCED 중 선택)'
+          }
+        };
+      }
+
+      return {
+        success: true,
+        data: {
+          userId: 1,
+          learningGoal: learningGoal ?? "TRAVEL",
+          difficultyLevel: difficultyLevel ?? "CURRENT",
+          absoluteLevel: absoluteLevel ?? "BEGINNER",
+          updatedAt: new Date().toISOString()
+        },
+        message: "학습 설정 완료되었습니다!"
+      };
+    }
+
+
+
+    // 추천 영상 조회
+    if (endpoint.startsWith('/videos/recommended') && method === 'GET') {
+      const authError = checkAuth(headers);
+      if (authError) return authError;
+
+      // URL에서 query parameter 추출
+      const url = new URL(endpoint, 'http://dummy.com');  // 더미 base URL
+      const limit = parseInt(url.searchParams.get('limit')) || 5;  // 기본값 5
+      
+      
+      // 데이터 풀
+      const allRecommendations = [
+        { videoId: "abc123", title: "1Travel Tips for Beginners", thumbnailUrl: "https://...", duration: 480, channelName: "English Journey", recommendationReason: "당신의 'travel' 학습 목표와 중급 수준에 맞는 영상이에요", relevanceScore: 95.5, estimatedDifficulty: "INTERMEDIATE" },
+        { videoId: "abc123", title: "2Travel Tips for Beginners", thumbnailUrl: "https://...", duration: 480, channelName: "English Journey", recommendationReason: "당신의 'travel' 학습 목표와 중급 수준에 맞는 영상이에요", relevanceScore: 95.5, estimatedDifficulty: "INTERMEDIATE" },
+        { videoId: "abc123", title: "3Travel Tips for Beginners", thumbnailUrl: "https://...", duration: 480, channelName: "English Journey", recommendationReason: "당신의 'travel' 학습 목표와 중급 수준에 맞는 영상이에요", relevanceScore: 95.5, estimatedDifficulty: "INTERMEDIATE" },
+        { videoId: "abc123", title: "4Travel Tips for Beginners", thumbnailUrl: "https://...", duration: 480, channelName: "English Journey", recommendationReason: "당신의 'travel' 학습 목표와 중급 수준에 맞는 영상이에요", relevanceScore: 95.5, estimatedDifficulty: "INTERMEDIATE" },
+        { videoId: "abc123", title: "5Travel Tips for Beginners", thumbnailUrl: "https://...", duration: 480, channelName: "English Journey", recommendationReason: "당신의 'travel' 학습 목표와 중급 수준에 맞는 영상이에요", relevanceScore: 95.5, estimatedDifficulty: "INTERMEDIATE" },
+      ];
+
+      return {
+        success: true,
+        data: {
+          // 추천 영상 정보
+          recommendations: allRecommendations.slice(0, limit)
+        }
+      };
+    }
+
+
+
+
 
 
 
@@ -703,25 +943,107 @@ if (endpoint === '/quiz/sessions/generate/section') {
   // // 실제 서버 통신 로직 (나중에 사용)
   // const { accessToken } = await chrome.storage.session.get(['accessToken']);
 
-
+  // 첫 호출
   // response = 서버 응답 객체 (아직 텍스트 상태)
-  const response = await fetch(`${BASE_URL}${endpoint}`, {
-    ...options,
-    // include의 경우 일반 웹사이트는 CSRF 공격 위험이 있다?
-    // 확장프로그램과 서버 간 도메인이 다르기에 같은 도메인만 보내는 기본값인 'same-origin'는 쿠키를 보낼 수 없음
-    // include를 사용해서 도메인이 달라도 항상 브라우저에서 쿠키를 보내게 함
-    credentials: 'include',
-    headers: headersWithAuth,
-  });
+  // fetch는 HTTP 응답이 오면 무조건 성공으로 처리해서 토큰 만료에도 멈추지 않음
+  let response;
+  try {
+    response = await fetch(`${BASE_URL}${endpoint}`, {
+      ...options,
+      // include의 경우 일반 웹사이트는 CSRF 공격 위험이 있다?
+      // 확장프로그램과 서버 간 도메인이 다르기에 같은 도메인만 보내는 기본값인 'same-origin'는 쿠키를 보낼 수 없음
+      // include를 사용해서 도메인이 달라도 항상 브라우저에서 쿠키를 보내게 함
+      credentials: 'include',
+      headers: headersWithAuth,
+    });
+  } catch {
+    throw new ApiError('네트워크 오류', 'NETWORK_ERROR');
+  }
 
-  // result = JSON으로 파싱된 데이터
-  const result = await response.json();
-  if (!result.success) {
+
+
+  // 토큰 만료 = 401 응답
+  if (response.status === 401 && endpoint !== '/auth/refresh') {
+    try {
+      // refresh 토큰으로 새 토큰 발급
+      const refreshRes = await fetch(`${BASE_URL}/auth/refresh`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      if (refreshRes.ok) {
+        const refreshData = await refreshRes.json();
+        const newAccessToken = refreshData.data.accessToken;
+
+        // 새 토큰 저장
+        await saveAccessToken(newAccessToken);
+        // await chrome.runtime.sendMessage({
+        //   type: 'SET_AUTH',
+        //   accessToken: newAccessToken,
+        // });
+
+        // 원래 요청 재시도
+        response = await fetch(`${BASE_URL}${endpoint}`, {
+          ...options,
+          credentials: 'include',
+          headers: {
+            ...headersWithAuth,
+            Authorization: `Bearer ${newAccessToken}`,
+          },
+        });
+      } else {
+        throw new ApiError('인증 만료', 'UNAUTHORIZED');
+      }
+    } catch (error) {
+      await clearAuthLocal();
+      throw error;
+    }
+  }
+
+
+  // 응답 처리
+  const text = await response.text();
+
+  // 빈 응답 처리
+  let result = null;
+  if (text) {
+    try {
+      result = JSON.parse(text);
+    } catch {
+      // JSON 파싱 실패
+      throw new ApiError(
+        `잘못된 응답 형식 (status: ${response.status})`,
+        'INVALID_RESPONSE'
+      );
+    }
+  }
+
+
+  // HTTP 에러 처리
+  if (!response.ok) {
+    throw new ApiError(
+      result?.error?.message || `HTTP ${response.status} 에러`,
+      result?.error?.code || `HTTP_${response.status}`
+    );
+  }
+
+
+  // success 필드 체크
+  if (result && result.success === false) {
     throw new ApiError(
       result.error?.message || 'API Error',
       result.error?.code || 'UNKNOWN'
     );
   }
+
+  // // result = JSON으로 파싱된 데이터
+  // const result = await response.json();
+  // if (!result.success) {
+  //   throw new ApiError(
+  //     result.error?.message || 'API Error',
+  //     result.error?.code || 'UNKNOWN'
+  //   );
+  // }
 
   return result;
 };

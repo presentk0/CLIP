@@ -1,0 +1,1045 @@
+.main {
+  display: flex;
+  width: 402px;
+  padding-bottom: 36px;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--semantic-space-card-bottom); /* 20px */
+  background: var(--semantic-bg-page);
+}
+
+.container {
+  display: flex;
+  width: 370px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 52px;  /* 36 + 16 (뱃지 값 더하기) */
+}
+
+
+
+
+.userProfile-t {
+  display: flex;
+  padding: var(--semantic-space-card-bottom) var(--semantic-space-gutter);/* 20px 16px */
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 24px;
+  align-self: stretch;
+
+border-radius: 24px;
+background: #FEFDF9;
+  box-shadow: var(--semantic-shadow-card); /* 추가함 */
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+.userProfile {
+  display: flex;
+  padding: var(--semantic-space-card-bottom) var(--semantic-space-gutter);/* 20px 16px */
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--semantic-space-cluster);/* 12px */
+  align-self: stretch;
+  border-radius: var(--semantic-radius-section);
+  background: var(--semantic-bg-surface);
+  box-shadow: var(--semantic-shadow-card); /* 추가함 */
+}
+
+
+.userProfileBox {
+  display: flex;
+  width: 338px;
+  align-items: flex-start;
+  gap: var(--semantic-space-inline); /* 10px */
+}
+
+
+
+.userInfo {
+  display: flex;
+width: 218px;
+align-items: center;
+gap: 12px;
+flex-shrink: 0;
+}
+
+
+
+
+.userAvatar {
+display: flex;
+width: 48px;
+height: 48px;
+align-items: center;
+justify-content: center; /* 추가 */
+gap: 10px;
+flex-shrink: 0;
+aspect-ratio: 1/1;
+border-radius: 999px;
+background: #E1E1E1;
+}
+
+
+
+.userAvatarTrue {
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  object-fit: cover;
+}
+
+
+
+.userText {
+  display: flex;
+width: 158px;
+flex-direction: column;
+align-items: flex-start;
+gap: 4px;
+flex-shrink: 0;
+}
+
+
+
+.userNameRow {
+  display: flex;
+width: 158px;
+height: 18px;
+align-items: center;
+gap: 4px;
+}
+
+
+.userNameBox {
+  display: flex;
+align-items: center;
+gap: 10px;
+}
+
+
+.userName {
+  color: #5E5A4E;
+font-family: Pretendard;
+font-size: 16px;
+font-style: normal;
+font-weight: 700;
+line-height: normal;
+}
+
+
+
+
+
+.userNameSuffixBox {
+  display: flex;
+width: 14px;
+flex-direction: column;
+justify-content: center;
+align-items: center;
+gap: 10px;
+flex-shrink: 0;
+}
+
+
+.userNameSuffix {
+  display: flex;
+height: 18px;
+flex-direction: column;
+justify-content: center;
+align-self: stretch;
+color: #5E5A4E;
+text-align: center;
+font-family: Pretendard;
+font-size: 16px;
+font-style: normal;
+font-weight: 700;
+line-height: normal;
+}
+
+
+
+.userEmailBox {
+  display: flex;
+align-items: flex-start;
+align-self: stretch;
+}
+
+
+
+.userEmail {
+  width: 150px;
+  color: #8E8F8A;
+font-family: Pretendard;
+font-size: 12px;
+font-style: normal;
+font-weight: 400;
+line-height: 12px; /* 100% */
+}
+
+
+
+
+
+.logoutButton {
+  display: flex;
+align-items: center;
+gap: 8px;
+}
+
+
+
+
+
+.logoutButtonInner {
+  width: 66px;
+height: 32px;
+}
+
+
+.logoutIcon {
+  display: flex;
+justify-content: center;
+align-items: center;
+
+  width: 66px;
+height: 32px;
+border-radius: 999px;
+border: 1px solid #DCD6C6;
+}
+
+.logoutText {
+
+width: 42px;
+height: 12.444px;
+
+color: #0F0D0E;
+font-family: Pretendard;
+font-size: 12px;
+font-style: normal;
+font-weight: 400;
+line-height: normal;
+}
+
+
+
+
+
+
+
+.logoutButtonBg {
+  display: flex;
+width: 36px;
+height: 36px;
+padding: 16px 12px 14px 12px;
+flex-direction: column;
+align-items: flex-start;
+gap: 10px;
+border-radius: 8px;
+border: 1px solid #DCD6C6;
+}
+
+.logoutButtonIcon {
+  width: 11.25px;
+height: 5.625px;
+flex-shrink: 0;
+aspect-ratio: 2/1;
+stroke-width: 1.5px;
+stroke: #0F0D0E;
+}
+
+
+
+
+
+.levelCard {
+  display: flex;
+padding: 16px;
+flex-direction: column;
+align-items: flex-start;
+gap: 8px;
+align-self: stretch;
+border-radius: 16px;
+border: 1px solid #DCD6C6;
+}
+
+
+.levelCardInner {
+  display: flex;
+flex-direction: column;
+align-items: flex-start;
+gap: 8px;
+align-self: stretch;
+}
+
+.levelProgress {
+  display: flex;
+flex-direction: column;
+align-items: flex-start;
+gap: 8px;
+align-self: stretch;
+}
+
+
+.levelInfoRow {
+  display: flex;
+justify-content: space-between;
+align-items: flex-end;
+align-self: stretch;
+}
+
+
+
+.levelLabel {
+  display: flex;
+height: 18px;
+justify-content: center;
+align-items: center;
+gap: 10px;
+}
+
+
+
+.levelLabelText {
+  width: 40px;
+  color: #5E5A4E;
+font-family: Pretendard;
+font-size: 16px;
+font-style: normal;
+font-weight: 700;
+line-height: normal;
+white-space: nowrap;    /* 줄바꿈 방지 */
+
+}
+
+
+.levelExp {
+  display: flex;
+justify-content: center;
+align-items: center;
+gap: 10px;
+}
+
+
+
+.levelExpTextLeft {
+width: 90px;
+color: #79735B;
+text-align: right;
+font-family: Pretendard;
+font-size: 12px;
+font-style: normal;
+font-weight: 500;
+line-height: normal;
+}
+
+
+.levelExpTextRight {
+  color: #ABAB90;
+font-family: Pretendard;
+font-size: 12px;
+font-style: normal;
+font-weight: 500;
+line-height: normal;
+}
+
+
+
+.levelBar {
+position: relative;
+height: 8px;
+align-items: flex-start;
+align-self: stretch;
+}
+
+
+.levelBarTrack {
+  position: absolute;
+  width: 306px;
+height: 8px;
+position: absolute;
+border-radius: 999px;
+background: #D0EFE5;
+}
+
+
+.levelBarFill {
+  position: absolute;
+  /* width: 138px; */
+height: 8px;
+border-radius: 999px;
+background: #01CF8A;
+}
+
+.levelMessage {
+  display: flex;
+justify-content: center;
+align-items: center;
+}
+
+
+
+.levelMessageText {
+  color: #ABAB90;
+font-family: Pretendard;
+font-size: 12px;
+font-style: normal;
+font-weight: 500;
+line-height: normal;
+}
+
+
+
+/* =========================== */
+
+.videoSection {
+  display: flex; 
+flex-direction: column;
+align-items: flex-start;
+gap: 24px;
+align-self: stretch;
+}
+
+
+
+
+
+
+
+.masteryCard {
+position: relative;
+display: flex;
+flex-direction: column;
+justify-content: flex-end;
+align-items: center;
+align-self: stretch;
+box-shadow: 0 4px 12px 0 rgba(158, 155, 137, 0.20);
+
+margin-bottom: 16px;
+}
+
+
+.masteryCardBox {
+display: flex;
+flex-direction: column;
+align-items: flex-start;
+gap: 16px;
+}
+
+
+
+.masteryVideo {
+display: flex;
+width: 370px;
+height: 146px;
+padding: 40px 16px 20px 16px;
+align-items: flex-start;
+gap: 10px;
+border-radius: 24px;
+border: 2px solid #01CF8A;
+background: #FEFDF9;
+}
+
+.masteryThumbnail {
+position: relative;
+width: 153px;
+height: 86px;
+flex-direction: column;
+align-items: flex-start;
+gap: 10px;
+flex-shrink: 0;
+border-radius: 8px;
+overflow: hidden;
+background: lightgray 50% / cover no-repeat;
+}
+
+
+.masteryThumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+
+
+/* 재생 시간 */
+.masteryDurationWrapper {
+  position: absolute;
+  right: 4px;
+  bottom: 4px; 
+padding: 3px 4px 3px 5px;
+justify-content: center;
+align-items: center;
+gap: 10px;
+flex-shrink: 0;
+border-radius: 999px;
+background: rgba(15, 15, 15, 0.50);
+}
+
+
+
+.masteryDuration {
+display: flex;
+justify-content: center;
+align-items: center;
+}
+
+.masteryDurationText {
+  color: #FFF;
+font-family: Pretendard;
+font-size: 11px;
+font-style: normal;
+font-weight: 500;
+line-height: normal;
+letter-spacing: -0.1px;
+text-transform: uppercase;
+}
+
+
+
+.masteryInfo {
+display: flex;
+width: 168px;
+flex-direction: column;
+align-items: flex-start;
+flex-shrink: 0;
+}
+
+
+.masteryTitle {
+  display: flex;
+height: 40.042px;
+flex-direction: column;
+justify-content: center;
+align-self: stretch;
+color: #5E5A4E;
+font-family: Roboto;
+font-size: 14px;
+font-style: normal;
+font-weight: 700;
+line-height: 20px; /* 142.857% */
+letter-spacing: -0.5px;
+}
+
+
+
+.masteryChannel {
+  display: flex;
+height: 20.021px;
+flex-direction: column;
+justify-content: center;
+align-self: stretch;
+color: #5E5A4E;
+font-family: Roboto;
+font-size: 12px;
+font-style: normal;
+font-weight: 400;
+line-height: 20px; /* 166.667% */
+letter-spacing: -0.5px;
+}
+
+
+
+.sectionBadge {
+  display: flex;
+height: 36px;
+padding: 8px 16px;
+align-items: center;
+gap: 8px;
+position: absolute;
+left: 12px;
+top: -16px;
+border-radius: 24px;
+background: #01CF8A;
+}
+
+
+
+.sectionBadgeIcon {
+    display: flex;
+align-items: center;
+  width: 24px;
+height: 24px;
+}
+
+
+
+.sectionBadgeLabel {
+  display: flex;
+justify-content: center;
+align-items: center;
+}
+
+.sectionBadgeLabelText {
+color: #FFF;
+font-family: Pretendard;
+font-size: 16px;
+font-style: normal;
+font-weight: 700;
+line-height: normal;
+letter-spacing: 0.5px;
+text-transform: uppercase;
+}
+
+
+
+.thumbnailWrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.thumbnail {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.duration {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  padding: 2px 6px;
+  background: rgba(0, 0, 0, 0.75);
+  color: white;
+  font-size: 12px;
+  border-radius: 4px;
+}
+
+
+
+
+.top {
+  display: flex;
+width: 402px;
+padding: 15px 16px;
+justify-content: space-between;
+align-items: center;
+background: #01CF8A;
+}
+
+
+.logoBox {
+  display: flex;
+width: 78px;
+height: 20px;
+flex-direction: column;
+justify-content: center;
+align-items: flex-start;
+flex-shrink: 0;
+}
+
+
+
+
+.logo {
+  width: 75.108px;
+height: 14.17px;
+flex-shrink: 0;
+fill: #FFF;
+}
+
+
+
+
+
+.topButtonBox {
+  display: flex;
+align-items: center;
+gap: 12px;
+}
+
+.topLeftButton {
+display: flex;
+width: 24px;
+height: 24px;
+align-items: center;
+gap: 10px;
+background: #D9D9D9;
+}
+
+
+.topRightButton {
+display: flex;
+width: 24px;
+height: 24px;
+align-items: center;
+gap: 10px;
+background: #D9D9D9;
+}
+
+
+
+
+
+
+
+
+
+.recommendedSection {
+/* display: flex; */
+position: relative;
+/* height: 654px; */
+justify-content: space-between;
+align-items: flex-end;
+align-self: stretch;
+box-shadow: 0 4px 12px 0 rgba(158, 155, 137, 0.20);
+}
+
+
+.recommendedSectionBox {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;                    /* 큰 카드와 작은 카드 묶음 사이 간격 */
+  position: relative;
+width: 370px;
+/* height: 638px; */
+padding: 40px 16px 20px 16px;
+align-items: center;
+border-radius: 24px;
+background: #FEFDF9;
+}
+
+
+
+.recommendedSectionBox2 {
+  display: flex;
+width: 338px;
+flex-direction: column;
+align-items: flex-start;
+gap: 32px;
+flex-shrink: 0;
+}
+
+
+.recommendedSectionBox3 {
+display: flex;
+flex-direction: column;
+align-items: flex-start;
+/* gap: 14px; */
+align-self: stretch;
+}
+
+/* 추가함 */
+.recommendedSectionLink {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  width: 100%;
+}
+
+
+
+
+.recommendedSectionThumbnail {
+  position: relative;
+height: 190px;
+/* padding: 166px 8px 8px 292px; */
+flex-direction: column;
+align-items: flex-start;
+gap: 10px;
+align-self: stretch;
+border-radius: 12px;
+background: lightgray 50% / cover no-repeat;
+overflow: hidden;
+}
+
+
+.recommendedSectionThumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+
+.recommendedSectionDuration {
+/* display: flex; */
+/* width: 38px;
+height: 16px; */
+position: absolute;
+  right: 4px;
+  bottom: 4px; 
+padding: 3px 4px 3px 5px;
+justify-content: center;
+align-items: center;
+gap: 10px;
+flex-shrink: 0;
+border-radius: 999px;
+background: rgba(15, 15, 15, 0.50);
+}
+
+/* 
+.recommendedSectionDuration2 {
+display: flex;
+justify-content: center;
+align-items: center;
+} */
+
+
+.recommendedSectionDuration3 {
+  display: flex;
+justify-content: center;
+align-items: center;
+
+color: #FFF;
+font-family: Pretendard;
+font-size: 11px;
+font-style: normal;
+font-weight: 500;
+line-height: normal;
+letter-spacing: -0.1px;
+text-transform: uppercase;
+}
+
+
+
+
+
+.recommendedSectionInfo {
+display: flex;
+align-items: flex-start;
+gap: 12px;
+}
+
+
+.recommendedSectionChannel {
+width: 33px;
+height: 33px;
+aspect-ratio: 1/1;
+border-radius: 16px;
+background: #D9D9D9;
+}
+
+
+.recommendedSectionTitle {
+display: flex;
+width: 275px;
+flex-direction: column;
+align-items: flex-start;
+gap: 4px;
+}
+
+
+.recommendedSectionTitle2 {
+  display: flex;
+height: 32px;
+flex-direction: column;
+justify-content: center;
+align-self: stretch;
+color: #5E5A4E;
+font-family: Roboto;
+font-size: 14px;
+font-style: normal;
+font-weight: 700;
+line-height: 16px; /* 114.286% */
+letter-spacing: -0.5px;
+}
+
+
+
+.recommendedSectionChannelName {
+display: flex;
+height: 16px;
+flex-direction: column;
+justify-content: center;
+align-self: stretch;
+color: #5E5A4E;
+font-family: Roboto;
+font-size: 12px;
+font-style: normal;
+font-weight: 400;
+line-height: 20px; /* 166.667% */
+letter-spacing: -0.5px;
+}
+
+
+
+
+
+
+
+
+
+
+.smallVideoCard {
+  display: flex;
+flex-direction: column;
+align-items: flex-start;
+gap: 16px;
+align-self: stretch;
+}
+
+
+
+
+.smallVideoCard2 {
+  display: flex;
+align-items: flex-start;
+gap: 10px;
+align-self: stretch;
+}
+
+
+.smallVideoCardThumbnail {
+  /* display: flex; */
+  position: relative;
+width: 153px;
+height: 86px;
+/* padding: 66px 4px 4px 111px; */
+flex-direction: column;
+align-items: flex-start;
+gap: 10px;
+border-radius: 8px;
+background: lightgray -3px -0.062px / 103.922% 100.145% no-repeat;
+
+overflow: hidden;
+}
+
+
+
+.smallVideoCardThumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+
+.smallVideoCardDuration {
+position: absolute;
+  right: 4px;
+  bottom: 4px; 
+padding: 3px 4px 3px 5px;
+justify-content: center;
+align-items: center;
+gap: 10px;
+flex-shrink: 0;
+border-radius: 999px;
+background: rgba(15, 15, 15, 0.50);
+}
+
+
+
+.smallVideoCardDuration2 {
+  display: flex;
+justify-content: center;
+align-items: center;
+}
+
+
+
+.smallVideoCardDuration3 {
+  color: #FFF;
+font-family: Pretendard;
+font-size: 11px;
+font-style: normal;
+font-weight: 500;
+line-height: normal;
+letter-spacing: -0.1px;
+text-transform: uppercase;
+}
+
+
+
+
+.smallVideoCardInfo {
+display: flex;
+width: 168px;
+flex-direction: column;
+align-items: flex-start;
+}
+
+.smallVideoCardTitle {
+display: flex;
+height: 40.042px;
+flex-direction: column;
+justify-content: center;
+align-self: stretch;
+color: #5E5A4E;
+font-family: Roboto;
+font-size: 14px;
+font-style: normal;
+font-weight: 700;
+line-height: 20px; /* 142.857% */
+letter-spacing: -0.5px;
+}
+
+
+
+.smallVideoCardChannel {
+display: flex;
+height: 20.021px;
+flex-direction: column;
+justify-content: center;
+align-self: stretch;
+color: #5E5A4E;
+font-family: Roboto;
+font-size: 12px;
+font-style: normal;
+font-weight: 400;
+line-height: 20px; /* 166.667% */
+letter-spacing: -0.5px;
+}
+
+
+
+
+
+
+.recommendedTitle {
+  display: flex;
+height: 36px;
+padding: 8px 16px;
+align-items: center;
+gap: 8px;
+position: absolute;
+left: -4px;
+top: -16px;
+border-radius: 24px;
+background: #01CF8A;
+}
+
+
+
+.recommendedTitle2 {
+  display: flex;
+width: 24px;
+height: 24px;
+align-items: center;
+background: #D9D9D9;
+}
+
+
+
+
+.recommendedTitle3 {
+  display: flex;
+justify-content: center;
+align-items: center;
+}
+
+.recommendedTitle4 {
+  color: #FFF;
+font-family: Pretendard;
+font-size: 16px;
+font-style: normal;
+font-weight: 700;
+line-height: normal;
+letter-spacing: 0.5px;
+text-transform: uppercase;
+}
