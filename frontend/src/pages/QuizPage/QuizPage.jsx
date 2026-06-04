@@ -2,17 +2,19 @@
 
 import nlp from 'compromise';
 import React, { useState, useEffect } from 'react';
-import frog from '../imgs/image_710.png';
-import frog1 from '../imgs/image_712.png';
-import { apiFetch } from '../utils/api';
-import bulb from '../imgs/image_62.png';
-import frog2 from '../imgs/image_750.png';
-import { log, IS_DEV } from '../utils/logger';
+import frog from '../../imgs/image_710.png';
+import frog1 from '../../imgs/image_712.png';
+import { apiFetch } from '../../utils/api';
+import bulb from '../../imgs/image_62.png';
+import frog2 from '../../imgs/image_750.png';
+import { log } from '../../utils/logger';
+import styles from './QuizPage.module.css';
+import frog3 from '../../imgs/image_809.png';
 
 // 렌더링해도 1번만 셔플 (비교값을 -0.5 ~ 0.5으로 설정)
 const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
 
-function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage }) {
+function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage, channelName, thumbnailUrl }) {
 
   // 현재 문제 번호 (0부터 시작)
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -222,6 +224,8 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
           videoId: videoId,
           title: videoTitle,
           duration: duration,
+          channelName: channelName,
+          thumbnailUrl: thumbnailUrl,
           subtitleRequests: [
             {
               text: word,
@@ -522,13 +526,13 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
   // 빈칸 퀴즈 보기 버튼 위치
   const buttonPositions = [
     // 1번: 왼쪽 위
-    { padding: '11px 63px 12px 63px' },
+    { padding: '14px 59px 14px 56px' },
     // 2번: 오른쪽 위
-    { padding: '11px 65px 12px 65px' },
+    { padding: '12px 55px 12px 57px' },
     // 3번: 왼쪽 아래
-    { padding: '11px 65px 12px 65px' },
+    { padding: '11px 57px 13px 55px' },
     // 4번: 오른쪽 아래
-    { padding: '11px 74px 12px 74px' },
+    { padding: '12px 55px 12px 57px' },
   ];
 
 
@@ -1021,21 +1025,21 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
     const correctAnswer = feedback?.correctAnswer;
     if (!isConfirmed) {
       // 확정 전: 선택한 것 : 선택안한 것 표시
-      return tempChoice === choice ? '#F0F3FF' : '#F7F7F7';
+      return tempChoice === choice ? '#45A84D' : '#E9E9DE';
     }
 
     // 확정 후: 정답이면
     if (choice === correctAnswer) {
-      return '#F0F3FF';
+      return '#76B9F0';
     }
 
     // 확정 후: 내가 선택한 답이 오답이면
     if (choice === tempChoice && tempChoice !== correctAnswer) {
-      return '#FFF4EE';
+      return '#FFF2D0';
     }
 
     // 확정 후: 미선택이면
-    return '#F7F7F7';
+    return '#E9E9DE';
   };
 
 
@@ -1046,21 +1050,21 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
     const correctAnswer = feedback?.correctAnswer;
     if (!isConfirmed) {
       // 확정 전: 선택한 것 : 선택안한 것 표시
-      return tempChoice === choice ? '#5559D9' : '#4D525C';
+      return tempChoice === choice ? '#FFF' : '#A0A08A';
     }
 
     // 확정 후: 정답이면
     if (choice === correctAnswer) {
-      return '#5559D9';
+      return '#FFF';
     }
 
     // 확정 후: 내가 선택한 답이 오답이면
     if (choice === tempChoice && tempChoice !== correctAnswer) {
-      return '#F7731E';
+      return '#FFC229';
     }
 
     // 확정 후: 미선택이면
-    return '#4D525C';
+    return '#A0A08A';
   };
 
 
@@ -1487,9 +1491,624 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage 
     onExitPage();
   };
 
+
+
+
+  // 테스트용 오류
+  const testQuiz = () => {
+    return (
+      <div className={styles.container}>
+        <div className={styles.header}>
+          <div className={styles.header2}>
+            <div className={styles['header3-l']}>뒤로가기 미구현</div>
+            <div className={styles['header3-r']}>마이페이지 이동 미구현</div>
+          </div>
+          <div className={styles.header4}>
+            <p className={styles['header4-t']}>퀴즈</p>
+          </div>
+        </div>
+
+
+        <div className={styles.bar}>
+          <div className={styles.bar2}>
+            <div 
+            className={styles.bar3}
+            style={{ backgroundImage: `url(${frog3})` }}
+            >
+              이미지
+            </div>
+          </div>
+          <div className={styles.bar4}>
+            <div className={styles.bar5}>
+              <p className={styles['bar5-t']}>{currentQuiz?.quizType === 'MATCHING' ? matchingMatchedPairs.length : currentIndex + 1}</p>
+              <span className={styles['bar5-t']}> /{quizzes?.length}</span>
+            </div>
+            <div className={styles.bar6}>
+              <div className={styles.bar7}></div>
+              <div 
+              className={styles.bar8}
+              style={{width: currentQuiz?.quizType === 'MATCHING' ? `${274 * (matchingMatchedPairs.length / quizzes.length)}px` : `${274 * ((currentIndex + 1) / quizzes.length)}px`}}
+              ></div>
+            </div>
+          </div>
+        </div>
+
+        <div className={styles.balloon}>
+          <div className={styles.balloon2}>
+            <p className={styles['balloon2-t']}>방금 영상에서 나온 문장이에요. 이 자리에 어떤 단어가 들어갈까요? 이 자리에 어떤 단어가 들어갈까요?</p>
+          </div>
+        </div>
+
+        <div className={styles.subtitles}>
+          <div className={styles['subtitles-badge']}>
+            <div className={styles['subtitles-badge2']}>
+              <p className={styles['subtitles-badge3']}>방금 자막</p>
+            </div>
+          </div>
+          <div className={styles.subtitles2}>
+            <div className={styles.subtitles3}>
+              <div className={styles.subtitles4}>
+                <p className={styles['subtitles4-t']}>
+                  {/* 자막 문장을 공백으로 나눠서 단어별로 처리 */}
+                  {currentSubtitle.text.split(' ').map((word, index) => {
+                  // 해당 종류를 일반 따옴표로 변환(백틱, 오른쪽 작은따옴표, 왼쪽 작은따옴표, 수정 문자 아포스트로피)
+                    const normalized = word.replace(/[`''ʼ]/g, "'");
+                    // 특수문자만 제거
+                    const cleaned = normalized.replace(/[^a-zA-Z']/g, '');
+                    // 단어의 품사 구분 및 일부 단어 필터링
+                    const wordFilter = getWordFilter(currentSubtitle.text, cleaned);
+
+                    // 구동사는 있으면 클릭 시 구동사로 보이기
+                    const searchWord = wordFilter?.type === 'phrasal' ? wordFilter.phrase : cleaned;
+
+                    return (
+                      <span
+                      key={index}
+                      // 클릭 시 필터링이 아니면 팝업 고정
+                      onClick={(e) => wordFilter && togglePin(e, searchWord, wordFilter)}>
+                        {/* 원본 단어 그대로 표시 + 공백 추가 */}
+                        {word}{' '}
+                      </span>
+                    );
+                  })}
+                </p>
+              </div>
+              <div className={styles.subtitles5}>
+                <p className={styles.subtitles6}>
+                  {currentSubtitle.translation}
+                </p>
+              </div>
+            </div>
+            <div className={styles.subtitles7}>
+              <div className={styles.subtitles8}>1</div>
+              <div className={styles.subtitles8}>1</div>
+              <div className={styles.subtitles8}>1</div>
+            </div>
+          </div>
+        </div>
+
+        {!['BLANK', 'OX', 'MATCHING'].includes(currentQuiz?.quizType) && (
+          <div className={styles.ready}>
+            <div className={styles.ready2}>
+              <div className={styles.ready3}></div>
+              <div className={styles.ready4}></div>
+              <div className={styles.ready5}></div>
+              <div className={styles.ready6}></div>
+            </div>
+
+            <p className={styles.ready7}>
+              퀴즈를 준비하고 있어요!
+            </p>
+          </div>
+        )}
+
+
+        {currentQuiz?.quizType === 'BLANK' && testQuiz2()}
+        {currentQuiz?.quizType === 'OX' && oxQuiz()}
+        {currentQuiz?.quizType === 'MATCHING' &&  matchingShuffledMeanings?.length > 0 &&  matchingQuiz()}
+      </div>
+    )
+  }
+
+
+  // 실제 퀴즈문제 테스트용 오류
+  const testQuiz2 = () => {
+    return (
+      <div className={styles.quiz}>
+        <div className={styles['quiz-a']}>
+          <div className={styles['quiz-badge-n']}>
+            <div className={styles['quiz-badge2']}>
+              <p className={styles['quiz-badge3']}>Q.1</p>
+            </div>
+          </div>
+
+          <div className={styles['quiz-b']}>
+            <div className={styles['quiz-c']}>
+              <div className={styles['quiz-d']}>
+                <div className={styles['quiz-e']}>
+                  <p className={styles['quiz2-q']}>
+                    {currentQuiz?.content.split('[ ]').map((part, index, array) => (
+                      <React.Fragment key={index}>
+                        {part}
+                        {/* 마지막 조각이 아니면 빈칸 삽입 */}
+                        {index < array.length - 1 && (
+                          tempChoice ? (
+                            <span className={styles['blank-t']}>{tempChoice}</span>
+                          ) : (
+                            <span className={styles['blank-n']}></span>
+                          )
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </p>
+                </div>
+
+
+                <div className={styles.quiz5}>
+                  <p className={styles['quiz5-t']}>
+                    {currentQuiz?.translation}
+                  </p>
+                </div>
+              </div>
+
+
+              <div className={styles.quiz7}>
+                <div className={styles['quiz8-bt']}>
+                  <p className={styles['quiz9-bt']}>Stops</p>
+                </div>
+                <div className={styles['quiz10-bn']}>
+                  <p className={styles['quiz10-bn']}>Move</p>
+                </div>
+                <div className={styles['quiz10-bn']}>
+                  <p className={styles['quiz10-bn']}>Move</p>
+                </div>
+                <div className={styles['quiz10-bn']}>
+                  <p className={styles['quiz10-bn']}>Move</p>
+                </div>
+              </div>
+
+
+
+          {/* 보기 버튼 */}
+          {currentQuiz?.options.map((choice, i) => (
+            <button
+            key={i}
+            disabled={isConfirmed}
+            onClick={() => handleChoice(choice)}
+            style={{
+              padding: buttonPositions[i].padding,
+              // border: borderColor(choice),
+              background: backgroundColor(choice),
+              color: textColor(choice),
+            }}>
+              {choice}
+            </button>
+          ))}
+
+
+
+
+            </div>
+
+
+            <div className={styles['quiz-s']}>
+              <div className={styles['quiz-s2']}>
+                <div className={styles['quiz-s3']}>
+                  <button
+                  onClick={handleNext}
+                  className={styles['quiz-s4']}>
+                    건너뛰기
+                  </button>
+                </div>
+
+
+                <div className={styles['quiz-s5']}>
+                  <div className={styles['quiz-s6']}>정답확인</div>
+                </div>
+
+
+
+          {/* 제출 및 넘어가기 버튼 */}
+          {currentQuiz?.quizType === 'MATCHING' ? (
+            // 매칭 퀴즈는 결과 보기만 나옴
+            <button
+            onClick={handleMatchingComplete}
+            disabled={matchingMatchedPairs.length < quizzes.length}
+            className={styles['quiz-s5']}
+            >
+              <p className={styles['quiz-s6']}>
+                결과 보기
+              </p>
+            </button>
+          ) : (
+            // ox, 빈칸 채우기 전용
+            !isConfirmed ? (
+              <button
+              onClick={handleSubmit}
+              className={styles['quiz-s5']}>
+                <p className={styles['quiz-s6']}>
+                  정답확인
+                </p>
+              </button>
+            ) : (
+              <button
+              onClick={handleNext}
+              className={styles['quiz-s5']}>
+                <p className={styles['quiz-s6']}>
+                  계속하기
+                </p>
+              </button>
+            )
+          )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+
+
+// 실제 퀴즈나가기 테스트용 오류
+  const testExit= () => {
+    return (
+      <div className={styles.exit}>
+        <div className={styles.exit2}>
+          <p className={styles.exit3}>지금 끝내기에는 아쉬워요! <br />조금만 더 가봐요!</p>
+          <div className={styles.exit4}>
+            <p className={styles.exit5}>지금까지의 진행 상황을 저장해두고 <br />나중에 이어서 다시 할 수 있어요</p>
+          </div>
+        </div>
+
+
+        <div className={styles.exit6}>
+          <button 
+          className={styles.exit7}
+          onClick={() => setExitModal(false)}>
+            <p className={styles.exit8}>퀴즈 계속하기</p>
+          </button>
+          <button 
+          className={styles.exit9}
+          onClick={handleExit}
+          >
+            <p className={styles.exit10}>저장하고 나가기</p>
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+
+
+  // // 실제 퀴즈사전 모아둔거? 테스트용 오류
+  // const testDictionary1= () => {
+  //   return (
+  //     <div className={styles.dictionary}>
+  //       <div className={styles.dictionary2}>
+  //         <div className={styles.dictionary3}>
+  //           <div className={styles.dictionary4}>
+  //             <div className={styles.dictionary5}>
+  //               <div className={styles.dictionary8}>
+  //                 <div className={styles.dictionary9}>
+  //                   <p className={styles['dictionary9-t']}>serendipity</p>
+  //                 </div>
+  //                 <div className={styles.dictionary10}>
+  //                   <div className={styles.dictionary11}>
+  //                     <div className={styles['dictionary11-a']}>
+  //                       <div className={styles['dictionary11-b']}>
+  //                         <div className={styles['dictionary11-c']}>
+  //                           <p className={styles['dictionary11-d']}>US</p>
+  //                         </div>
+  //                         <div className={styles['dictionary11-e']}>
+  //                           <div className={styles['dictionary11-f']}>
+  //                             <svg 
+  //                             className={styles['dictionary11-f2']}
+  //                             xmlns="http://www.w3.org/2000/svg" 
+  //                             width="16" 
+  //                             height="16" 
+  //                             viewBox="0 0 16 16" 
+  //                             fill="none">
+  //                               <path d="M7.33337 4.18509C7.33337 3.54139 6.61183 3.16128 6.08095 3.52531L4.10228 4.88211C4.03568 4.92778 3.95682 4.95222 3.87607 4.95222H2.13337C1.69155 4.95222 1.33337 5.31039 1.33337 5.75222V10.2475C1.33337 10.6893 1.69155 11.0475 2.13337 11.0475H3.87607C3.95682 11.0475 4.03568 11.0719 4.10228 11.1176L6.08095 12.4744C6.61183 12.8384 7.33337 12.4583 7.33337 11.8146V4.18509Z" fill="#A0A08A"/>
+  //                               <path d="M9.69336 5.64014C10.3183 6.26523 10.6693 7.11292 10.6693 7.9968C10.6693 8.88068 10.3183 9.72838 9.69336 10.3535" stroke="#A0A08A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+  //                               <path d="M11.4879 3.99658C12.7685 5.05756 13.4879 6.49636 13.4879 7.99658C13.4879 9.4968 12.7685 10.9356 11.4879 11.9966" stroke="#A0A08A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+  //                             </svg>
+  //                           </div>
+  //                         </div>
+  //                       </div>
+  //                       <div className={styles['dictionary11-g']}>
+  //                         <p className={styles['dictionary11-h']}>[ jʌŋ ]</p>
+  //                       </div>
+  //                     </div>
+
+
+  //                     <div className={styles['dictionary11-a']}>
+  //                       <div className={styles['dictionary11-b']}>
+  //                         <div className={styles['dictionary11-c']}>
+  //                           <p className={styles['dictionary11-d']}>US</p>
+  //                         </div>
+  //                         <div className={styles['dictionary11-e']}>
+  //                           <div className={styles['dictionary11-f']}>
+  //                             <svg 
+  //                             className={styles['dictionary11-f2']}
+  //                             xmlns="http://www.w3.org/2000/svg" 
+  //                             width="16" 
+  //                             height="16" 
+  //                             viewBox="0 0 16 16" 
+  //                             fill="none">
+  //                               <path d="M7.33337 4.18509C7.33337 3.54139 6.61183 3.16128 6.08095 3.52531L4.10228 4.88211C4.03568 4.92778 3.95682 4.95222 3.87607 4.95222H2.13337C1.69155 4.95222 1.33337 5.31039 1.33337 5.75222V10.2475C1.33337 10.6893 1.69155 11.0475 2.13337 11.0475H3.87607C3.95682 11.0475 4.03568 11.0719 4.10228 11.1176L6.08095 12.4744C6.61183 12.8384 7.33337 12.4583 7.33337 11.8146V4.18509Z" fill="#A0A08A"/>
+  //                               <path d="M9.69336 5.64014C10.3183 6.26523 10.6693 7.11292 10.6693 7.9968C10.6693 8.88068 10.3183 9.72838 9.69336 10.3535" stroke="#A0A08A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+  //                               <path d="M11.4879 3.99658C12.7685 5.05756 13.4879 6.49636 13.4879 7.99658C13.4879 9.4968 12.7685 10.9356 11.4879 11.9966" stroke="#A0A08A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+  //                             </svg>
+  //                           </div>
+  //                         </div>
+  //                       </div>
+
+
+  //                       <div className={styles['dictionary11-g']}>
+  //                         <p className={styles['dictionary11-h']}>[ jʌŋ ]</p>
+  //                       </div>
+  //                     </div>
+  //                   </div>
+  //                 </div>
+  //               </div>
+
+
+  //               <div className={styles.dictionary12}>
+  //                 <div className={styles.dictionary13}>
+  //                   <div className={styles['dictionary14-s']}>
+  //                     <p className={styles['dictionary15-s']}>뜻</p>
+  //                   </div>
+  //                   <div className={styles['dictionary16-n']}>
+  //                     <p className={styles['dictionary17-n']}>표현</p>
+  //                   </div>
+  //                   <div className={styles.dictionary18}>
+  //                     <p className={styles.dictionary19}>관계어</p>
+  //                   </div>
+  //                   <div className={styles['dictionary16-n']}>
+  //                     <p className={styles['dictionary17-n']}>파생형</p>
+  //                   </div>
+  //                 </div>
+
+
+  //                 <div className={styles.dictionary20}>
+  //                   <p className={styles.dictionary21}>명사</p>
+  //                   <div className={styles.dictionary22}>
+  //                     <div className={styles.dictionary23}>
+  //                       <div className={styles.dictionary24}>뜻 밖의 재미[기쁨]</div>
+  //                     </div>
+  //                     <div className={styles.dictionary23}>
+  //                       <div className={styles.dictionary24}>발견하는 능력이 있는.</div>
+  //                     </div>
+  //                     <div className={styles.dictionary25}>
+  //                       <div className={styles.dictionary26}>좋은, 유리한(good, beneficial, favorable).</div>
+  //                     </div>
+  //                   </div>
+  //                 </div>
+  //               </div>
+  //             </div>
+
+
+  //             <div className={styles['dictionary-bar']}></div>
+
+  //             <div className={styles.dictionary27}>
+  //               <div className={styles.dictionary28}>
+  //                 <p className={styles.dictionary29}>관용구</p>
+  //               </div>
+  //               <div className={styles.dictionary30}>
+  //                 <div className={styles.dictionary31}>
+  //                   <p className={styles.dictionary32}>a stroke of serendipity</p>
+  //                 </div>
+  //                 <div className={styles.dictionary33}>
+  //                   <p className={styles.dictionary34}>뜻밖의 행운 같은 순간</p>
+  //                 </div>
+  //               </div>
+
+
+  //               <div className={styles.dictionary35}>
+  //                 <div className={styles.dictionary36}>
+  //                   <p className={styles.dictionary37}>유의어</p>
+  //                 </div>
+  //                 <div className={styles.dictionary38}>
+  //                   <div className={styles.dictionary39}>
+  //                     <p className={styles.dictionary40}>chance</p>
+  //                   </div>
+  //                   <div className={styles.dictionary39}>
+  //                     <p className={styles.dictionary40}>accidental</p>
+  //                   </div>
+  //                   <div className={styles.dictionary39}>
+  //                     <p className={styles.dictionary40}>lucky</p>
+  //                   </div>
+  //                 </div>
+  //               </div>
+  //             </div>
+  //           </div>
+  //         </div>
+  //       </div>
+  //     </div>
+  //   )
+  // }
+
+
+  const testDictionary= () => {
+    return (
+      <div className={styles.popup}>
+        <div className={styles.wrapper}>
+          <svg className={styles.bg} xmlns="http://www.w3.org/2000/svg" width="247" height="176" viewBox="0 0 247 176" fill="none">
+            <g filter="url(#filter0_d_1_1822)">
+              <mask id="path-1-inside-1_1_1822" fill="white">
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M218.374 0C232.181 0 243.374 11.1939 243.374 25.001V131.043C243.374 144.85 232.181 156.043 218.374 156.043H129.492L122.896 167.917C121.372 170.66 117.426 170.66 115.902 167.917L109.306 156.043H27.749C13.9423 156.043 2.74943 144.85 2.74902 131.043V25.001C2.74905 11.194 13.9421 0.000231167 27.749 0H218.374ZM218.375 155.042H130.048V155.043H218.374C218.452 155.043 218.53 155.04 218.608 155.039C218.531 155.04 218.453 155.042 218.375 155.042ZM27.749 155.043H108.75L108.749 155.042H27.749C27.6702 155.042 27.5914 155.04 27.5127 155.039C27.5914 155.04 27.6702 155.043 27.749 155.043ZM27.1299 155.035C27.1644 155.036 27.1989 155.035 27.2334 155.036C27.13 155.034 27.0269 155.03 26.9238 155.026C26.9925 155.029 27.0611 155.033 27.1299 155.035ZM218.89 155.036C218.924 155.035 218.959 155.036 218.994 155.035C219.063 155.033 219.131 155.029 219.199 155.026C219.096 155.03 218.993 155.034 218.89 155.036Z"/>
+              </mask>
+              <path fill-rule="evenodd" clip-rule="evenodd" d="M218.374 0C232.181 0 243.374 11.1939 243.374 25.001V131.043C243.374 144.85 232.181 156.043 218.374 156.043H129.492L122.896 167.917C121.372 170.66 117.426 170.66 115.902 167.917L109.306 156.043H27.749C13.9423 156.043 2.74943 144.85 2.74902 131.043V25.001C2.74905 11.194 13.9421 0.000231167 27.749 0H218.374ZM218.375 155.042H130.048V155.043H218.374C218.452 155.043 218.53 155.04 218.608 155.039C218.531 155.04 218.453 155.042 218.375 155.042ZM27.749 155.043H108.75L108.749 155.042H27.749C27.6702 155.042 27.5914 155.04 27.5127 155.039C27.5914 155.04 27.6702 155.043 27.749 155.043ZM27.1299 155.035C27.1644 155.036 27.1989 155.035 27.2334 155.036C27.13 155.034 27.0269 155.03 26.9238 155.026C26.9925 155.029 27.0611 155.033 27.1299 155.035ZM218.89 155.036C218.924 155.035 218.959 155.036 218.994 155.035C219.063 155.033 219.131 155.029 219.199 155.026C219.096 155.03 218.993 155.034 218.89 155.036Z" fill="#FBF8F1"/>
+              <path d="M243.374 131.043L244.374 131.043V131.043H243.374ZM129.492 156.043V155.043H128.904L128.618 155.557L129.492 156.043ZM122.896 167.917L123.77 168.403L123.77 168.403L122.896 167.917ZM115.902 167.917L115.028 168.403L115.028 168.403L115.902 167.917ZM109.306 156.043L110.18 155.557L109.894 155.043H109.306V156.043ZM27.749 156.043L27.749 157.043H27.749V156.043ZM2.74902 131.043H1.74902V131.043L2.74902 131.043ZM2.74902 25.001L1.74902 25.001V25.001H2.74902ZM27.749 0V-1H27.749L27.749 0ZM218.375 155.042V156.042V156.042V155.042ZM130.048 155.042V154.042H129.048V155.042H130.048ZM130.048 155.043H129.048V156.043H130.048V155.043ZM218.608 155.039L218.618 156.039L218.599 154.039L218.608 155.039ZM27.749 155.043L27.749 156.043H27.749V155.043ZM108.75 155.043V156.043H111.164L109.457 154.336L108.75 155.043ZM108.749 155.042L109.456 154.335L109.163 154.042H108.749V155.042ZM27.749 155.042L27.749 156.042H27.749V155.042ZM27.5127 155.039L27.5222 154.039L27.5031 156.039L27.5127 155.039ZM27.1299 155.035L27.1046 156.035L27.1299 155.035ZM27.2334 155.036L27.2126 156.036L27.2544 154.036L27.2334 155.036ZM26.9238 155.026L26.9573 154.027L26.8896 156.026L26.9238 155.026ZM218.89 155.036L218.869 154.036L218.91 156.036L218.89 155.036ZM218.994 155.035L219.019 156.035H219.019L218.994 155.035ZM219.199 155.026L219.233 156.026L219.166 154.027L219.199 155.026ZM218.374 0V1C231.629 1 242.374 11.7461 242.374 25.001H243.374H244.374C244.374 10.6416 232.733 -1 218.374 -1V0ZM243.374 25.001H242.374V131.043H243.374H244.374V25.001H243.374ZM243.374 131.043L242.374 131.043C242.374 144.297 231.629 155.043 218.374 155.043V156.043V157.043C232.733 157.043 244.374 145.402 244.374 131.043L243.374 131.043ZM218.374 156.043V155.043H129.492V156.043V157.043H218.374V156.043ZM129.492 156.043L128.618 155.557L122.021 167.431L122.896 167.917L123.77 168.403L130.366 156.529L129.492 156.043ZM122.896 167.917L122.021 167.431C120.878 169.489 117.92 169.489 116.776 167.431L115.902 167.917L115.028 168.403C116.933 171.831 121.865 171.832 123.77 168.403L122.896 167.917ZM115.902 167.917L116.777 167.431L110.18 155.557L109.306 156.043L108.432 156.529L115.028 168.403L115.902 167.917ZM109.306 156.043V155.043H27.749V156.043V157.043H109.306V156.043ZM27.749 156.043L27.749 155.043C14.4947 155.043 3.74941 144.297 3.74902 131.043L2.74902 131.043L1.74902 131.043C1.74944 145.402 13.39 157.043 27.749 157.043L27.749 156.043ZM2.74902 131.043H3.74902V25.001H2.74902H1.74902V131.043H2.74902ZM2.74902 25.001L3.74902 25.001C3.74904 11.7463 14.4944 1.00022 27.749 1L27.749 0L27.749 -1C13.3898 -0.99976 1.74905 10.6418 1.74902 25.001L2.74902 25.001ZM27.749 0V1H218.374V0V-1H27.749V0ZM218.375 155.042V154.042H130.048V155.042V156.042H218.375V155.042ZM130.048 155.042H129.048V155.043H130.048H131.048V155.042H130.048ZM130.048 155.043V156.043H218.374V155.043V154.043H130.048V155.043ZM218.374 155.043V156.043C218.434 156.043 218.605 156.039 218.618 156.039L218.608 155.039L218.599 154.039C218.455 154.04 218.47 154.043 218.374 154.043V155.043ZM218.608 155.039L218.599 154.039C218.489 154.04 218.454 154.042 218.375 154.042V155.042V156.042C218.452 156.042 218.572 156.039 218.618 156.039L218.608 155.039ZM27.749 155.043V156.043H108.75V155.043V154.043H27.749V155.043ZM108.75 155.043L109.457 154.336L109.456 154.335L108.749 155.042L108.042 155.749L108.043 155.75L108.75 155.043ZM108.749 155.042V154.042H27.749V155.042V156.042H108.749V155.042ZM27.749 155.042L27.749 154.042C27.6702 154.042 27.6314 154.04 27.5222 154.039L27.5127 155.039L27.5032 156.039C27.5514 156.039 27.6701 156.042 27.749 156.042L27.749 155.042ZM27.5127 155.039L27.5031 156.039C27.5185 156.039 27.6865 156.043 27.749 156.043L27.749 155.043L27.749 154.043C27.6538 154.043 27.6642 154.04 27.5223 154.039L27.5127 155.039ZM27.1299 155.035L27.1046 156.035C27.1347 156.036 27.1627 156.036 27.1791 156.036C27.199 156.036 27.2062 156.036 27.2123 156.036L27.2334 155.036L27.2544 154.036C27.2261 154.036 27.1988 154.036 27.1842 154.036C27.1661 154.036 27.1595 154.036 27.1552 154.035L27.1299 155.035ZM27.2334 155.036L27.2542 154.036C27.1593 154.034 27.0695 154.031 26.9573 154.027L26.9238 155.026L26.8904 156.026C26.9843 156.029 27.1008 156.034 27.2126 156.036L27.2334 155.036ZM26.9238 155.026L26.8896 156.026C26.9147 156.027 26.9398 156.028 26.9778 156.03C27.0123 156.031 27.0571 156.034 27.1046 156.035L27.1299 155.035L27.1552 154.035C27.0593 154.033 27.1052 154.032 26.958 154.027L26.9238 155.026ZM218.89 155.036L218.911 156.036C218.917 156.036 218.924 156.036 218.944 156.036C218.961 156.036 218.989 156.036 219.019 156.035L218.994 155.035L218.969 154.035C218.964 154.036 218.958 154.036 218.939 154.036C218.925 154.036 218.897 154.036 218.869 154.036L218.89 155.036ZM218.994 155.035L219.019 156.035C219.067 156.034 219.112 156.031 219.146 156.03C219.184 156.028 219.209 156.027 219.233 156.026L219.199 155.026L219.165 154.027C219.016 154.032 219.066 154.033 218.969 154.035L218.994 155.035ZM219.199 155.026L219.166 154.027C219.053 154.031 218.964 154.034 218.869 154.036L218.89 155.036L218.91 156.036C219.022 156.034 219.139 156.029 219.233 156.026L219.199 155.026Z" fill="#BDB4AB" mask="url(#path-1-inside-1_1_1822)"/>
+            </g>
+            <defs>
+              <filter id="filter0_d_1_1822" x="-0.000134706" y="0" width="246.123" height="175.473" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+                <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+                <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+                <feOffset dy="2.74916"/>
+                <feGaussianBlur stdDeviation="1.37458"/>
+                <feComposite in2="hardAlpha" operator="out"/>
+                <feColorMatrix type="matrix" values="0 0 0 0 0.807596 0 0 0 0 0.822707 0 0 0 0 0.873077 0 0 0 0.16 0"/>
+                <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1_1822"/>
+                <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1_1822" result="shape"/>
+              </filter>
+            </defs>
+          </svg>
+
+
+          <div className={styles.popup6}>
+            <div className={styles.popup7}>
+              <div className={styles.popup8}>
+                <div className={styles.popup9}>
+                  <div className={styles.popup10}>
+                    <div className={styles.popup11}>
+                      <div className={styles.popup12}>
+                        <svg className={styles.popup13} xmlns="http://www.w3.org/2000/svg" width="9" height="12" viewBox="0 0 9 12" fill="none">
+                          <path d="M7.3 0.5H1.7C1.03726 0.5 0.5 1.03726 0.5 1.7V10.5686C0.5 11.2814 1.36171 11.6383 1.86568 11.1343L3.93431 9.06569C4.24673 8.75327 4.75327 8.75327 5.06569 9.06569L7.13431 11.1343C7.63829 11.6383 8.5 11.2814 8.5 10.5686V1.7C8.5 1.03726 7.96274 0.5 7.3 0.5Z" stroke="#BDB4AB"/>
+                        </svg>
+                      </div>
+                    </div>
+                    <div className={styles.popup14}>
+                      <p className={styles.popup15}>단어 수집</p>
+                    </div>
+                  </div>
+                </div>
+
+
+                <div className={styles.popup16}>
+                  <div className={styles.popup17}>
+                    <svg className={styles.popup18} xmlns="http://www.w3.org/2000/svg" width="9" height="9" viewBox="0 0 9 9" fill="none">
+                      <path fill-rule="evenodd" clip-rule="evenodd" d="M6.62682 0.234233C6.93926 -0.0780235 7.44629 -0.078132 7.75866 0.234233C8.0708 0.546675 8.07001 1.05374 7.75768 1.36607L5.17565 3.94712L7.88561 6.65708C8.1979 6.96951 8.19799 7.47654 7.88561 7.78892C7.57316 8.10098 7.06608 8.10024 6.75378 7.78794L4.04479 5.07896L1.3651 7.75865C1.05277 8.07084 0.546641 8.07074 0.234245 7.75865C-0.0781279 7.44627 -0.0780358 6.94022 0.234245 6.62779L2.91296 3.94712L0.361199 1.39537C0.0490364 1.08305 0.0491826 0.576909 0.361199 0.264507C0.673572 -0.0478668 1.17963 -0.0477746 1.49206 0.264507L4.04382 2.81626L6.62682 0.234233Z" fill="#454440"/>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+
+              <div className={styles.popup19}>
+                <div className={styles.popup20}>
+                  <div className={styles.popup21}>
+                    <p className={styles.popup22}>young</p>
+                  </div>
+
+                  <div className={styles.popup23}>
+                    <div className={styles.popup24}>
+                      <div className={styles.popup25}>
+                        <p className={styles.popup26}>1.</p>
+                      </div>
+                      <div className={styles.popup27}>
+                        <p className={styles.popup28}>어린</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className={styles.popup23}>
+                    <div className={styles.popup24}>
+                      <div className={styles.popup25}>
+                        <p className={styles.popup26}>2.</p>
+                      </div>
+                      <div className={styles.popup27}>
+                        <p className={styles.popup28}>젊은이들</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className={styles.popup23}>
+                    <div className={styles.popup24}>
+                      <div className={styles.popup25}>
+                        <p className={styles.popup26}>3.</p>
+                      </div>
+                      <div className={styles.popup27}>
+                        <p className={styles.popup28}>새끼</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+
+                <div className={styles.popup29}>
+                  <div className={styles.popup30}>
+                    <div className={styles.popup31}>
+                      <div className={styles.popup32}>
+                        <div className={styles.popup33}>
+                          <p className={styles.popup34}>US</p>
+                        </div>
+                        <div className={styles.popup35}>
+                          <div className={styles.popup36}>
+                            <svg className={styles.popup37} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                              <path d="M7.3335 4.18521C7.3335 3.54151 6.61195 3.1614 6.08107 3.52543L4.1024 4.88223C4.03581 4.9279 3.95694 4.95234 3.87619 4.95234H2.1335C1.69167 4.95234 1.3335 5.31051 1.3335 5.75234V10.2476C1.3335 10.6894 1.69167 11.0476 2.1335 11.0476H3.87619C3.95694 11.0476 4.03581 11.072 4.1024 11.1177L6.08107 12.4745C6.61195 12.8385 7.3335 12.4584 7.3335 11.8147V4.18521Z" fill="#CCC3B4"/>
+                              <path d="M9.69336 5.64001C10.3183 6.26511 10.6693 7.1128 10.6693 7.99668C10.6693 8.88056 10.3183 9.72826 9.69336 10.3533" stroke="#CCC3B4" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                              <path d="M11.4878 3.9967C12.7684 5.05768 13.4878 6.49648 13.4878 7.9967C13.4878 9.49693 12.7684 10.9357 11.4878 11.9967" stroke="#CCC3B4" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+
+
+                      <div className={styles.popup38}>
+                        <p className={styles.popup39}>[ jʌŋ ]</p>
+                      </div>
+                    </div>
+
+                    <div className={styles.popup31}>
+                      <div className={styles.popup32}>
+                        <div className={styles.popup33}>
+                          <p className={styles.popup34}>US</p>
+                        </div>
+                        <div className={styles.popup35}>
+                          <div className={styles.popup36}>
+                            <svg className={styles.popup37} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                              <path d="M7.3335 4.18521C7.3335 3.54151 6.61195 3.1614 6.08107 3.52543L4.1024 4.88223C4.03581 4.9279 3.95694 4.95234 3.87619 4.95234H2.1335C1.69167 4.95234 1.3335 5.31051 1.3335 5.75234V10.2476C1.3335 10.6894 1.69167 11.0476 2.1335 11.0476H3.87619C3.95694 11.0476 4.03581 11.072 4.1024 11.1177L6.08107 12.4745C6.61195 12.8385 7.3335 12.4584 7.3335 11.8147V4.18521Z" fill="#CCC3B4"/>
+                              <path d="M9.69336 5.64001C10.3183 6.26511 10.6693 7.1128 10.6693 7.99668C10.6693 8.88056 10.3183 9.72826 9.69336 10.3533" stroke="#CCC3B4" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                              <path d="M11.4878 3.9967C12.7684 5.05768 13.4878 6.49648 13.4878 7.9967C13.4878 9.49693 12.7684 10.9357 11.4878 11.9967" stroke="#CCC3B4" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+
+
+                      <div className={styles.popup38}>
+                        <p className={styles.popup39}>[ jʌŋ ]</p>
+                      </div>
+                    </div>
+                  </div>
+
+
+                  <div className={styles.popup40}>
+                    <p className={styles.popup41}>명사, 형용사</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+      // {testQuiz()}
+
+      // {/* 이탈 모달 */}
+      // {exitModal && (
+      //   testExit()
+      // )}
+
+      // {/* 사전 팝업 */}
+      // {/* dictionaryData 로 렌더링 기다리기 */}
+      // {dictionaryData && (
+      //   testDictionary()
+      // )}
+
+      // {testDictionary()}
+
+      log.debug(testQuiz, testExit, testDictionary);
+
   return (
     // 사이드패널 고정
     <div>
+
+
       {/* 최상위 박스 */}
       <div style={{
         display: 'flex',

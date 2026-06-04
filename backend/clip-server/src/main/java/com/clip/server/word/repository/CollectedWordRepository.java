@@ -1,6 +1,5 @@
 package com.clip.server.word.repository;
 
-import com.clip.server.quiz.entity.QuizSessionWord;
 import com.clip.server.user.entity.User;
 import com.clip.server.video.entity.Video;
 import com.clip.server.word.entity.CollectedWord;
@@ -10,9 +9,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -39,5 +36,38 @@ public interface CollectedWordRepository extends JpaRepository<CollectedWord, Lo
                                      @Param("endOfDay")LocalDateTime endOfDay
                                     );
 
+    /**
+     * 오늘 수집한 단어 목록 조회 (1순위 후보)
+     * - 정의서: 오늘 학습한 단어를 1순위로 후보 제시
+     */
+    @Query("SELECT cw FROM CollectedWord cw " +
+            "WHERE cw.user.id = :userId " +
+            "AND cw.collectedAt >= :startOfDay " +
+            "AND cw.collectedAt < :endOfDay " +
+            "ORDER BY cw.collectedAt DESC")
+    List<CollectedWord> findTodayCollectedWords(
+            @Param("userId") Long userId,
+            @Param("startOfDay") LocalDateTime startOfDay,
+            @Param("endOfDay") LocalDateTime endOfDay,
+            Pageable pageable
+    );
 
+    /**
+     * 오늘 외 수집 단어 목록 조회 (2순위 후보, 최신순)
+     * 오늘 학습은 없지만 수집 단어 있을 때 2순위 추천
+     */
+    @Query("SELECT cw FROM CollectedWord cw " +
+            "WHERE cw.user.id = :userId " +
+            "AND cw.collectedAt < :startOfDay " +
+            "ORDER BY cw.collectedAt DESC")
+    List<CollectedWord> findCollectedWordsBeforeToday(
+            @Param("userId") Long userId,
+            @Param("startOfDay") LocalDateTime startOfDay,
+            Pageable pageable
+    );
+
+    /**
+     * 사용자의 단어 보유 여부 (신규 유저 차단용)
+     */
+    boolean existsByUserId(Long userId);
 }

@@ -17,7 +17,7 @@ public interface VideoRepository extends JpaRepository<Video, String> {
      */
     @Query("SELECT v FROM Video v " +
             "WHERE v.learningGoal = :learningGoal " +
-            "AND v.estimatedDifficulty IN :recommendationRange " +
+            "AND v.difficultyLevel IN :recommendationRange " +
             "AND v.videoId NOT IN :watchedVideoIds")
     List<Video> findRecommendedVideos(
             @Param("learningGoal") LearningGoal learningGoal,

@@ -2,12 +2,13 @@
 
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth';
-import { handleApiError } from '../utils/errorHandler';
-import buttonStyles from './ButtonBox.module.css';
+import { useAuth } from '../../hooks/useAuth';
+import { handleApiError } from '../../utils/errorHandler';
+import buttonStyles from '../LoginPage/LoginPage.module.css'
+import { Spinner } from '../../components/Spinner/Spinner';
 
 
-function ButtonBox({
+function Button({
   variant = 'primary',
   size = 'medium',
   // fullWidth = true 넓게 펼침
@@ -39,23 +40,13 @@ function ButtonBox({
       aria-busy={isLoading}
       {...props}
     >
-      {isLoading ? (
-        <span className={buttonStyles.loading}>
-          <span 
-          className={buttonStyles.spinner} 
-          // 스피너는 장식이라 읽지 말라고 하기
-          aria-hidden="true" />
-          로딩 중...
-        </span>
-      ) : (
-        // 버튼 안에 들어갈 기본 내용
-        children
-      )}
+      {/* children = 버튼 안에 들어갈 기본 내용 */}
+      {isLoading ? <Spinner /> : children}
     </button>
   );
 }
 
-ButtonBox.displayName = 'ButtonBox';
+Button.displayName = 'Button';
 
 
 
@@ -66,6 +57,12 @@ export default function LoginPage() {
   // 현재 경로 정보 가져오기
   const location = useLocation();
   const { loginWithGoogle } = useAuth();
+
+
+  // const { needsOnboarding } = useAuth();
+
+
+
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -88,9 +85,9 @@ export default function LoginPage() {
   const handleGoogleLogin = async () => {
     setError('');
     setIsLoading(true);
-    
-// CLIENT_ID는 내 앱 식별표.
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+    // CLIENT_ID는 내 앱 식별표.
+    const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
   try {
     // 리다이렉트 URI (Google Console에 등록한 것과 같아야 함) 가져오기
@@ -171,17 +168,26 @@ const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
     if (payload.nonce !== nonce) {
       throw new Error('nonce 불일치');
     }
+    
 
-    // 백엔드로 전송
-    await loginWithGoogle(idToken);
-    navigate(from, { replace: true });
+    const user = await loginWithGoogle(idToken);
+
+
+    if (user.needsOnboarding) {
+      // 신규 유저는 마이페이지로
+      // replace: true 는 뒤로가기 해도 이 페이지에 못 오게 막기
+      navigate('/mypage', { replace: true });
+    } else {
+      // 기존 유저는 원래 가려던 곳 또는 디폴트
+      navigate(from, { replace: true });
+    }
   } catch (error) {
     // setError(SAFE_LOGIN_ERRORS[error.code] || '로그인에 실패했습니다');
     setError(handleApiError(error, '로그인', SAFE_LOGIN_ERRORS) || '로그인에 실패했습니다');
   } finally {
     setIsLoading(false);
   }
-  };
+};
 
 
 
@@ -248,13 +254,13 @@ function decodeJwtPayload(token) {
           </div>
         )}
 
-        <ButtonBox 
+        <Button 
           onClick={handleGoogleLogin}
           fullWidth 
           isLoading={isLoading}
         >
           Google로 로그인
-        </ButtonBox>
+        </Button>
 
         </div>
       </div>
