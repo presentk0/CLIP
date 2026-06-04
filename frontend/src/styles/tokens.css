@@ -11,6 +11,9 @@
   /* Green */
   --primitive-green-50: #F5F9F8;  /* Brand mist — page background */
   --primitive-green-100: #D5EEE2; /* Brand wash — selected halo */
+
+  --primitive-green-150: #D0EFE5;  /* 추가함 */
+
   --primitive-green-200: #C1F1E3; /* Brand pale — progress fill */
   --primitive-green-300: #88DDC1; /* Brand soft — quiz screen tint */
   --primitive-green-500: #01CF8A; /* Brand — primary green */
@@ -19,7 +22,7 @@
   --primitive-green-800: #45A84D; /* Quiz choice — picked answer */
 
   /* Cream */
-  --primitive-cream-50: #FEFDF9;  /* Default surface */
+  --primitive-cream-50: #FEFDF9;  /* 사용함, Default surface */
   --primitive-cream-100: #F9F8F1; /* Speech bubble surface */
   --primitive-cream-200: #F0F2E5; /* Cream surface (secondary) */
   --primitive-cream-300: #E9E9DE; /* Neutral mute (disabled chips) */
@@ -47,6 +50,17 @@
   --primitive-red-500: #E25656; /* Destructive */
 
 
+
+  /* Avatar용 원시 색상 추가함 */
+  --primitive-red-400: #F44336;
+  --primitive-pink-400: #E91E63;
+  --primitive-purple-400: #9C27B0;
+  --primitive-indigo-400: #3F51B5;
+  --primitive-blue-500: #2196F3;
+  --primitive-cyan-500: #00BCD4;
+  --primitive-teal-500: #009688;
+  --primitive-orange-400: #FF9800;
+
   /* ============================================
     SEMANTIC — 의미 기반 색상 (primitive 참조)
      ============================================ */
@@ -60,6 +74,8 @@
   --semantic-brand-pale: var(--primitive-green-200);          /* 레벨 게이지 진행 색 */
   --semantic-brand-primaryHover: var(--primitive-green-600);  /* Primary hover */
   --semantic-brand-primaryPress: var(--primitive-green-700);  /* Primary press */
+
+  --semantic-brand-highlight: var(--primitive-green-150);  /* 추가함, 현재 상태를 강조 */
 
   /* Background */
   --semantic-bg-page: var(--primitive-green-50);          /* 페이지 배경 */
@@ -100,6 +116,17 @@
 
 
 
+
+  /* Avatar - 기본 프로필 사용자 식별용 색상 팔레트 추가함 */
+  --semantic-avatar-1: var(--primitive-red-400);
+  --semantic-avatar-2: var(--primitive-pink-400);
+  --semantic-avatar-3: var(--primitive-purple-400);
+  --semantic-avatar-4: var(--primitive-indigo-400);
+  --semantic-avatar-5: var(--primitive-blue-500);
+  --semantic-avatar-6: var(--primitive-cyan-500);
+  --semantic-avatar-7: var(--primitive-teal-500);
+  --semantic-avatar-8: var(--primitive-orange-400);
+
 /* ============================================
     PRIMITIVE — Corner Radius (원시값)
      ============================================ */
@@ -108,9 +135,9 @@
   --primitive-corner-8: 8px;
   --primitive-corner-10: 10px;
   --primitive-corner-16: 16px;
-  --primitive-corner-24: 24px;
+  --primitive-corner-24: 24px;/* 사용함 */
 
-  --primitive-corner-48: 48px;
+  --primitive-corner-48: 48px;/* 사용함 */
 
   --primitive-corner-999: 999px;
 
@@ -124,10 +151,10 @@
   --semantic-radius-thumbnail: var(--primitive-corner-10); /* 썸네일 */
   --semantic-radius-button: var(--primitive-corner-16);    /* 버튼 */
   --semantic-radius-card: var(--primitive-corner-16);      /* 카드 */
-  --semantic-radius-section: var(--primitive-corner-24);   /* 섹션 */
+  --semantic-radius-section: var(--primitive-corner-24);   /* 사용함, 섹션 */
   --semantic-radius-pill: var(--primitive-corner-999);     /* 알약 (완전 둥근) */
 
-  --semantic-radius-hero: var(--primitive-corner-48);     /* 페이지 상단의 큰 영역 */
+  --semantic-radius-hero: var(--primitive-corner-48);     /* 사용함, 페이지 상단의 큰 영역 */
 
 
 
@@ -136,12 +163,12 @@
     PRIMITIVE — Spacing (간격)
      ============================================ */
   --primitive-size-4: 4px;
-  --primitive-size-8: 8px;
+  --primitive-size-8: 8px;/* 사용함 */
   --primitive-size-12: 12px;
-  --primitive-size-16: 16px;
-  --primitive-size-20: 20px;
+  --primitive-size-16: 16px;/* 사용함 */
+  --primitive-size-20: 20px;/* 사용함 */
   --primitive-size-24: 24px;
-  --primitive-size-32: 32px;
+  --primitive-size-32: 32px;/* 사용함 */
   --primitive-size-48: 48px;
 
 
@@ -149,18 +176,43 @@
     SEMANTIC — Space (의미 기반 간격)
      ============================================ */
   --semantic-space-inline-tight: var(--primitive-size-4);  /* 인라인 좁은 간격 */
-  --semantic-space-inline: var(--primitive-size-8);        /* 인라인 기본 간격 */
-  --semantic-space-cluster: var(--primitive-size-12);      /* 묶음(cluster) 간격 */
-  --semantic-space-gutter: var(--primitive-size-16);       /* 거터(요소 간) */
-  --semantic-space-card-bottom: var(--primitive-size-20);  /* 카드 하단 여백 */
+  --semantic-space-inline: var(--primitive-size-8);        /* 사용함, 인라인 기본 간격 */
+  --semantic-space-cluster: var(--primitive-size-12);      /* 사용함, 묶음(cluster) 간격 */
+  --semantic-space-gutter: var(--primitive-size-16);       /* 사용함, 거터(요소 간) */
+  --semantic-space-card-bottom: var(--primitive-size-20);  /* 사용함, 카드 하단 여백 */
   --semantic-space-section: var(--primitive-size-24);      /* 섹션 간격 */
-  --semantic-space-divider: var(--primitive-size-32);      /* 구분 간격 */
+  --semantic-space-divider: var(--primitive-size-32);      /* 사용함, 구분 간격 */
   --semantic-space-screen-edge: var(--primitive-size-48);  /* 화면 가장자리 */
   --semantic-space-inlineTight: var(--primitive-size-4);   /* (카멜) inline tight */
   --semantic-space-cardBottom: var(--primitive-size-20);   /* (카멜) card bottom */
   --semantic-space-screenEdge: var(--primitive-size-48);   /* (카멜) screen edge */
 
 
+
+
+
+
+
+
+
+  /* ============================================
+    PRIMITIVE — Shadow (추가함, 원시값)
+     ============================================ */
+
+  --primitive-shadow-sm: 0 1px 2px 0 rgba(158, 155, 137, 0.10);
+  --primitive-shadow-md: 0 4px 12px 0 rgba(158, 155, 137, 0.20);  /* 사용함 */
+  --primitive-shadow-lg: 0 8px 24px 0 rgba(158, 155, 137, 0.24);
+
+
+
+
+  /* ============================================
+    SEMANTIC — Shadow (의미 기반)
+     ============================================ */
+
+  --semantic-shadow-card: var(--primitive-shadow-md);     /* 사용함, 카드 그림자 */
+  --semantic-shadow-popover: var(--primitive-shadow-lg);  /* 팝오버/모달 */
+  --semantic-shadow-subtle: var(--primitive-shadow-sm);   /* 미묘한 입체감 */
 
 
 
@@ -177,7 +229,7 @@
 
   /* Font Size — 한국어 친화적 단계 */
   --primitive-font-size-11: 11px;
-  --primitive-font-size-12: 12px;
+  --primitive-font-size-12: 12px;  /* 사용함 */
   --primitive-font-size-13: 13px;
   --primitive-font-size-14: 14px;
   --primitive-font-size-15: 15px;
@@ -185,19 +237,19 @@
   --primitive-font-size-18: 18px;
   --primitive-font-size-20: 20px;
 
-  --primitive-font-size-24: 24px;  /* 추가함 */
+  --primitive-font-size-24: 24px;  /* 사용함 */
 
   --primitive-font-size-28: 28px;
 
   /* Font Weight — Pretendard 지원 굵기 */
   --primitive-font-weight-regular: 400;
-  --primitive-font-weight-medium: 500;
+  --primitive-font-weight-medium: 500;  /* 사용함 */
   --primitive-font-weight-semibold: 600;
-  --primitive-font-weight-bold: 700;  /* 사용 */
+  --primitive-font-weight-bold: 700;  /* 사용함 */
 
   /* Line Height = font-size / line-height */
   --primitive-line-height-tight: 1.3;    /* 제목 (한글은 너무 좁으면 답답) */
-  --primitive-line-height-normal: 1.5;   /* 본문 */
+  --primitive-line-height-normal: 1.5;   /* 사용함, 본문 */
   --primitive-line-height-relaxed: 1.7;  /* 긴 본문 */
 
   /* Letter Spacing */
@@ -214,7 +266,7 @@
   --semantic-font-display: var(--primitive-font-size-28);
 
   /* Heading — 제목 */
-  --semantic-font-heading-lg: var(--primitive-font-size-24);  /* 추가함 */
+  --semantic-font-heading-lg: var(--primitive-font-size-24);  /* 사용함 */
   --semantic-font-heading-md: var(--primitive-font-size-20);
   --semantic-font-heading-sm: var(--primitive-font-size-18);
 
@@ -224,7 +276,7 @@
   --semantic-font-body-sm: var(--primitive-font-size-13);
 
   /* Caption — 부가 정보 */
-  --semantic-font-caption: var(--primitive-font-size-12);
+  --semantic-font-caption: var(--primitive-font-size-12);  /* 사용함 */
   --semantic-font-tiny: var(--primitive-font-size-11);
 
 

@@ -17,6 +17,7 @@ import com.clip.server.user.entity.badge.UserBadge;
 import com.clip.server.user.repository.LearningHistoryRepository;
 import com.clip.server.user.repository.UserBadgeRepository;
 import com.clip.server.user.repository.UserRepository;
+import com.clip.server.user.service.ExpLogService;
 import com.clip.server.video.entity.Video;
 import com.clip.server.word.entity.WordType;
 import com.clip.server.word.repository.CollectedWordRepository;
@@ -67,6 +68,8 @@ class QuizProcessorTest {
     private QuizFeedbackGenerator quizFeedbackGenerator;
     @Mock
     private QuizFallbackService quizFallbackService;
+    @Mock
+    private ExpLogService expLogService;
 
     @InjectMocks
     private QuizProcessor quizProcessor;

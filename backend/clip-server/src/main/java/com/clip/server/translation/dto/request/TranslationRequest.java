@@ -15,7 +15,9 @@ public class TranslationRequest {
 
     private String videoId;
     private String title;
-    private Integer duration;
+    private Integer duration; // 영상 시간
+    private String channelName; // 채널명
+    private String thumbnailUrl; // 썸네일 URL
     private List<SubtitleDetail> subtitleRequests;
 
     /**

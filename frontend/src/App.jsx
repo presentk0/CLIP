@@ -4,13 +4,31 @@ import { useState, useEffect, useCallback } from 'react';
 import { MemoryRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 
-import QuizPage from './components/QuizPage';
-import DefaultPage from './components/DefaultPage';
-import SettlementPage from './components/SettlementPage';
-import LoginPage from './components/LoginPage';
+import QuizPage from './pages/QuizPage/QuizPage';
+import DefaultPage from './pages/DefaultPage/DefaultPage';
+import SettlementPage from './pages/SettlementPage/SettlementPage';
+import LoginPage from './pages/LoginPage/LoginPage';
+import { MyPage } from './pages/MyPage/MyPage';
+
 import ProtectedRoute from './components/ProtectedRoute';
-import { log, IS_DEV } from './utils/logger';
+import { log } from './utils/logger';
 import './App.css';
+import { useAuth } from './hooks/useAuth';
+import { Navigate } from 'react-router-dom';
+
+
+
+
+// 온보딩 체크용
+function RequireOnboarding({ children }) {
+  const { needsOnboarding } = useAuth();
+  
+  if (needsOnboarding) {
+    return <Navigate to="/my" replace />;
+  }
+  return children;
+}
+
 
 
 // 실제 라우팅 + 메시지 처리
@@ -27,6 +45,8 @@ function AppContent() {
   const [channelName, setChannelName] = useState('');
   // 영상 전체 길이
   const [duration, setDuration] = useState(0);
+  // 영상 썸네일 url
+  const [thumbnailUrl, setThumbnailUrl] = useState(0);
   // 영상 바뀌면 퀴즈페이지 언마운트
   const [resetKey, setResetKey] = useState(0);
 
@@ -110,8 +130,7 @@ function AppContent() {
         setVideoId(message.videoId);
         setVideoTitle(message.videoTitle);
         setChannelName(message.channelName);
-
-        // 최종정산 페이지 전용
+        setThumbnailUrl(message.thumbnailUrl)
         setDuration(message.duration);
         navigate('/quiz');
       }
@@ -153,36 +172,16 @@ function AppContent() {
   };
 
 
-
-
-  // // 로그아웃
-  // const handleLogout = async () => {
-  //   await logout();
-  //   // navigate 안 해도 됨! ProtectedRoute가 자동으로 /login 보냄
-  //   // 만약 명시적으로 하고 싶으면:
-  //   // navigate('/login');
-  // };
-
-
-  // // 로그아웃 시 로그인 페이지로 이동
-  // const handleLogout = async () => {
-  //   try {
-  //     await apiFetch('/auth/logout', { method: 'POST' });
-  //   } catch (error) {
-  //     console.warn('로그아웃 실패', error);
-  //   }
-  //   setUser(null);
-  //   await chrome.runtime.sendMessage({ type: 'CLEAR_AUTH' });
-  //   // navigate는 여기서 못 함 (Context는 라우터 밖에 있을 수 있어서)
-  // };
-
-
+  // 마이 페이지로 이동
+  const handleMyPage = () => {
+    navigate('/my');
+  };
 
 
   return (
     <div style={{
       width: '100%',
-      height: '100%',
+      // height: '100%',
       // 최대 너비
       maxWidth: '402px',
     }}>
@@ -191,7 +190,11 @@ function AppContent() {
           path="/" 
           element={
             <ProtectedRoute>
-              <DefaultPage />
+              <RequireOnboarding>
+                <DefaultPage 
+                  onMyPage={handleMyPage}
+                />
+              </RequireOnboarding>
             </ProtectedRoute>
           } 
         />
@@ -207,6 +210,8 @@ function AppContent() {
                 duration={duration}
                 onExitPage={handleExit}
                 onSettlementPage={handleSettlement}
+                channelName={channelName}
+                thumbnailUrl={thumbnailUrl}
               />
             </ProtectedRoute>
           } 
@@ -221,6 +226,16 @@ function AppContent() {
                 videoTitle={videoTitle}
                 channelName={channelName}
                 duration={duration}
+                onExitPage={handleExit}
+              />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/my" 
+          element={
+            <ProtectedRoute>
+              <MyPage 
                 onExitPage={handleExit}
               />
             </ProtectedRoute>

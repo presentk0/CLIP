@@ -36,9 +36,6 @@ public class QuizTxService {
     private final CollectedWordRepository collectedWordRepository;
     private final VideoKeyWordRepository videoKeyWordRepository;
 
-    /**
-     * 💡 [정상 로직] 독립 트랜잭션에서 세션을 생성하고 '커밋'까지 완료합니다.
-     */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public QuizSession getOrCreateSession(User user, Video video, SessionType type) {
 

@@ -7,7 +7,6 @@ import com.clip.server.video.entity.Video;
 import com.clip.server.video.repository.VideoRepository;
 import com.clip.server.word.dto.request.CollectedWordRequest;
 import com.clip.server.word.dto.response.CollectedWordResponse;
-import com.clip.server.word.dto.response.WordListResponse;
 import com.clip.server.word.entity.CollectedWord;
 import com.clip.server.word.entity.WordType;
 import com.clip.server.word.repository.CollectedWordRepository;
@@ -21,7 +20,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.*;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -139,7 +137,7 @@ public class WordServiceTest {
         given(userRepository.findById(TEST_USER_ID)).willReturn(Optional.of(fakeUser));
         given(collectedWordRepository.findByUserIdAndVideo_VideoIdAndWord(TEST_USER_ID, videoId, wordText))
                 .willReturn(Optional.of(existingPopupWord));
-        given(collectedWordRepository.countByUser(fakeUser)).willReturn(1);
+        given(collectedWordRepository.countByUser(fakeUser)).willReturn(1L);
 
         // 2. When
         CollectedWordResponse response = wordService.save(TEST_USER_ID, request);

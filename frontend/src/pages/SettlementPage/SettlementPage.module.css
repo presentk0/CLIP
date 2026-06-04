@@ -1,0 +1,37 @@
+.message {
+  width: 460px;
+height: 84px;
+/* fill: #70C1EE; */
+filter: drop-shadow(0 4px 12px rgba(158, 155, 137, 0.20));
+}
+
+
+.message2 {
+width: 20px;
+height: 20px;
+aspect-ratio: 1/1;
+background: #D9D9D9;
+}
+
+
+.message3 {
+color: #EAF8F3;
+font-family: Pretendard;
+font-size: 16px;
+font-style: normal;
+font-weight: 700;
+line-height: normal;
+}
+
+
+.message4 {
+width: 315px;
+color: #FFF;
+font-family: Pretendard;
+font-size: 16px;
+font-style: normal;
+font-weight: 700;
+line-height: normal;
+}
+
+

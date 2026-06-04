@@ -58,3 +58,11 @@ google:
 cors:
   allowed-origins:
     - "https://test-environment-bypass.clip-server.com"
+
+youtube:
+  api:
+    key: test-key
+    base-url: https://www.googleapis.com/youtube/v3
+
+admin:
+  api-key: test-key

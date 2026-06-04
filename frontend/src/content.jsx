@@ -1,6 +1,6 @@
 /* global chrome */
 import { apiFetch } from "./utils/api";
-import { log, IS_DEV } from "./utils/logger";
+import { log } from "./utils/logger";
 
 
 // ========== 설정값 ==========
@@ -21,7 +21,10 @@ let currentDuration = 0;
 let lastVideoId = '';
 // Video가 서버에 저장됐는지 여부
 let isVideoSaved = false;
-
+// 현재 영상 채널명 저장
+let currentChannelName = null;
+// 현재 영상 썸네일 url 저장
+let currentThumbnailUrl = null;
 
 // ========== 자막 관련 ==========
 // 전체 자막 데이터 저장
@@ -88,8 +91,8 @@ let isPanelOpen = false;
 // let thumbnailObserver = null;
 // 페이지 이동 감지 옵저버 중복 방지
 let titleObserver = null;
-// 광고 체크 타이머
-let adCheckTimer = null;
+// 광고 체크 옵저버
+let adObserver = null;
 
 
 // ========== 재시도 카운트 ==========
@@ -103,6 +106,9 @@ let infoRetryCount = 0;
 // 유튜브 SPA 대응 URL 변경 감지
 let lastUrl = '';
 
+
+// ========== 로그인 + 온보딩 완료여부 감지 ==========
+let isActive = false;
 
 
 // 사이드 패널 신호 수신
@@ -154,7 +160,10 @@ chrome.runtime.onMessage.addListener((message) => {
     currentDuration = 0;
     // Video가 서버에 저장됐는지 여부 리셋
     isVideoSaved = false;
-
+    // 현재 영상 채널명 리셋
+    currentChannelName = null;
+    // 현재 영상 썸네일 url 리셋
+    currentThumbnailUrl = null;
     // ========== 큐/재시도 리셋 ==========
     // 자막 전송 대기열 초기화
     resetQueue();
@@ -163,18 +172,14 @@ chrome.runtime.onMessage.addListener((message) => {
     // 영상 정보 찾기 재시도 횟수 리셋
     infoRetryCount = 0;
 
+    // ========== 로그인 + 온보딩 완료체크 리셋 ==========
+    isActive = false;
+
     // ========== 페이지 감지 옵저버 리셋 ==========
     if (titleObserver) {
       titleObserver.disconnect();
       titleObserver = null;
     }
-
-    // // ========== 썸네일/UI ==========
-    // // 썸네일 옵저버 리셋
-    // if (thumbnailObserver) {
-    //   thumbnailObserver.disconnect();
-    //   thumbnailObserver = null;
-    // }
 
     // ========== UI 복원 ==========
     // // 썸네일 뱃지 제거
@@ -182,11 +187,8 @@ chrome.runtime.onMessage.addListener((message) => {
     // 추천 영상 다시 보여주기
     showRecommendations();
 
-    // ========== 광고 체크 타이머 리셋 ==========
-    if (adCheckTimer) {
-      clearTimeout(adCheckTimer);
-      adCheckTimer = null;
-    }
+    // ========== 광고 끝남 감지 옵저버 리셋 ==========
+    cleanupAdObserver()
   }
 
   // ========== 퀴즈 시작 ==========
@@ -253,13 +255,6 @@ chrome.runtime.onMessage.addListener((message) => {
 
 // 상태 리셋 함수
 function resetAllState() {
-  // // ========== 썸네일 옵저버 리셋 ==========
-  // if (thumbnailObserver) {
-  //   // 썸네일 배지 감시 중지
-  //   thumbnailObserver.disconnect();
-  //   thumbnailObserver = null;
-  // }
-
   // ========== 영상 상태 리셋 =========
   // 마지막 처리한 영상 ID 리셋
   lastVideoId = '';
@@ -296,17 +291,17 @@ function resetAllState() {
   // 마지막 퀴즈가 나온 시점의 시청 시간 리셋
   lastQuizTime = 0;
 
+  // ========== 로그인 + 온보딩 완료체크 리셋 ==========
+  isActive = false;
+
   // ========== 큐/리스너 리셋 ==========
   // 자막 전송 대기열 초기화
   resetQueue();
   // 이벤트 리스너 제거
   resetSubtitleSystem();
 
-  // ========== 광고 체크 타이머 리셋 ==========
-  if (adCheckTimer) {
-    clearTimeout(adCheckTimer);
-    adCheckTimer = null;
-  }
+  // ========== 광고 끝남 체크 옵저버 리셋 ==========
+  cleanupAdObserver()
 }
 
 
@@ -338,7 +333,10 @@ function resetSubtitleSystem() {
   currentVideoTitle = '';
   // 현재 영상 전체 길이 리셋
   currentDuration = 0;
-
+  // 현재 영상 채널명 리셋
+  currentChannelName = null;
+  // 현재 영상 썸네일 url 리셋
+  currentThumbnailUrl = null;
   // ========== 리스너 상태 리셋 ==========
   // 시청시간, 자막동기화 리스너 중복 등록 감지 리셋
   isTimeUpdateListenerSet = false;
@@ -368,9 +366,96 @@ function resetSubtitleSystem() {
 
 
 
+// 토큰 + 유저 정보 체크 함수
+async function checkAccess() {
+  // log.debug('콘텐츠6', Date.now());
+  const cached = await chrome.runtime.sendMessage({ type: 'GET_AUTH' });
+  // log.debug('콘텐츠 cached 전체:', JSON.stringify(cached, null, 2), Date.now());
+  // log.debug('user keys:', Object.keys(cached?.user || {}), Date.now());
+
+  if (!cached?.accessToken || !cached?.user) {
+    // log.debug('콘텐츠7', cached, Date.now());
+    return false;
+  }
+  // log.debug('콘텐츠8',cached.user.needsOnboarding, Date.now());
+  // 온보딩 완료 시 기능 활성화
+  return cached.user.needsOnboarding === false;
+}
+
+
+
+// 로그인 + 온보딩 설정 완료 시 활성화
+async function activate() {
+  log.debug('콘텐츠9', Date.now());
+  if (isActive) return;
+  isActive = true;
+
+  // 현재 페이지 종류에 따라 다른 처리
+  handlePageChange();
+  log.debug('콘텐츠22', Date.now());
+  // YouTube SPA 대응 - 페이지 이동 감지
+  setupTitleObserver();
+
+  log.debug('콘텐츠23', Date.now());
+  // setupTitleObserver 실행 시 URL이 바뀌었을 때만 실행하게 설정
+  lastUrl = location.href;
+  log.debug('콘텐츠24', Date.now());
+}
+
+
+
+// 비활성화
+function deactivate() {
+  log.debug('콘텐츠12', Date.now());
+  if (!isActive) return;
+  log.debug('콘텐츠13', Date.now());
+  isActive = false;
+
+  // 패널 열림 처리
+  chrome.runtime.sendMessage({ type: 'CONTENT_LOADED' });
+  // 이전 영상의 자막, 퀴즈, 시청시간 등의 상태를 리셋
+  resetAllState();
+}
+
+
+
+// 저장소 변경 감지
+const handleAuthChanged = async (msg) => {
+  log.debug('콘텐츠14', Date.now());
+  if (msg.type !== 'AUTH_CHANGED') return;
+
+  log.debug('콘텐츠15', Date.now());
+  // 토큰/유저 정보가 바뀐 뒤 현재 실행 가능한지 다시 검사
+  const canRun = await checkAccess();
+  log.debug('콘텐츠',canRun, !isActive, Date.now());
+  if (canRun && !isActive) {
+    log.debug('콘텐츠16', Date.now());
+    activate();
+  } else if (!canRun && isActive) {
+    log.debug('콘텐츠17', Date.now());
+    deactivate();
+  }
+};
+
+
+function listenForChanges() {
+  chrome.runtime.onMessage.removeListener(handleAuthChanged);
+  chrome.runtime.onMessage.addListener(handleAuthChanged);
+}
+
+
+
+
+
+
+
+
+
+
 // YouTube SPA 대응 - 페이지 이동 감지 옵저버 설치
 function setupTitleObserver() {
   const title = document.querySelector('title');
+  log.debug('타이틀 이동 감지',title, Date.now());
   
   if (!title) {
     setTimeout(setupTitleObserver, 100);
@@ -407,13 +492,41 @@ function setupTitleObserver() {
 
 
 
+
+
+
+
+
+
+
+
+
+
 // 페이지 구분 및 이동
-function handlePageChange() {
+async function handlePageChange() {
+  log.debug('콘텐츠25', isPanelOpen, Date.now());
   if (isPanelOpen) {
+    log.debug('콘텐츠26', location.href, Date.now());
     // 영상 페이지면 추천 영상 숨기고 자막 감지
     if (location.href.includes('/watch')) {
       setTimeout(hideRecommendations, 500);
-      setTimeout(observeSubtitles, 3000);
+      setTimeout(observeSubtitles, 2000);
+
+      // 퀴즈 진행 복원 (비동기라서 기다리기)
+      const videoId = new URL(window.location.href).searchParams.get('v');
+      log.debug('콘텐츠27', videoId, Date.now());
+
+      if (videoId) {
+        log.debug('콘텐츠28', Date.now());
+        const result = await chrome.storage.local.get(`quizProgress_${videoId}`);
+        const progress = result[`quizProgress_${videoId}`];
+
+        if (progress) {
+          log.debug('콘텐츠29', Date.now());
+          quizSectionCount = progress.sectionCount || 1;
+          matchingQuizCount = progress.matchingCount || 0;
+        }
+      }
     } else {
       // 영상 페이지 아니면 디폴트 페이지로 이동 및 추천 영상 보이고 썸네일 감지
       chrome.runtime.sendMessage({
@@ -429,17 +542,19 @@ function handlePageChange() {
 
 // 추천영상 숨기기
 const hideRecommendations = () => {
+  log.debug('영상 숨기기', Date.now());
   // 사이드 패널 열려야 실행
   if (!isPanelOpen) return;
-
+  log.debug('영상 숨기기2', Date.now());
   // 기존 스타일 태그 있는지 확인
   let styleTag = document.querySelector('#clip-hide-recommendations');
-
+  log.debug('영상 숨기기3',styleTag, Date.now());
   // 기존 스타일 태그가 없으면 새로 만들기
   // ytd-watch-flexy = 영상 페이지 컨테이너
   // 그 안의 #secondary만 숨김
   // 메인 페이지의 #secondary는 영향 없음
   if (!styleTag) {
+    log.debug('영상 숨기기4', Date.now());
     // <style> 태그 생성
     styleTag = document.createElement('style');
     // 나중에 찾기/삭제 위해 ID 부여
@@ -476,6 +591,7 @@ const hideRecommendations = () => {
     // <head>에 추가
     document.head.appendChild(styleTag);
   }
+  log.debug('영상 숨기기5',styleTag, Date.now());
 };
 
 
@@ -496,25 +612,31 @@ const showRecommendations = () => {
 
 // 영상 시청 페이지면 자막 감지 함수 실행하고 아니면 자막 감지 중지 함수 실행
 function observeSubtitles() {
+  log.debug('영상 페이지', Date.now());
   // ========== 실행 조건 체크 ==========
   // 사이드 패널 열려야 실행
   if (!isPanelOpen) {
+    log.debug('영상 페이지1', Date.now());
     showRecommendations();
     return;
   }
   // 쇼츠 차단
   if (window.location.href.includes('/shorts')) {
+    log.debug('영상 페이지2', Date.now());
     showRecommendations();
     return;
   }
   // 영상 페이지가 아니면 추천 영상 표시하고 종료
   if (!window.location.href.includes('/watch')) {
+    log.debug('영상 페이지3', Date.now());
     showRecommendations();
     return;
   }
 
   // ========== 현재 영상 요소 가져오기 ==========
+  log.debug('영상 페이지4', Date.now());
   const video = document.querySelector('video');
+  log.debug('영상 페이지5', video, Date.now());
   if (!video) {
     if (videoRetryCount < MAX_RETRY) {
       videoRetryCount++;
@@ -524,6 +646,7 @@ function observeSubtitles() {
     showRecommendations();
     return;
   }
+  log.debug('영상 페이지6', Date.now());
   // video 찾으면 재시도 횟수 리셋
   videoRetryCount = 0;
 
@@ -535,10 +658,16 @@ function observeSubtitles() {
   // 채널명
   const channelName = getChannelName();
   // 영상 길이
-  const duration = video.duration;
+  const duration = getDuration();
 
-  // 제목/채널명 아직 로딩 안 됐으면 재시도
-  if (!videoTitle || !channelName) {
+  // 썸네일 URL (480x360)
+  const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+
+
+
+  // 제목, 채널명, 영상 길이 아직 로딩 안 됐으면 재시도
+  if (!videoTitle || !channelName || !duration) {
+    log.debug('영상 페이지7',videoTitle,channelName,duration,  Date.now());
     if (infoRetryCount < MAX_RETRY) {
       infoRetryCount++;
       setTimeout(observeSubtitles, 1000);
@@ -552,19 +681,22 @@ function observeSubtitles() {
   infoRetryCount = 0;
 
   // ========== 퀴즈 페이지로 이동 (최초 1회) ==========
-  if (!isQuiz && videoId && videoTitle && channelName) {
+  log.debug('영상 페이지8', !isQuiz, videoId, videoTitle, channelName, duration, thumbnailUrl, Date.now());
+  if (!isQuiz && videoId && videoTitle && channelName && duration && thumbnailUrl) {
+    log.debug('영상 페이지9', Date.now());
     chrome.runtime.sendMessage({
       type: 'GO_TO_QUIZ',
       videoId: videoId,
       videoTitle: videoTitle,
       channelName: channelName || '',
-      duration: duration
+      duration: duration,
+      thumbnailUrl: thumbnailUrl,
     }).catch((error) => log.debug('퀴즈 페이지로 이동 에러', error));
     isQuiz = true;
   }
 
   // ========== 영상 자막 전체 가져오는 함수 실행 ==========
-  setupSubtitleInterceptor(videoId, videoTitle, duration);
+  setupSubtitleInterceptor(videoId, videoTitle, duration, channelName, thumbnailUrl);
 }
 
 
@@ -603,28 +735,100 @@ const getChannelName = () => {
 
 
 
+// 비디오 전체 길이 가져오기
+const getDuration = () => {
+  // JSON-LD (데스크톱)
+  const jsonLd = document.querySelector('script[type="application/ld+json"]');
+  if (jsonLd) {
+    try {
+      const data = JSON.parse(jsonLd.textContent);
+      const seconds = parseISODuration(data.duration);
+      if (seconds) {
+        log.debug('JSON-LD로 측정:', seconds);
+        return seconds;
+      }
+    } catch (error) { 
+      log.debug('데스크톱 비디오 전체 가져오기 실패', error);
+    }
+  }
+  
+  // 페이지 로드 시점부터 본 영상 정보가 HTML에 있음
+  // HTML에서 lengthSeconds 직접 추출 (모바일)
+  const html = document.documentElement.outerHTML;
+  const match = html.match(/"lengthSeconds":"(\d+)"/);
+  if (match) {
+    const sec = parseInt(match[1]);
+    if (sec > 0) {
+      log.debug('lengthSeconds로 측정:', sec);
+      return sec;
+    }
+  }
+
+  log.debug('duration 측정 실패');
+  return null;
+}
+
+
+
+
+function parseISODuration(iso) {
+  if (!iso) return null;
+  const match = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+  if (!match) return null;
+  return parseInt(match[1] || 0) * 3600 + parseInt(match[2] || 0) * 60 + parseInt(match[3] || 0);
+}
+
+
+
+
+
+
+
+
+
+
+
+
 // XMLHttpRequest 가로채기 설정
 // 유튜브가 자막을 요청할 때 응답을 엿봄
 // XMLHttpRequest = 브라우저 내장 객체 (네트워크 요청용)
 // XMLHttpRequest.prototype = XMLHttpRequest에서 쓸 수 있는 모든 함수들 가져오기
-function setupSubtitleInterceptor(videoId, videoTitle, duration) {
+async function setupSubtitleInterceptor(videoId, videoTitle, duration, channelName, thumbnailUrl ) {
+  // // 테스트용 번역 막기 오류
+  // if (isPanelOpen) {
+  //   log.debug('테스트용 번역 막기 오류', Date.now());
+  //   return;
+  // }
+
+  
+  
+  
+  
+  
+  log.debug('영상 페이지 11', Date.now());
+  // 미리 광고 감지 옵저버 제거
+  cleanupAdObserver();
   // ========== 실행 조건 체크 ==========
   // 사이드 패널 닫혀있으면 무시
-  if (!isPanelOpen) return;
-
-  // 광고 중 감지
-  if (document.querySelector('.ad-showing')) {
-    // 기존 광고 체크 타이머가 등록되어 있으면 무시
-    if (adCheckTimer) return;
-
-    // 0.5초 후 재시도
-    adCheckTimer = setTimeout(() => {
-      // 광고 체크 타이머 리셋
-      adCheckTimer = null;
-      setupSubtitleInterceptor(videoId, videoTitle, duration);
-    }, 500);
+  if (!isPanelOpen) {
+    cleanupAdObserver();
     return;
   }
+
+  // 광고 중이면 종료 대기
+  if (document.querySelector('.ad-showing')) {
+    log.debug('광고 재생 중, 종료 대기');
+    await waitForAdEnd();
+
+    // 대기 중 패널 닫혔으면 정리하고 종료
+    if (!isPanelOpen) {
+      cleanupAdObserver();
+      return;
+    }
+  }
+
+  // 광고 끝나면 옵저버 제거
+  cleanupAdObserver();
 
   // 최초 1회만 발동
   if (isSubtitleInterceptorSet) return;
@@ -635,6 +839,8 @@ function setupSubtitleInterceptor(videoId, videoTitle, duration) {
   currentVideoId = videoId;
   currentVideoTitle = videoTitle;
   currentDuration = duration;
+  currentChannelName = channelName;
+  currentThumbnailUrl = thumbnailUrl;
 
   // ========== 서버에서 자막 조회 ==========
   apiFetch(`/videos/${videoId}/subtitles`, {
@@ -670,6 +876,62 @@ function setupSubtitleInterceptor(videoId, videoTitle, duration) {
     registerSubtitleListener();
   });
 };
+
+
+
+// 광고 끝남 감지 옵저버
+function waitForAdEnd() {
+  log.debug('광고 재생 중, 종료 대기2');
+  // new Promise((resolve) => {...})로 resolve 라는 종료 함수 생성
+  // resolve()를 호출하면 await waitForAdEnd()가 풀리고 다음 코드 실행
+  return new Promise((resolve) => {
+    // 이미 광고 없으면 즉시 종료
+    if (!document.querySelector('.ad-showing')) {
+      log.debug('광고 재생 중, 종료 대기3');
+      resolve();
+      return;
+    }
+    
+    // 이미 감시 중이면 종료 (중복 방지)
+    if (adObserver) {
+      log.debug('광고 재생 중, 종료 대기4');
+      resolve();
+      return;
+    }
+    
+    const player = document.querySelector('#movie_player') || document.body;
+    log.debug('광고 재생 중, 종료 대기5');
+    adObserver = new MutationObserver(() => {
+      log.debug('광고 재생 중, 종료 대기6');
+      if (!document.querySelector('.ad-showing')) {
+        log.debug('광고 재생 중, 종료 대기7');
+        cleanupAdObserver();
+        resolve();
+      }
+    });
+    log.debug('광고 재생 중, 종료 대기8');
+    adObserver.observe(player, {
+      // HTML 요소의 속성(attribute)이 바뀌는 걸 감지
+      attributes: true,
+      // 속성 중에서 class 변화만 감지
+      attributeFilter: ['class'],
+    });
+  });
+}
+
+
+
+
+
+
+
+// 광고 끝남 감지 옵저버 제거
+function cleanupAdObserver() {
+  if (adObserver) {
+    adObserver.disconnect();
+    adObserver = null;
+  }
+}
 
 
 
@@ -895,40 +1157,43 @@ function registerSubtitleListener() {
 
 // 자막 가져오는 리스너 설정
 async function subtitleDataHandler (event) {
+  log.debug('자막 가져오기', Date.now());
   if (translatedVideoId === currentVideoId && allSubtitles.length > 0) {
     return;
   }
-
+log.debug('자막 가져오기2', Date.now());
   if (translatedVideoId === currentVideoId) {
     return;
   }
-
+log.debug('자막 가져오기3', Date.now());
   // 영상 페이지에서만 처리
   if (!location.href.includes('/watch')) {
     return;
   }
-
+log.debug('자막 가져오기4', Date.now());
   // detail.response가 문자열인지 확인 (타입 검증)
   if (typeof event.detail?.response !== 'string') return;
-
+log.debug('자막 가져오기5', Date.now());
   // ========== JSON 파싱 ==========
   let data;
   try {
+    log.debug('자막 가져오기6', Date.now());
     // 문자열(자막 데이터가 ""로 담김)을 객체로 변환 (JSON 형식 검증)
     data = JSON.parse(event.detail.response)
   } catch (error) {
     log.debug('잘못된 데이터1', error);
     return;
   }
-
+log.debug('자막 가져오기7', Date.now());
   // ========== 데이터 구조 검증 ==========
   // data.events가 (없거나 falsy 또는 배열이 아닌 경우면) 리턴 (데이터 구조 검증)
   if (!data.events || !Array.isArray(data.events)) {
     return;
   }
-
+log.debug('자막 가져오기8', Date.now());
   translatedVideoId = currentVideoId;
   try {
+    log.debug('자막 가져오기9', Date.now());
     // ========== 자막 데이터 처리 ==========
     // 자막 데이터의 이벤트 요소(tStartMs,dDurationMs, segs) 저장
     allSubtitles = data.events
@@ -964,6 +1229,8 @@ async function subtitleDataHandler (event) {
           videoId: currentVideoId,
           title: currentVideoTitle,
           duration: currentDuration,
+          channelName: currentChannelName,
+          thumbnailUrl: currentThumbnailUrl,
           subtitleRequests: allSubtitles.map(sub => ({
             text: sub.text,
             startTime: sub.startTime,
@@ -972,6 +1239,7 @@ async function subtitleDataHandler (event) {
         })
       }
     }).then(response => {
+      log.debug('=== 번역 응답 받음 ===', response, Date.now());
       // 나중에 번역 도착하면 업데이트
       if (response?.data?.translatedTexts) {
         allSubtitles = allSubtitles.map((sub, index) => ({
@@ -984,9 +1252,11 @@ async function subtitleDataHandler (event) {
           type: 'SUBTITLES_LOADED',
           subtitles: allSubtitles
         });
+      } else {
+        log.debug('번역 응답 형식 이상', response, Date.now());
       }
     }).catch(error => {
-      log.debug('번역 실패:', error);
+      log.debug('번역 실패:', error, Date.now());
     });
 
     // ========== 리스너 설정 ==========
@@ -1186,131 +1456,6 @@ const handleLoop = (e) => {
 
 
 
-// // 썸네일 뱃지 테스트 (메인 페이지 인식 불가 오류 확인)
-// async function addTestBadge() {
-//   if (window.location.href.includes('/watch')) {
-//     return;
-//   }
-//   // 홈페이지: a#thumbnail
-//   // 영상 썸네일 컨테이너 찾기
-//   // const allThumbnails = document.querySelectorAll('ytd-thumbnail');
-//   // 위의 코드가 오작동한 이유: 모든 ytd-thumbnail을 찾았는데 여기 포함된게 밑의 것들
-//   // player-container-background-image	플레이어 배경
-//   // ytd-video-preview	미리보기 플레이어
-//   // ytd-watch-flexy	영상 시청 페이지 요소
-
-//   // 영상 링크가 있는 썸네일만 찾기
-//   const allThumbnails = document.querySelectorAll('ytd-thumbnail a#thumbnail[href*="/watch?v="]');
-
-//   if (allThumbnails.length === 0) {
-//     return;
-//   }
-
-//   for (const thumb of allThumbnails) {
-//     try {
-//       //  ytd-thumbnail 찾기
-//       // .closest()는 부모 태그중에서 해당하는거 찾기
-//       // 이거 있으면 thumb.style.position = 'relative'; 이 코드 필요없음
-//       // 이 코드 변경 금지
-//       const ytdThumbnail = thumb.closest('ytd-thumbnail');
-//       if (!ytdThumbnail) continue;
-
-//       // 광고 필터
-//       if (ytdThumbnail.closest('ytd-ad-slot-renderer')) continue;
-
-//       // 이미 뱃지 있으면 스킵
-//       if (ytdThumbnail.querySelector('.clip-test-badge')) continue;
-
-//       // URL에서 videoId 추출
-//       const href = thumb.getAttribute('href');
-//       const videoId = new URLSearchParams(href.split('?')[1]).get('v');
-
-//       // API 호출(수정 예정)
-//       const response = await apiFetch(`/badges/video/${videoId}`);
-//       // 뱃지가 어떻게 오는지에 따라 수정예정(아마 결과에 맞는 뱃지 이미지를 붙일 듯)
-//       const badge = response?.data?.currentBadge;
-
-//       // 뱃지 표시(수정 예정)
-//       if (badge) {
-//         // position 체크 후 추가
-//         const currentPosition = window.getComputedStyle(ytdThumbnail).position;
-//         if (currentPosition === 'static' || !currentPosition) {
-//           ytdThumbnail.style.position = 'relative';
-//         }
-
-//         // thumbnail 스타일 안 건드림
-//         // 부모 태그 안에 자식 추가
-//         ytdThumbnail.appendChild(badge);
-//       }
-//     } catch (error) {
-//       // 에러나도 이 항목만 스킵, 나머지는 계속
-//       console.log('이 썸네일 스킵 (에러):', error.message);
-//       continue;
-//     }
-//   }
-// }
-
-
-
-// // MutationObserver로 DOM 변화 감지
-// // 메인/검색 페이지 전용 (뱃지 부착용)
-// function observeThumbnails() {
-//   // 사이드 패널 열려야 실행
-//   if (!isPanelOpen) return;
-
-//   // 영상 페이지면 시작 안 함
-//   if (window.location.href.includes('/watch')) {
-//     return;
-//   }
-
-//   // 중복 방지용 기존 옵저버 정리
-//   if (thumbnailObserver) {
-//     thumbnailObserver.disconnect();
-//     thumbnailObserver = null;
-//   }
-
-//   // 썸네일 영역만 감시
-//   // 유튜브 페이지마다 구조가 달라서 둘 다 체크
-//   // 이거 없이 전체감시하면 창모드하고 다른 페이지보면 무한 호출해버림
-//   // #contents = 유튜브 메인 콘텐츠 영역 -> 영상 목록이 들어있는 큰 박스가 있으면 그거 사용.
-//   // 없으면 유튜브 홈페이지의 그리드 레이아웃 -> 썸네일들이 격자로 배열된 영역이 있으면 ytd-rich-grid-renderer 사용.
-//   // 없으면 전체 감시
-//   const contents = document.querySelector('#contents') || document.querySelector('ytd-rich-grid-renderer') || document.body;
-
-//   // 디바운스(debounce) 패턴
-//   // 값 없이 선언 -> undefined 상태
-//   let timeout;
-//   thumbnailObserver = new MutationObserver(() => {
-//     // 이전 타이머 취소, undefined 넣어도 에러없이 무시됨
-//     clearTimeout(timeout);
-//     timeout = setTimeout(addTestBadge, 1000);
-//   });
-
-//   // 페이지 전체 감시가 아닌 영상 목록만 감시해서 검색창의 추천 검색어들 뜨는거 감지 무시
-//   thumbnailObserver.observe(contents, {
-//     childList: true,
-//     subtree: true
-//   });
-//   addTestBadge();
-// }
-
-
-
-// // 뱃지 제거 함수
-// function removeBadges() {
-//   const badges = document.querySelectorAll('.clip-test-badge');
-//   badges.forEach(badge => badge.remove());
-
-//   // 만약 숨겨야 한다면
-//   // const badges = document.querySelectorAll('.clip-test-badge');
-//   // badges.forEach(badge => badge.style.display = 'none');
-
-//   // 숨겼을 때 다시 보여야 한다면
-//   // const badges = document.querySelectorAll('.clip-test-badge');
-//   // badges.forEach(badge => badge.style.display = 'block');
-// }
-
-
 // 리셋
 // 페이지 로드 대기 후 실행
 // init()에서 페이지 종류에 따라 분기
@@ -1356,12 +1501,16 @@ function init() {
   currentDuration = 0;
   // Video가 서버에 저장됐는지 여부 리셋
   isVideoSaved = false;
+  // 현재 영상 채널명 리셋
+  currentChannelName = null;
+  // 현재 영상 썸네일 url 리셋
+  currentThumbnailUrl = null;
 
-  // ========== 광고 체크 타이머 리셋 ==========
-  if (adCheckTimer) {
-    clearTimeout(adCheckTimer);
-    adCheckTimer = null;
-  }
+  // ========== 로그인 + 온보딩 완료체크 리셋 ==========
+  isActive = false;
+
+  // ========== 광고 끝남 감지 옵저버 리셋 ==========
+  cleanupAdObserver();
 
   // ========== 큐 리셋 ==========
   resetQueue();
@@ -1369,34 +1518,30 @@ function init() {
   // ========== 리스너/자막 리셋 =========
   resetSubtitleSystem();
 
-  // ========== 패널 열려있으면 상태 리셋 + 페이지 구분 및 이동 ==========
-  handlePageChange();
+  // // ========== 패널 열려있으면 상태 리셋 + 페이지 구분 및 이동 ==========
+  // handlePageChange();
 }
 
 
 
 // ========== 즉시 실행 (첫 로드/새로고침/F5) ==========
 (async function start() {
+  log.debug('콘텐츠1', Date.now());
+
+  // 패널 열림 처리
   chrome.runtime.sendMessage({ type: 'CONTENT_LOADED' });
   // 이전 영상의 자막, 퀴즈, 시청시간 등의 상태를 리셋
   resetAllState();
 
-  // 퀴즈 진행 복원 (비동기라서 기다리기)
-  const videoId = new URL(window.location.href).searchParams.get('v');
-  if (videoId) {
-    const result = await chrome.storage.local.get(`quizProgress_${videoId}`);
-      const progress = result[`quizProgress_${videoId}`];
-      if (progress) {
-        quizSectionCount = progress.sectionCount || 1;
-        matchingQuizCount = progress.matchingCount || 0;
-      }
+  // 토큰과 유저 정보가 있고 온보딩 설정을 했으면 activate 실행
+  const canRun = await checkAccess();
+log.debug('콘텐츠3', canRun, Date.now());
+  if (canRun) {
+    log.debug('콘텐츠4', Date.now());
+    activate();
   }
 
-  // 현재 페이지 종류에 따라 다른 처리
-  handlePageChange();
-  // YouTube SPA 대응 - 페이지 이동 감지
-  setupTitleObserver();
-
-  // setupTitleObserver 실행 시 URL이 바뀌었을 때만 실행하게 설정
-  lastUrl = location.href;
+  // 세션 저장소 변경 감지 리스너 등록
+  listenForChanges();
+  log.debug('콘텐츠5', Date.now());
 })();
