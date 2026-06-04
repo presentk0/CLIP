@@ -8,12 +8,24 @@
   box-sizing: border-box;
 }
 
-html,
-body,
+html, body {
+  width: 100%;
+  min-width: 402px;
+  overflow-x: hidden;        /* 가로 스크롤 차단 */
+
+  /* 스크롤바 숨기기 (스크롤은 가능) */
+  scrollbar-width: none;     /* Firefox */
+  -ms-overflow-style: none;  /* IE/Edge */
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;             /* Chrome/Safari */
+}
+
 #root {
   width: 100%;
   min-width: 402px;
-  overflow-x: hidden;
 }
 
 /* 링크 기본 스타일 제거 */

@@ -1,6 +1,6 @@
 /* global chrome */
 import { apiFetch } from "./utils/api";
-import { IS_DEV, log } from "./utils/logger";
+import { log } from "./utils/logger";
 
 // 아이콘 클릭 시 사이드 패널 열리게 설정
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
@@ -55,28 +55,6 @@ chrome.runtime.onConnect.addListener((port) => {
 
 
 
-// // ============ 로깅 설정 ============
-// // import.meta. = Vite 환경변수
-// // env?.MODE = 현재 모드
-// //  === 'development' = 개발 모드인지 비교
-// // 빌드 모드 + 설치 방식 둘 다 체크
-// const IS_DEV = import.meta.env?.MODE === 'development' || !('update_url' in chrome.runtime.getManifest());
-
-
-// // 개발 중에만 콘솔 로그 출력
-// const log = {
-//   debug: (...args) => {
-//     if (IS_DEV) console.log(...args);
-//   },
-//   error: (message, error) => {
-//     if (IS_DEV) {
-//       console.error(message, error);
-//     } else {
-//       // 프로덕션: 민감 정보 숨김
-//       console.error(message, error?.message || 'Unknown error');
-//     }
-//   },
-// };
 
 
 
@@ -98,13 +76,6 @@ function sanitizeError(error) {
   return SAFE_ERROR_MESSAGES.UNKNOWN;
 }
 
-
-
-// ============ 검증 함수들 ============
-// // 메시지 기본 검증
-// function isValidMessage(message) {
-//   return message && typeof message === 'object' && message.type;
-// }
 
 
 
@@ -208,7 +179,11 @@ function validateEndpoint(endpoint) {
 
 // ============ 인증 헬퍼 ============
 async function getAuth() {
-  return await chrome.storage.session.get(['accessToken', 'user']);
+
+  // return await chrome.storage.session.get(['accessToken', 'user']);
+  const result = await chrome.storage.session.get(['accessToken', 'user']);
+  // log.debug('백그라운드 GET_AUTH:', JSON.stringify(result, null, 2), Date.now());
+  return result;
 }
 
 async function setAuth({ accessToken, user }) {
@@ -224,8 +199,14 @@ async function clearAuth() {
 // ============ 메시지 핸들러 ============
 // 번역 요청 처리
 const handleTranslate = (message, sendResponse) => {
+  // log.debug('=== TRANSLATE 받음 ===', Date.now());
+  // log.debug('endpoint:', message.endpoint, Date.now());
+  // log.debug('body 타입:', typeof message.options?.body, Date.now());
+  // log.debug('body 길이:', message.options?.body?.length, Date.now());
+
   // endpoint 검증
   if (!validateEndpoint(message.endpoint)) {
+    log.debug('endpoint 검증 실패', Date.now());
     sendResponse({ success: false, error: SAFE_ERROR_MESSAGES.INVALID_DATA });
     return;
   }
@@ -234,16 +215,22 @@ const handleTranslate = (message, sendResponse) => {
   const RETRY_DELAY = 2000;
   const fetchTranslate = async (retryCount = 0) => {
     try {
+      log.debug(`apiFetch 시도 ${retryCount + 1}`, Date.now());
       const translateData = await apiFetch(message.endpoint, message.options);
+      // log.debug('apiFetch 성공:', translateData, Date.now());
       sendResponse(translateData);
     } catch (error) {
-      log.error('번역 에러', error);
+      console.error('번역 apiFetch 실패:', error.message, error.code,Date.now());
+
+
 
       if (retryCount < MAX_RETRY) {
+        log.debug('재시도 예정', Date.now());
         setTimeout(() => {
           fetchTranslate(retryCount + 1);
         }, RETRY_DELAY);
       } else {
+        log.debug('최대 재시도 초과', Date.now());
         sendResponse({ success: false, error: sanitizeError(error) });
       }
     }
@@ -313,21 +300,6 @@ const handleClearAuth = async (sendResponse) => {
 
 
 
-// // 페이지 새로고침 감지 시 사이드패널에 인증 동기화
-// const handlePageReloaded = async () => {
-//   try {
-//     const currentAuth = await getAuth();
-//     // 사이드패널이 닫혀있을 수 있으므로 catch로 무시
-//     chrome.runtime.sendMessage({ 
-//       type: 'SYNC_AUTH',
-//       ...currentAuth 
-//     }).catch(() => {});
-//   } catch (error) {
-//     log.error('인증 동기화 실패:', error);
-//   }
-// };
-
-
 
 // ============ 메시지 라우터 ============
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -379,4 +351,31 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     default:
       return false;
   }
+});
+
+
+
+
+
+
+
+
+
+
+
+// 저장소 변경 감지 리스너 등록
+chrome.storage.onChanged.addListener((changes, area) => {
+  // 변경된 저장소가 session이 아니면 리턴
+  if (area !== 'session') return;
+
+  // 이번 변경에 토큰 또는 유저 정보가 포함되어야만 반응
+  if (!changes.accessToken && !changes.user) return;
+  
+  // 모든 유튜브 탭에 알림
+  chrome.tabs.query({ url: '*://*.youtube.com/*' }, (tabs) => {
+    tabs.forEach(tab => {
+      chrome.tabs.sendMessage(tab.id, { type: 'AUTH_CHANGED' })
+        .catch(() => {});
+    });
+  });
 });

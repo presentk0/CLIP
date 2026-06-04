@@ -1,13 +1,53 @@
-import happy from '../imgs/image_703.png';
-import frog2 from '../imgs/image_750.png';
-import { apiFetch } from '../utils/api';
+import happy from '../../imgs/image_703.png';
+import frog2 from '../../imgs/image_750.png';
+import { apiFetch } from '../../utils/api';
 import { useState, useEffect } from 'react';
+
+import styles from './SettlementPage.module.css';
+
+
+function MessageBox() {
+  return (
+    <div>
+      <svg 
+      className={styles.message}
+      xmlns="http://www.w3.org/2000/svg" 
+      width="402" 
+      height="108" 
+      viewBox="0 0 402 108" 
+      fill="none">
+        <g filter="url(#filter0_d_1_978)">
+          <path d="M-29 32C-29 18.7452 -18.2548 8 -5 8H407C420.255 8 431 18.7452 431 32V68C431 81.2548 420.255 92 407 92H-5C-18.2548 92 -29 81.2548 -29 68V32Z" fill="#70C1EE"/>
+        </g>
+        <defs>
+          <filter id="filter0_d_1_978" x="-41" y="0" width="484" height="108" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+            <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+            <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+            <feOffset dy="4"/>
+            <feGaussianBlur stdDeviation="6"/>
+            <feComposite in2="hardAlpha" operator="out"/>
+            <feColorMatrix type="matrix" values="0 0 0 0 0.619608 0 0 0 0 0.607843 0 0 0 0 0.537255 0 0 0 0.2 0"/>
+            <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1_978"/>
+            <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1_978" result="shape"/>
+          </filter>
+        </defs>
+      </svg>
+      <div className={styles.message2}></div>
+      <p className={styles.message3}>알림!</p>
+      <p className={styles.message4}>정확도 80% 달성! 이번 주 78%→80% 올랐어요</p>
+    </div>
+  );
+}
+
+
+
+
 
 function SettlementPage({ data, videoId, videoTitle, channelName, duration, onExitPage }) {
   // 영상 전체 길이를 00:00:00 형태로 바꿔야 함(오류)
-  // 해당 영상의 썸네일 이미지
-  const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
-  
+  // 해당 영상의 썸네일 URL (480x360)
+  const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+
   const [wordCount, setWordCount] = useState(0);
 
   useEffect(() => {
