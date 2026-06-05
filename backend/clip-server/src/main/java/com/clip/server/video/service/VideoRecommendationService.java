@@ -103,7 +103,7 @@ public class VideoRecommendationService {
             score += 60.0;
         }
 
-        VideoDifficulty videoDiff = video.getEstimatedDifficulty();
+        VideoDifficulty videoDiff = video.getDifficultyLevel();
         if (videoDiff == target) {
             score += 40.0;
         } else {
@@ -127,16 +127,16 @@ public class VideoRecommendationService {
             VideoDifficulty target) {
 
         boolean goalMatch = video.getLearningGoal() == pref.getLearningGoal();
-        boolean diffMatch = video.getEstimatedDifficulty() == target;
+        boolean diffMatch = video.getDifficultyLevel() == target;
 
         if (goalMatch && diffMatch) {
             return String.format("'%s' 학습 목표와 %s 수준에 딱 맞는 영상이에요",
                     pref.getLearningGoal().getDescription(),
-                    video.getEstimatedDifficulty().getDescription());
+                    video.getDifficultyLevel().getDescription());
         }
 
         if (goalMatch) {
-            VideoDifficulty videoDiff = video.getEstimatedDifficulty();
+            VideoDifficulty videoDiff = video.getDifficultyLevel();
             if (videoDiff.getLevelCode() < target.getLevelCode()) {
                 return String.format("'%s' 학습에 부담 없이 시작할 수 있는 영상이에요",
                         pref.getLearningGoal().getDescription());
@@ -147,7 +147,7 @@ public class VideoRecommendationService {
         }
 
         return String.format("%s 수준의 추천 영상이에요",
-                video.getEstimatedDifficulty().getDescription());
+                video.getDifficultyLevel().getDescription());
     }
 
     /**
@@ -162,7 +162,7 @@ public class VideoRecommendationService {
                 .channelName(video.getChannelName())
                 .channelProfileUrl(video.getChannelProfileImageUrl())
                 .recommendationReason(reason)
-                .estimatedDifficulty(video.getEstimatedDifficulty().name())
+                .estimatedDifficulty(video.getDifficultyLevel().name())
                 .build();
     }
 

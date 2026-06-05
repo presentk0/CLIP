@@ -83,7 +83,6 @@ public class WordService {
         // 5. 총 저장 단어수 계산
         long totalCount = collectedWordRepository.countByUser(user);
 
-
         return mapToCollectedWordResponse(saved, totalCount);
     }
 
