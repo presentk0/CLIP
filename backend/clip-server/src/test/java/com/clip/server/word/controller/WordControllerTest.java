@@ -52,7 +52,22 @@ public class WordControllerTest {
     @DisplayName("단어 수집 요청 시 성공하면 201 Created를 반환한다")
     void collectWord_success() throws Exception {
         // 1. Given
-        CollectedWordRequest request = new CollectedWordRequest("v1", "Title", "apple", "사과", "I eat an apple", "0:01", "나는 사과를 먹는다.", WordType.COLLECT);
+        CollectedWordRequest.MeaningByPos meaning = new CollectedWordRequest.MeaningByPos(
+                "명사",
+                List.of("사과", "사과나무")
+        );
+
+        CollectedWordRequest request = new CollectedWordRequest(
+                "v1",                       // videoId
+                "Title",                    // title
+                "apple",                    // word
+                List.of(meaning),           // List<MeaningByPos>
+                "I eat an apple",           // sentence
+                "0:01",                     // timestamp
+                "나는 사과를 먹는다.",       // translation
+                WordType.COLLECT            // wordType
+        );
+
         CollectedWordResponse mockResponse = CollectedWordResponse.builder()
                 .wordId(1L)
                 .collectedAt(LocalDateTime.now())
@@ -78,8 +93,45 @@ public class WordControllerTest {
     @Test
     @DisplayName("필수값 누락시 400 Bad Request를 반환한다.")
     void collectWord_fail_validation() throws Exception {
-        // Given - word가 빈 값인 경우
-        CollectedWordRequest request = new CollectedWordRequest("v1", "Title", "", "사과", "I eat an apple", "0:01", "나는 사과를 먹는다.", WordType.COLLECT);
+
+        CollectedWordRequest.MeaningByPos meaning = new CollectedWordRequest.MeaningByPos(
+                "명사",
+                List.of("사과")
+        );
+
+        CollectedWordRequest request = new CollectedWordRequest(
+                "v1",
+                "Title",
+                "",
+                List.of(meaning),
+                "I eat an apple",
+                "0:01",
+                "나는 사과를 먹는다.",
+                WordType.COLLECT
+        );
+
+        // When & Then
+        mockMvc.perform(post("/api/words/collect")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andDo(print());
+    }
+
+    @Test
+    @DisplayName("meaningsByPos 빈 배열일 경우 400 Bad Request를 반환한다")
+    void collectWord_fail_emptyMeaningsByPos() throws Exception {
+
+        CollectedWordRequest request = new CollectedWordRequest(
+                "v1",
+                "Title",
+                "apple",
+                List.of(),
+                "I eat an apple",
+                "0:01",
+                "나는 사과를 먹는다.",
+                WordType.COLLECT
+        );
 
         // When & Then
         mockMvc.perform(post("/api/words/collect")
@@ -93,14 +145,22 @@ public class WordControllerTest {
     @DisplayName("수집된 단어를 목록 요청을 성공하면 200을 반환한다.")
     void get_collectWord_success() throws Exception {
         // 1. Given
+        WordResponse.MeaningByPosDto meaningDto = WordResponse.MeaningByPosDto.builder()
+                .partOfSpeech("명사")
+                .meanings(List.of("사과"))
+                .build();
+
         WordResponse words = WordResponse.builder()
                 .id(1L)
                 .word("apple")
+                .meaningsByPos(List.of(meaningDto))
                 .collectedAt(LocalDateTime.now())
                 .timestamp("1:20")
                 .sentence("I'm eat an apple")
                 .translation("나는 사과를 먹는다.")
                 .videoTitle("title1")
+                .videoId("v1")
+                .wordType(WordType.COLLECT)
                 .build();
 
         PaginationResponse paginationResponse = PaginationResponse.builder()
@@ -127,6 +187,8 @@ public class WordControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.words[0].word").value("apple"))
+                .andExpect(jsonPath("$.data.words[0].meaningsByPos[0].partOfSpeech").value("명사"))
+                .andExpect(jsonPath("$.data.words[0].meaningsByPos[0].meanings[0]").value("사과"))
                 .andExpect(jsonPath("$.data.pagination.totalCount").value(1));
     }
 

@@ -1,5 +1,6 @@
 package com.clip.server.word.entity;
 
+import com.clip.server.common.converter.WordMeaningJsonConverter;
 import com.clip.server.user.entity.User;
 import com.clip.server.video.entity.Video;
 import jakarta.persistence.*;
@@ -11,6 +12,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Getter
@@ -36,8 +38,9 @@ public class CollectedWord {
     private String word;
 
     // 수집한 단어 뜻
-    @Column(nullable = false, length = 100)
-    private String meaning;
+    @Convert(converter = WordMeaningJsonConverter.class)
+    @Column(columnDefinition = "TEXT", nullable = false, name = "meaning")
+    private List<WordMeaning> meaningsByPos;
 
     // 단어 수집시 해당 단어가 포함된 예문
     @Column(nullable = false)
@@ -61,14 +64,14 @@ public class CollectedWord {
     private LocalDateTime collectedAt;
 
     @Builder
-    public CollectedWord(User user, Video video, String word, String sentence, String timestamp, String translation, String meaning, WordType wordType) {
+    public CollectedWord(User user, Video video, String word, String sentence, String timestamp, String translation, List<WordMeaning> meaningsByPos, WordType wordType) {
         this.user = user;
         this.video = video;
         this.word = word;
         this.sentence = sentence;
         this.timestamp = timestamp;
         this.translation = translation;
-        this.meaning = meaning;
+        this.meaningsByPos = meaningsByPos;
         this.wordType = wordType;
     }
 
