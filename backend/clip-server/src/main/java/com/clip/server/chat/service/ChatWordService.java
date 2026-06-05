@@ -34,6 +34,7 @@ public class ChatWordService {
 
     public ChatWordsResponse getCandidateWords(Long userId) {
 
+
         // 1. 신규 유저 체크
         User user= userRepository.findById(userId).orElseThrow(()-> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
