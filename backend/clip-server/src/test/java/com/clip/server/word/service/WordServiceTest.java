@@ -8,6 +8,7 @@ import com.clip.server.video.repository.VideoRepository;
 import com.clip.server.word.dto.request.CollectedWordRequest;
 import com.clip.server.word.dto.response.CollectedWordResponse;
 import com.clip.server.word.entity.CollectedWord;
+import com.clip.server.word.entity.WordMeaning;
 import com.clip.server.word.entity.WordType;
 import com.clip.server.word.repository.CollectedWordRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,8 +26,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
@@ -50,8 +50,22 @@ public class WordServiceTest {
 
     @BeforeEach
     void setUp() {
+        CollectedWordRequest.MeaningByPos meaning = new CollectedWordRequest.MeaningByPos(
+                "명사",
+                List.of("사과", "사과나무")
+        );
+
         // COLLECT 타입으로 저장 요청하는 기본 DTO
-        request = new CollectedWordRequest("v1", "title1", "apple", "사과", "I eat an apple", "0:01", "나는 사과를 먹는다.", WordType.COLLECT);
+        request = new CollectedWordRequest(
+                "v1",                       // videoId
+                "title1",                   // title
+                "apple",                    // word
+                List.of(meaning),           // List<MeaningByPos>
+                "I eat an apple",           // sentence
+                "0:01",                     // timestamp
+                "나는 사과를 먹는다.",       // translation
+                WordType.COLLECT            // wordType
+        );
 
         fakeUser = User.builder().build();
         ReflectionTestUtils.setField(fakeUser, "id", TEST_USER_ID);
@@ -65,18 +79,24 @@ public class WordServiceTest {
     @Test
     @DisplayName("단어 수집 성공 테스트 (기존 데이터 없음)")
     void collectWord_success() {
-        // 1. given: 기존에 저장된 단어가 없는 상태(Optional.empty)
-        given(userRepository.findById(TEST_USER_ID)).willReturn(Optional.of(fakeUser));
-        given(collectedWordRepository.findByUserIdAndVideo_VideoIdAndWord(anyLong(), anyString(), anyString()))
+        // 1. given: 기존에 저장된 단어가 없는 상태
+        given(userRepository.findById(TEST_USER_ID))
+                .willReturn(Optional.of(fakeUser));
+        given(collectedWordRepository.findByUserIdAndVideo_VideoIdAndWord(
+                anyLong(), anyString(), anyString()))
                 .willReturn(Optional.empty());
-        given(videoRepository.findById("v1")).willReturn(Optional.of(fakeVideo));
+        given(videoRepository.findById("v1"))
+                .willReturn(Optional.of(fakeVideo));
 
         CollectedWord fakeSavedWord = CollectedWord.builder()
                 .word("effort")
-                .meaning("노력")
+                .meaningsByPos(List.of(
+                        new WordMeaning("명사", List.of("노력", "수고"))
+                ))
                 .build();
         given(collectedWordRepository.save(any(CollectedWord.class)))
                 .willReturn(fakeSavedWord);
+
         // 2. when
         wordService.save(TEST_USER_ID, request);
 
@@ -90,10 +110,15 @@ public class WordServiceTest {
         // 1. Given: 이미 COLLECT 타입으로 저장된 단어가 존재함
         CollectedWord alreadyCollectedWord = CollectedWord.builder()
                 .wordType(WordType.COLLECT)
+                .meaningsByPos(List.of(
+                        new WordMeaning("명사", List.of("사과"))
+                ))
                 .build();
 
-        given(userRepository.findById(TEST_USER_ID)).willReturn(Optional.of(fakeUser));
-        given(collectedWordRepository.findByUserIdAndVideo_VideoIdAndWord(anyLong(), anyString(), anyString()))
+        given(userRepository.findById(TEST_USER_ID))
+                .willReturn(Optional.of(fakeUser));
+        given(collectedWordRepository.findByUserIdAndVideo_VideoIdAndWord(
+                anyLong(), anyString(), anyString()))
                 .willReturn(Optional.of(alreadyCollectedWord));
 
         // 2. When & Then
@@ -109,14 +134,16 @@ public class WordServiceTest {
         PageRequest pageRequest = PageRequest.of(0, 10, Sort.by("collectedAt").descending());
         Page<CollectedWord> wordPage = new PageImpl<>(List.of(), pageRequest, 0);
 
-        given(collectedWordRepository.findAllByUserIdAndVideo_VideoIdAndWordType(eq(TEST_USER_ID), eq(videoId), eq(WordType.COLLECT), any(Pageable.class)))
+        given(collectedWordRepository.findAllByUserIdAndVideo_VideoIdAndWordType(
+                eq(TEST_USER_ID), eq(videoId), eq(WordType.COLLECT), any(Pageable.class)))
                 .willReturn(wordPage);
 
         // 2. When
         wordService.getWords(TEST_USER_ID, 0, 10, videoId);
 
         // 3. Then
-        verify(collectedWordRepository).findAllByUserIdAndVideo_VideoIdAndWordType(eq(TEST_USER_ID), eq(videoId), eq(WordType.COLLECT), any(Pageable.class));
+        verify(collectedWordRepository).findAllByUserIdAndVideo_VideoIdAndWordType(
+                eq(TEST_USER_ID), eq(videoId), eq(WordType.COLLECT), any(Pageable.class));
     }
 
     @Test
@@ -126,16 +153,20 @@ public class WordServiceTest {
         String videoId = "v1";
         String wordText = "apple";
 
-        // 기존에 POPUP으로 저장되어 있던 단어 객체 (ID 100번 주입)
         CollectedWord existingPopupWord = CollectedWord.builder()
                 .word(wordText)
                 .wordType(WordType.POPUP)
                 .user(fakeUser)
+                .meaningsByPos(List.of(
+                        new WordMeaning("명사", List.of("사과"))
+                ))
                 .build();
         ReflectionTestUtils.setField(existingPopupWord, "id", 100L);
 
-        given(userRepository.findById(TEST_USER_ID)).willReturn(Optional.of(fakeUser));
-        given(collectedWordRepository.findByUserIdAndVideo_VideoIdAndWord(TEST_USER_ID, videoId, wordText))
+        given(userRepository.findById(TEST_USER_ID))
+                .willReturn(Optional.of(fakeUser));
+        given(collectedWordRepository.findByUserIdAndVideo_VideoIdAndWord(
+                TEST_USER_ID, videoId, wordText))
                 .willReturn(Optional.of(existingPopupWord));
         given(collectedWordRepository.countByUser(fakeUser)).willReturn(1L);
 
@@ -144,7 +175,7 @@ public class WordServiceTest {
 
         // 3. Then
         assertThat(response.getWordId()).isEqualTo(100L);
-        assertThat(existingPopupWord.getWordType()).isEqualTo(WordType.COLLECT); // 타입 변경 확인
-        assertThat(existingPopupWord.getSentence()).isEqualTo(request.getSentence()); // 문장 갱신 확인
+        assertThat(existingPopupWord.getWordType()).isEqualTo(WordType.COLLECT);
+        assertThat(existingPopupWord.getSentence()).isEqualTo(request.getSentence());
     }
 }

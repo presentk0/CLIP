@@ -27,7 +27,7 @@ public class OpenAIService {
     @Value("${openai.api.url}")
     private String apiUrl;
 
-    @Value("${openai.model}")
+    @Value("${openai.api.model}")
     private String model;
 
     private final RestTemplate restTemplate;
