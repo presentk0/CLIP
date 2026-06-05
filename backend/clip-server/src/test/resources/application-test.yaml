@@ -39,7 +39,7 @@ openai:
   api:
     key: test-key
     url: https://api.openai.com/v1/chat/completions
-  model: gpt-5.4-mini
+    model: gpt-5.4-mini
 
 aws:
   access-key: mock

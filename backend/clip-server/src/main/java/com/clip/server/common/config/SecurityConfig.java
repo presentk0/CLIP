@@ -26,7 +26,7 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    private final AdminApiKeyFilter adminApiKeyFilter;  // ✅ 추가
+    private final AdminApiKeyFilter adminApiKeyFilter;
     private final CorsProperties corsProperties;
 
     @Bean

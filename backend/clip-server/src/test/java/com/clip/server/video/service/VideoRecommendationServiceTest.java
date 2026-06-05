@@ -72,7 +72,7 @@ class VideoRecommendationServiceTest {
                     .title("Test Title " + i)
                     .duration(480)
                     .learningGoal(LearningGoal.TRAVEL)
-                    .estimatedDifficulty(VideoDifficulty.ADVANCED)
+                    .difficultyLevel(VideoDifficulty.ADVANCED)
                     .build());
         }
 
@@ -113,7 +113,7 @@ class VideoRecommendationServiceTest {
                         .title("None Goal Test Title")
                         .duration(360)
                         .learningGoal(LearningGoal.BUSINESS)
-                        .estimatedDifficulty(VideoDifficulty.BEGINNER)
+                        .difficultyLevel(VideoDifficulty.BEGINNER)
                         .build()
         );
 
