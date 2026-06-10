@@ -3,6 +3,8 @@ package com.clip.server.common.config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -14,16 +16,26 @@ public class AwsS3Config {
     @Value("${aws.region}")
     private String region;
 
-    @Value("${aws.profile}")
+    @Value("${aws.profile:}")  // ✨ 빈 문자열 기본값!
     private String profile;
 
     /**
-     * SSO 프로파일 기반 자격 증명
-     * - ~/.aws/credentials 파일에서 자동 로드
-     * - 토큰 만료 시 재로그인 필요 (aws sso login --profile clipzy-sso)
+     * 환경별 AWS 자격증명 자동 분기
+     *
+     * - 로컬: aws.profile=clipzy-sso → SSO Profile 사용
+     *   (~/.aws/credentials 파일 사용, 토큰 만료 시 재로그인)
+     *
+     * - 운영(EC2): aws.profile 비어있음 → DefaultCredentialsProvider
+     *   (EC2 IAM Instance Profile 자동 인식)
      */
-    private ProfileCredentialsProvider credentialsProvider() {
-        return ProfileCredentialsProvider.create(profile);
+    private AwsCredentialsProvider credentialsProvider() {
+        if (profile != null && !profile.isBlank()) {
+            // 로컬 개발: SSO Profile
+            return ProfileCredentialsProvider.create(profile);
+        } else {
+            // 운영: EC2 IAM Role / 환경변수 / Java System Property 자동 시도
+            return DefaultCredentialsProvider.create();
+        }
     }
 
     /**
