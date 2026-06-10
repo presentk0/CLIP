@@ -83,3 +83,12 @@ azure:
     language: en-US
     voice-name-female: en-US-JennyNeural
     voice-name-male: en-US-GuyNeural
+
+aws:
+  region: ap-northeast-2
+  profile: ${AWS_PROFILE:}
+  s3:
+    bucket: ${AWS_S3_BUCKET}
+    audio-prefix: chat/
+    presigned-url-expiration: 300
+    download-url-expiration: 1800
