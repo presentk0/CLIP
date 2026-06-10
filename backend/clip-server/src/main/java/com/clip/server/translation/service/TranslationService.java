@@ -30,7 +30,7 @@ public class TranslationService {
     private final SubtitleService subtitleService;
     private final UserRepository userRepository;
     private final SubtitleRepository subtitleRepository;
-    // private final WordTranslationCacheService wordCacheService;
+
 
     @Transactional
     public TranslationResponse translateAndSave(Long userId, TranslationRequest request) {
