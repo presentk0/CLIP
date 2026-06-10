@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import static com.clip.server.common.exception.ErrorCode.USER_NOT_FOUND;
 
@@ -30,8 +31,11 @@ public class TranslationService {
     private final SubtitleService subtitleService;
     private final UserRepository userRepository;
     private final SubtitleRepository subtitleRepository;
+    private final TranslationCacheService translationCacheService;
 
-
+    /** 이중 캐시 구조
+    * L1(Redis)-> L2(DB)-> DeepL API 번역
+     */
     @Transactional
     public TranslationResponse translateAndSave(Long userId, TranslationRequest request) {
 
@@ -45,7 +49,32 @@ public class TranslationService {
                     .build();
         }
 
+        String videoId = request.getVideoId();
+
+        // 2. L1: Redis에서 videoId로 조회
+        List<String> cachedTranslations = translationCacheService.getVideoTranslations(videoId);
+        if(cachedTranslations != null) {
+            log.info("L1 cache hit for video: {}", videoId);
+            return TranslationResponse.builder()
+                    .translatedTexts(cachedTranslations)
+                    .build();
+        }
+
+        // 3. L2: DB 조회 (subtitle 테이블)
+        List<String> dbTranslations = subtitleRepository.findTranslationsByVideoId(videoId);
+        if(!dbTranslations.isEmpty()) {
+            log.info("L2 cache hit for video: {}", videoId);
+
+            // 캐시 저장- L1 승격
+            translationCacheService.putVideoTranslations(videoId, dbTranslations);
+            return TranslationResponse.builder()
+                    .translatedTexts(dbTranslations)
+                    .build();
+        }
+
         // 2. 번역할 텍스트만 리스트로 추출
+        log.info("Cache miss - DeepL 호출 - videoId: {}", videoId);
+
         List<String> originalTexts = request.getSubtitleRequests().stream()
                 .map(TranslationRequest.SubtitleDetail::getText)
                 .toList();
@@ -64,6 +93,9 @@ public class TranslationService {
                 translatedList
         );
 
+        // 5. Redis 저장
+        translationCacheService.putVideoTranslations(videoId, translatedList);
+
         return TranslationResponse.builder()
                 .translatedTexts(translatedList)
                 .build();
@@ -73,7 +105,7 @@ public class TranslationService {
     @Transactional
     public WordTranslationResponse translateWord(Long userId, WordTranslationRequest request) {
 
-        // 1. 유저 정보 확인
+        // 1. 유저 검증
         if (!userRepository.existsById(userId)) {
             throw new BusinessException(USER_NOT_FOUND);
         }
@@ -87,16 +119,32 @@ public class TranslationService {
                     .build();
         }
 
-        log.info("단어 번역 시작: userId={}, word={}, count={}",
-                userId, request.getWord(), request.getMeanings().size());
+        String word = request.getWord();
+        List<String> meanings = request.getMeanings();
 
-        // 3. DeepL 번역 수행
-        List<String> translatedList = translationClient.translateBatch(request.getMeanings());
+        // 3. 캐시 조회 (L1 → L2 자동)
+        Optional<List<String>> cached = translationCacheService.getWordTranslations(word, meanings);
+        if (cached.isPresent()) {
+            log.info("Word cache hit: word={}", word);
+            return WordTranslationResponse.builder()
+                    .word(word)
+                    .translations(cached.get())
+                    .build();
+        }
 
-        log.info("단어 번역 완료: word={}", request.getWord());
+        // 4. Cache miss → DeepL 호출
+        log.info("Word cache miss - DeepL 호출: userId={}, word={}, count={}",
+                userId, word, meanings.size());
+
+        List<String> translatedList = translationClient.translateBatch(meanings);
+
+        // 5. L1 + L2 동시 저장
+        translationCacheService.putWordTranslations(word, meanings, translatedList);
+
+        log.info("단어 번역 완료 및 캐싱: word={}", word);
 
         return WordTranslationResponse.builder()
-                .word(request.getWord())
+                .word(word)
                 .translations(translatedList)
                 .build();
     }
