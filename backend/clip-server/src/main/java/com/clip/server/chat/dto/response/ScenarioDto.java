@@ -6,7 +6,6 @@ import lombok.Getter;
 
 @Getter
 @Builder
-@AllArgsConstructor
 public class ScenarioDto {
     private Long scenarioId;
     private String title;

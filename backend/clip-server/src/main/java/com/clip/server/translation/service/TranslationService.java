@@ -1,6 +1,7 @@
 package com.clip.server.translation.service;
 
 import com.clip.server.common.exception.BusinessException;
+import com.clip.server.subtitle.repository.SubtitleRepository;
 import com.clip.server.subtitle.service.SubtitleService;
 import com.clip.server.translation.client.TranslationClient;
 import com.clip.server.translation.dto.request.TranslationRequest;
@@ -28,6 +29,8 @@ public class TranslationService {
     private final TranslationClient translationClient;
     private final SubtitleService subtitleService;
     private final UserRepository userRepository;
+    private final SubtitleRepository subtitleRepository;
+    // private final WordTranslationCacheService wordCacheService;
 
     @Transactional
     public TranslationResponse translateAndSave(Long userId, TranslationRequest request) {

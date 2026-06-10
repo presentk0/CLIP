@@ -1,10 +1,12 @@
 package com.clip.server.chat.entity;
+import com.clip.server.user.entity.User;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
@@ -18,17 +20,20 @@ import java.time.LocalDateTime;
 )
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@EntityListeners(AuditingEntityListener.class)
 public class UserWeakness {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "user_id", nullable = false)
-    private Long userId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
-    @Column(name = "chat_room_id", nullable = false)
-    private Long chatRoomId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "chat_room_id", nullable = false)
+    private ChatRoom chatRoom;
 
     @Column(name = "weak_expression", nullable = false, columnDefinition = "TEXT")
     private String weakExpression;
@@ -39,19 +44,19 @@ public class UserWeakness {
     @Column(name = "review_count")
     private Integer reviewCount;
 
-    @CreationTimestamp
+    @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @Builder
     public UserWeakness(
-            Long userId,
-            Long chatRoomId,
+            User user,
+            ChatRoom chatRoom,
             String weakExpression,
             String recommendedExpression
     ) {
-        this.userId = userId;
-        this.chatRoomId = chatRoomId;
+        this.user = user;
+        this.chatRoom = chatRoom;
         this.weakExpression = weakExpression;
         this.recommendedExpression = recommendedExpression;
         this.reviewCount = 0;

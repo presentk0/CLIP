@@ -13,7 +13,7 @@ RUN gradle bootJar --no-daemon
 
 # 3단계: 최종 실행 이미지
 FROM eclipse-temurin:17-jre-alpine
-RUN apk add --no-cache curl
+RUN apk add --no-cache curl ffmpeg
 WORKDIR /app
 COPY --from=builder /app/build/libs/*.jar app.jar
 

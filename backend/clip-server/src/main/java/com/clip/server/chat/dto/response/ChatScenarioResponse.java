@@ -8,7 +8,6 @@ import java.util.List;
 
 @Getter
 @Builder
-@AllArgsConstructor
 public class ChatScenarioResponse {
     private String targetWord;
     private List<ScenarioDto> scenarios;
