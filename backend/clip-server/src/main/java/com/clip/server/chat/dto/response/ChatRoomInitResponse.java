@@ -6,7 +6,6 @@ import lombok.Getter;
 
 @Getter
 @Builder
-@AllArgsConstructor
 public class ChatRoomInitResponse {
 
     private Long chatRoomId; // 채팅 방 번호

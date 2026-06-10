@@ -15,6 +15,7 @@ java {
 
 repositories {
 	mavenCentral()
+
 }
 
 
@@ -66,7 +67,22 @@ dependencies {
 
 	// Redis
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+	implementation 'org.springframework.boot:spring-boot-starter-cache'
+
+	// WebSocket
+	implementation 'org.springframework.boot:spring-boot-starter-websocket'
+
+	// Azure Speech SDK (로컬 JAR)
+	implementation files('libs/client-sdk-1.40.0.jar')
+
+	//  AWS S3 SDK v2
+	implementation platform('software.amazon.awssdk:bom:2.25.0')
+	implementation 'software.amazon.awssdk:s3'
+	implementation 'software.amazon.awssdk:auth'
+	implementation 'software.amazon.awssdk:sso'        // SSO 지원
+	implementation 'software.amazon.awssdk:ssooidc'    // SSO 지원
 }
+
 
 tasks.named('test') {
 	useJUnitPlatform()
