@@ -45,9 +45,11 @@ public enum ErrorCode {
     PREFERENCE_ALREADY_EXISTS(HttpStatus.CONFLICT, "PREFERENCE_ALREADY_EXISTS", "이미 온보딩을 완료했습니다."),
     VIDEO_ALREADY_EXISTS(HttpStatus.CONFLICT, "VIDEO_ALREADY_EXISTS", "이미 등록된 영상입니다."),
     CHAT_ROOM_COMPLETED(HttpStatus.CONFLICT, "CHAT_ROOM_COMPLETED", "이미 종료된 채팅방입니다."),
+
     // 500 Internal Server Error
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR", "서버 오류가 발생했습니다."),
-    AI_SERVICE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "AI_SERVICE_ERROR", "AI 서비스 오류가 발생했습니다.");
+    AI_SERVICE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "AI_SERVICE_ERROR", "AI 서비스 오류가 발생했습니다."),
+    TRANSLATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "TRANSLATION_FAILED", "번역 서비스 오류가 발생했습니다.");
 
     private final HttpStatus status;
     private final String code;
