@@ -16,8 +16,13 @@ public interface SubtitleRepository extends JpaRepository<Subtitle, Long> {
     List<Subtitle> findByVideoAndStartTimeBetween(Video video, Double start, Double end);
     List<Subtitle> findAllByVideo(Video video);
 
+    /**
+     * 영상의 번역 자막 조회 (NULL/빈값 제외)
+     */
     @Query("SELECT s.translation FROM Subtitle s " +
             "WHERE s.video.videoId = :videoId " +
+            "AND s.translation IS NOT NULL " +
+            "AND s.translation <> '' " +
             "ORDER BY s.startTime ASC")
-    List<String> findTranslationsByVideoId(@Param("videoId") String videoId); // 번역 텍스트만 호출
+    List<String> findTranslationsByVideoId(@Param("videoId") String videoId);
 }

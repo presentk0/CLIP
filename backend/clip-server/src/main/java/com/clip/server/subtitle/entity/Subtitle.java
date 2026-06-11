@@ -51,4 +51,11 @@ public class Subtitle {
         this.startTime = startTime;
         this.endTime = endTime;
     }
+
+    /**
+     * 번역 텍스트 업데이트
+     */
+    public void updateTranslation(String translation) {
+        this.translation = translation;
+    }
 }
