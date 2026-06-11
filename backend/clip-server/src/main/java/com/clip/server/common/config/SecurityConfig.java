@@ -4,6 +4,7 @@ import com.clip.server.common.security.AdminApiKeyFilter;
 import com.clip.server.common.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -29,6 +30,10 @@ public class SecurityConfig {
     private final AdminApiKeyFilter adminApiKeyFilter;
     private final CorsProperties corsProperties;
 
+    // 🎯 현재 구동 중인 환경(Profile) 정보
+    @Value("${spring.profiles.active:local}")
+    private String activeProfile;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -39,19 +44,28 @@ public class SecurityConfig {
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers(
-                                "/api/auth/**",
-                                "/health",
-                                "/swagger-ui/**",
-                                "/v3/api-docs/**",
-                                "/ws-chat/**"
-                        ).permitAll()
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .anyRequest().authenticated()
-                )
+                .authorizeHttpRequests(auth -> {
+                    // 1. 공통 허용 경로
+                    auth.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                            .requestMatchers(
+                                    "/api/auth/**",
+                                    "/health",
+                                    "/ws-chat/**"
+                            ).permitAll();
 
+                    // 2. 🔐 Swagger 프로필별 조건부 분기
+                    if ("prod".equals(activeProfile)) {
+                        auth.requestMatchers("/swagger-ui/**", "/v3/api-docs/**").hasRole("ADMIN");
+                        log.info("운영 환경(prod): Swagger UI 접근이 ADMIN으로 제한됩니다.");
+                    } else {
+                        auth.requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll();
+                        log.info("개발 환경({}): Swagger UI가 공개 상태입니다.", activeProfile);
+                    }
+
+                    // 3. 관리자 전용 및 나머지 경로
+                    auth.requestMatchers("/api/admin/**").hasRole("ADMIN")
+                            .anyRequest().authenticated();
+                })
                 .addFilterBefore(adminApiKeyFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
