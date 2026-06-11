@@ -15,6 +15,7 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final JwtChannelInterceptor jwtChannelInterceptor;
+    private final CorsProperties corsProperties;
 
     /**
      * 클라이언트가 연결할 STOMP 엔드포인트 등록
@@ -22,7 +23,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws-chat")
-                .setAllowedOriginPatterns("*")  // 운영 시 정확한 도메인으로 제한
+                .setAllowedOriginPatterns(
+                        corsProperties.getAllowedOrigins().toArray(new String[0])
+                )
                 .withSockJS();
     }
 
