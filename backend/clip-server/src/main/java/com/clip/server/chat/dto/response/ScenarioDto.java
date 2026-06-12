@@ -9,5 +9,6 @@ import lombok.Getter;
 public class ScenarioDto {
     private Long scenarioId;
     private String title;
-    private String description;
+    private String goal;        // 학습자 미션
+    private String situation;   // 상황 묘사
 }

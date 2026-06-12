@@ -168,6 +168,78 @@ public class ChatMessageOrchestrator {
     }
 
     /**
+     *  채팅 시작 - AI 인트로 메시지 생성 및 푸시
+     * - 메시지가 0개일 때만 동작 (중복 방지)
+     * - VOICE/TEXT 모드 무관하게 인트로는 항상 음성 포함 (시나리오 몰입감)
+     */
+    @Async("chatTaskExecutor")
+    public void startChat(Long userId, Long chatRoomId) {
+        try {
+            // 1. 채팅방 검증 (소유권 + 상태)
+            ChatRoom chatRoom = validateAndGetChatRoom(userId, chatRoomId);
+
+            // 2. 중복 방지: 이미 메시지가 있으면 인트로 생략
+            long messageCount = chatMessageService.countAllMessages(chatRoom.getId());
+            if (messageCount > 0) {
+                log.info("이미 메시지가 존재하여 인트로를 생략합니다. chatRoomId={}, count={}",
+                        chatRoomId, messageCount);
+                return;
+            }
+
+            // 3. AI 인트로 생성
+            log.info("AI 인트로 생성 시작. chatRoomId={}", chatRoomId);
+            AiChatResult introResult = chatAiClient.getOpeningMessage(chatRoom);
+
+            // 4. TTS 변환 + S3 업로드 (실패해도 텍스트는 보냄)
+            String aiAudioUrl = null;
+            try {
+                byte[] audioData = azureTtsClient.synthesize(
+                        introResult.getAiResponse(),
+                        chatRoom.getAiGender().name()
+                );
+                aiAudioUrl = s3Service.uploadAiAudioAndGetUrl(audioData, "audio/mpeg");
+                log.info("인트로 음성 S3 업로드 완료. url={}", aiAudioUrl);
+            } catch (Exception e) {
+                log.warn("인트로 TTS 실패. 텍스트만 푸시합니다. chatRoomId={}", chatRoomId, e);
+            }
+
+            // 5. AI 메시지 저장 (turn 0 = 인트로)
+            ChatMessage aiMessage;
+            if (aiAudioUrl != null) {
+                aiMessage = chatMessageService.saveAiMessageWithAudio(
+                        chatRoom,
+                        introResult.getAiResponse(),
+                        aiAudioUrl,
+                        0
+                );
+            } else {
+                aiMessage = chatMessageService.saveAiMessage(
+                        chatRoom,
+                        introResult.getAiResponse(),
+                        0
+                );
+            }
+
+            // 6. AI_TEXT_DONE 푸시
+            sendAiTextDone(userId, aiMessage.getId(), introResult);
+
+            // 7. AI_AUDIO 푸시 (TTS 성공 시)
+            if (aiAudioUrl != null) {
+                sendAiAudio(userId, aiMessage.getId(), aiAudioUrl);
+            }
+
+            // 8. PROGRESS 푸시 안 함 — 사용자 턴은 아직 시작 전 (turn 0)
+
+        } catch (BusinessException e) {
+            log.warn("인트로 생성 비즈니스 예외. userId={}, message={}", userId, e.getMessage());
+            sendError(userId, e.getErrorCode().name(), e.getMessage());
+        } catch (Exception e) {
+            log.error("인트로 생성 중 예상치 못한 에러. userId={}", userId, e);
+            sendError(userId, "INTERNAL_ERROR", "인트로 생성 중 오류가 발생했습니다.");
+        }
+    }
+
+    /**
      * 채팅방 검증 (소유권 + 상태)
      */
     private ChatRoom validateAndGetChatRoom(Long userId, Long chatRoomId) {

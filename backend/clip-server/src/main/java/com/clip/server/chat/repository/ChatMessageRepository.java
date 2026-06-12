@@ -37,4 +37,11 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
      * 발신자 타입별 메시지 개수
      */
     int countByChatRoomIdAndSenderType(Long chatRoomId, SenderType senderType);
+
+    /**
+     * 채팅방 ID로 전체 메시지 개수 조회
+     * (USER + AI 메시지 모두 카운트)
+     * 인트로 중복 방지용
+     */
+    long countByChatRoomId(Long chatRoomId);
 }
