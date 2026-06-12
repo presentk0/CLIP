@@ -50,10 +50,10 @@ public class SecurityConfig {
                             .requestMatchers(
                                     "/api/auth/**",
                                     "/health",
-                                    "/ws-chat/**"
+                                    "/ws-chat/**", "ws-voice-test.html"
                             ).permitAll();
 
-                    // 2. 🔐 Swagger 프로필별 조건부 분기
+                    // 2.  Swagger 프로필별 조건부 분기
                     if ("prod".equals(activeProfile)) {
                         auth.requestMatchers("/swagger-ui/**", "/v3/api-docs/**").hasRole("ADMIN");
                         log.info("운영 환경(prod): Swagger UI 접근이 ADMIN으로 제한됩니다.");

@@ -18,6 +18,7 @@ public class AIScenarioResult {
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class AIScenarioItem {
         private String title;
-        private String description;
+        private String goal;        // 학습자에게 주는 미션
+        private String situation;   // 학습자가 처한 상황 묘사
     }
 }

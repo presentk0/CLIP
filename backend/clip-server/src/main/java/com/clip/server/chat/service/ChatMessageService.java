@@ -153,4 +153,9 @@ public class ChatMessageService {
         log.info("AI 메시지(음성) 저장. messageId={}, audioUrl={}", saved.getId(), audioUrl);
         return saved;
     }
+
+    // 채팅방의 전체 메시지 개수 조회 (USER + AI 모두 포함) - 인트로 중복 방지용
+    public long countAllMessages(Long chatRoomId) {
+        return chatMessageRepository.countByChatRoomId(chatRoomId);
+    }
 }

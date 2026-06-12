@@ -17,11 +17,17 @@ public class ChatRoomInitRequest {
     @NotNull(message = "isNewStart는 필수입니다.")
     private Boolean isNewStart;
 
-    // 이어하기인 경우 wordId, selectedScenario, aiGender 선택이 불필요하므로 nullable
+    // 이어하기인 경우 wordId, scenarioTitle, scenarioDescription aiGender 선택이 불필요하므로 nullable
     private Long wordId;
 
-    @Size(max = 100, message = "시나리오는 100자 이하여야 합니다.")
-    private String selectedScenario;
+    @Size(max = 100, message = "시나리오 제목은 100자 이하여야 합니다.")
+    private String scenarioTitle;
+
+    @Size(max = 500, message = "시나리오 미션은 500자 이하여야 합니다.")
+    private String scenarioGoal;
+
+    @Size(max = 1000, message = "시나리오 상황묘사 설명은 1000자 이하여야 합니다.")
+    private String scenarioSituation;
 
     private AiGender aiGender;
 }
