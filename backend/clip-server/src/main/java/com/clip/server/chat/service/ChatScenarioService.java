@@ -40,7 +40,8 @@ public class ChatScenarioService {
                 .mapToObj(i -> ScenarioDto.builder()
                         .scenarioId((long) (i + 1))
                         .title(items.get(i).getTitle())
-                        .description(items.get(i).getDescription())
+                        .goal(items.get(i).getGoal())
+                        .situation(items.get(i).getSituation())
                         .build())
                 .toList();
 

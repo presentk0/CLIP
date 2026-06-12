@@ -49,7 +49,15 @@ public class ChatReportPromptBuilder {
         StringBuilder sb = new StringBuilder();
 
         sb.append("[대화 정보]\n");
-        sb.append("- 시나리오: ").append(chatRoom.getSelectedScenario()).append("\n");
+        sb.append("- 시나리오 제목: ").append(
+                chatRoom.getScenarioTitle() != null ? chatRoom.getScenarioTitle() : "(없음)"
+        ).append("\n");
+        sb.append("- 학습자 미션: ").append(
+                chatRoom.getScenarioGoal() != null ? chatRoom.getScenarioGoal() : "(없음)"
+        ).append("\n");
+        sb.append("- 학습자 상황: ").append(
+                chatRoom.getScenarioSituation() != null ? chatRoom.getScenarioSituation() : "(없음)"
+        ).append("\n");
         sb.append("- 타겟 단어: ").append(
                 chatRoom.getWord() != null ? chatRoom.getWord().getWord() : "(없음)"
         ).append("\n");

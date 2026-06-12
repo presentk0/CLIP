@@ -88,18 +88,25 @@ public class ChatRoomService {
         ChatRoom newRoom = ChatRoom.builder()
                 .user(user)
                 .word(word)
-                .selectedScenario(request.getSelectedScenario())
+                .scenarioTitle(request.getScenarioTitle())
+                .scenarioGoal(request.getScenarioGoal())
+                .scenarioSituation(request.getScenarioSituation())
                 .aiGender(request.getAiGender())
                 .build();
 
         ChatRoom saved = chatRoomRepository.save(newRoom);
         log.info("새 채팅방 생성 완료. chatRoomId={}", saved.getId());
 
+        // 6. 응답 (시나리오 정보 포함)
         return ChatRoomInitResponse.builder()
                 .chatRoomId(saved.getId())
                 .hasPreviousMessages(false)
+                .scenarioTitle(saved.getScenarioTitle())
+                .scenarioGoal(saved.getScenarioGoal())
+                .scenarioSituation(saved.getScenarioSituation())
                 .build();
     }
+
 
     /**
      * 이어하기 처리
@@ -114,9 +121,13 @@ public class ChatRoomService {
         log.info("채팅방 이어하기. chatRoomId={}, hasPreviousMessages={}",
                 room.getId(), hasPreviousMessages);
 
+        // 이어하기 시에도 시나리오 정보 포함 → 클라이언트가 화면 새로고침해도 시나리오 박스 그릴 수 있음
         return ChatRoomInitResponse.builder()
                 .chatRoomId(room.getId())
                 .hasPreviousMessages(hasPreviousMessages)
+                .scenarioTitle(room.getScenarioTitle())
+                .scenarioGoal(room.getScenarioGoal())
+                .scenarioSituation(room.getScenarioSituation())
                 .build();
     }
 
@@ -127,8 +138,14 @@ public class ChatRoomService {
         if (request.getWordId() == null) {
             throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "wordId는 필수입니다.");
         }
-        if (request.getSelectedScenario() == null || request.getSelectedScenario().isBlank()) {
-            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "선택한 시나리오는 필수입니다.");
+        if (request.getScenarioTitle() == null || request.getScenarioTitle().isBlank()) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "시나리오 제목은 필수입니다.");
+        }
+        if (request.getScenarioGoal() == null || request.getScenarioGoal().isBlank()) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "시나리오 미션(goal)은 필수입니다.");
+        }
+        if (request.getScenarioSituation() == null || request.getScenarioSituation().isBlank()) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "시나리오 상황(situation)은 필수입니다.");
         }
         if (request.getAiGender() == null) {
             throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "AI 성별은 필수입니다.");
@@ -155,7 +172,7 @@ public class ChatRoomService {
 
         return ChatRoomCompleteResponse.builder()
                 .chatRoomId(chatRoom.getId())
-                .completedAt(chatRoom.getUpdatedAt())  // BaseEntity 또는 엔티티의 updatedAt
+                .completedAt(chatRoom.getUpdatedAt())
                 .build();
     }
 }

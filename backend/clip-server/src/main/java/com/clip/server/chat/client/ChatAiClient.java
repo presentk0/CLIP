@@ -57,7 +57,37 @@ public class ChatAiClient {
     }
 
     /**
-     * AI 응답 형식 검증
+     * AI 인트로(첫 멘트) 생성
+     */
+    public AiChatResult getOpeningMessage(ChatRoom chatRoom) {
+        try {
+            // 1. 인트로 전용 프롬프트 생성
+            String systemPrompt = promptBuilder.buildOpeningSystemPrompt(chatRoom);
+            String userPrompt = promptBuilder.buildOpeningUserPrompt(chatRoom);
+
+            log.debug("OpenAI 인트로 호출. chatRoomId={}", chatRoom.getId());
+
+            // 2. OpenAI 호출
+            String response = openAiClient.chat(systemPrompt, userPrompt);
+            log.debug("OpenAI 인트로 응답: {}", response);
+
+            // 3. JSON 파싱
+            AiChatResult result = objectMapper.readValue(response, AiChatResult.class);
+
+            // 4. 응답 검증 (인트로는 평가 필드 없으므로 최소 검증만)
+            validateOpening(result);
+
+            return result;
+
+        } catch (Exception e) {
+            log.error("AI 인트로 생성 실패. chatRoomId={}", chatRoom.getId(), e);
+            throw new RuntimeException("AI 인트로 생성 중 오류가 발생했습니다.", e);
+        }
+    }
+
+
+    /**
+     * AI 채팅 응답 형식 검증
      */
     private void validate(AiChatResult result) {
         if (result == null) {
@@ -71,6 +101,19 @@ public class ChatAiClient {
         }
         if (result.getWordUsedNaturally() == null) {
             log.warn("wordUsedNaturally 누락, false로 기본 처리");
+        }
+    }
+
+    /**
+     * AI 인트로 응답 형식 검증
+     * (평가 관련 필드는 검증하지 않음)
+     */
+    private void validateOpening(AiChatResult result) {
+        if (result == null) {
+            throw new RuntimeException("AI 인트로 응답이 비어있습니다.");
+        }
+        if (result.getAiResponse() == null || result.getAiResponse().isBlank()) {
+            throw new RuntimeException("AI 인트로 내용이 비어있습니다.");
         }
     }
 }
