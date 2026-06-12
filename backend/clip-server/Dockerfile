@@ -12,24 +12,22 @@ COPY . .
 RUN gradle bootJar --no-daemon
 
 
-# 3단계: 최종 실행 이미지 (여기서 Azure 필수 라이브러리 주입)
-FROM eclipse-temurin:17-jre
+# 3단계: 최종 실행 이미지 (Ubuntu 20.04 기반)
+FROM eclipse-temurin:17-jre-focal
 
-# ️ Azure Speech SDK 필수 네이티브 패키지(ca-certificates, libssl, libasound2) 및 curl/ffmpeg 설치
+# Azure Speech SDK 필수 네이티브 패키지
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ffmpeg \
     ca-certificates \
-    libssl-dev \
+    libssl1.1 \
     libasound2 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# 빌더 단계에서 컴파일과 원격 라이브러리 다운로드가 완료된 jar 복사
 COPY --from=builder /app/build/libs/*.jar app.jar
 
-# 로드 디렉토리 생성 및 권한 설정
 RUN mkdir -p /home/ubuntu/app/log
 
 ENTRYPOINT ["java", "-jar", "app.jar"]
