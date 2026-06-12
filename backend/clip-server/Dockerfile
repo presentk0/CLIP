@@ -12,13 +12,16 @@ COPY . .
 RUN gradle bootJar --no-daemon
 
 
-#  3단계: 최종 실행 이미지
+# 3단계: 최종 실행 이미지 (여기서 Azure 필수 라이브러리 주입)
 FROM eclipse-temurin:17-jre
 
-# 데비안/우분투 계열 패키지 매니저(apt)로 curl과 ffmpeg 설치
+# ️ Azure Speech SDK 필수 네이티브 패키지(ca-certificates, libssl, libasound2) 및 curl/ffmpeg 설치
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ffmpeg \
+    ca-certificates \
+    libssl-dev \
+    libasound2 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
