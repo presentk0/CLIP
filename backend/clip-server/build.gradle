@@ -86,6 +86,13 @@ dependencies {
 	implementation 'software.amazon.awssdk:auth'
 	implementation 'software.amazon.awssdk:sso'        // SSO 지원
 	implementation 'software.amazon.awssdk:ssooidc'    // SSO 지원
+
+	// Apache HttpClient 5 (Connection Pool 관리)
+	implementation 'org.apache.httpcomponents.client5:httpclient5:5.3.1'
+
+	// Spring Retry (자동 재시도)
+	implementation 'org.springframework.retry:spring-retry'
+	implementation 'org.springframework:spring-aspects'
 }
 
 
