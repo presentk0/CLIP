@@ -86,7 +86,7 @@ export function AuthProvider({ children }) {
         // 사용자 못 찾으면 토큰 정리
         if (!meRes.success) {
           if (meRes.error?.code === 'USER_NOT_FOUND') {
-            console.warn('사용자 정보 없음 - 로그아웃 처리');
+            log.debug('사용자 정보 없음 - 로그아웃 처리');
             await chrome.runtime.sendMessage({ type: 'CLEAR_AUTH' });
           }
           return;
@@ -147,9 +147,23 @@ export function AuthProvider({ children }) {
   };
 
 
-
-  const completeOnboarding = () => {
+  // accessToken과 user를 보내기
+  const completeOnboarding = async () => {
+    const updatedUser = { ...user, needsOnboarding: false };
+    setUser(updatedUser);
     setNeedsOnboarding(false);
+  
+    // 현재 accessToken 가져오기
+    const auth = await chrome.runtime.sendMessage({ type: 'GET_AUTH' });
+  
+    // accessToken과 user 둘 다 보내기
+    await chrome.runtime.sendMessage({
+      type: 'SET_AUTH',
+      // 기존 토큰 유지
+      accessToken: auth.accessToken,
+      // user 갱신
+      user: updatedUser,
+    });
   };
 
 
@@ -158,7 +172,7 @@ export function AuthProvider({ children }) {
     try {
       await authApi.logout();
     } catch (error) {
-      console.warn('로그아웃 실패', error);
+      log.debug('로그아웃 실패', error);
     }
 
     // 서버 로그아웃 실패해도 클라이언트 상태는 정리

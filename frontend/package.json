@@ -11,10 +11,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@stomp/stompjs": "^7.3.0",
     "compromise": "^14.15.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "react-router-dom": "^7.15.1"
+    "react-router-dom": "^7.15.1",
+    "sockjs-client": "^1.6.1"
   },
   "devDependencies": {
     "@crxjs/vite-plugin": "^2.3.0",
