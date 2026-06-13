@@ -45,8 +45,13 @@ public class ChatScenarioAiClient {
             throw new RuntimeException("AI 응답이 비어있습니다.");
         }
 
+        // goal + situation
         boolean hasInvalidItem = result.getScenarios().stream()
-                .anyMatch(item -> isBlank(item.getTitle()) || isBlank(item.getDescription()));
+                .anyMatch(item ->
+                        isBlank(item.getTitle()) ||
+                                isBlank(item.getGoal()) ||
+                                isBlank(item.getSituation())
+                );
 
         if (hasInvalidItem) {
             throw new RuntimeException("AI 응답 형식이 올바르지 않습니다.");

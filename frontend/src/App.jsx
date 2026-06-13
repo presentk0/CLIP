@@ -9,12 +9,24 @@ import DefaultPage from './pages/DefaultPage/DefaultPage';
 import SettlementPage from './pages/SettlementPage/SettlementPage';
 import LoginPage from './pages/LoginPage/LoginPage';
 import { MyPage } from './pages/MyPage/MyPage';
+import { AiChatPage } from './pages/AiChatPage/AiChatPage';
 
 import ProtectedRoute from './components/ProtectedRoute';
 import { log } from './utils/logger';
 import './App.css';
 import { useAuth } from './hooks/useAuth';
 import { Navigate } from 'react-router-dom';
+
+// 온보딩 페이지들 추가
+import TermsAgreementPage from './pages/TermsAgreementPage/TermsAgreementPage';
+import LevelSelectPage from './pages/LevelSelectPage/LevelSelectPage';
+import GoalSelectPage from './pages/GoalSelectPage/GoalSelectPage';
+import DifficultySelectPage from './pages/DifficultySelectPage/DifficultySelectPage';
+
+import { OnboardingProvider } from './contexts/OnboardingProvider';
+import FeedbackPage from './pages/FeedbackPage/FeedbackPage';
+
+
 
 
 
@@ -24,7 +36,8 @@ function RequireOnboarding({ children }) {
   const { needsOnboarding } = useAuth();
   
   if (needsOnboarding) {
-    return <Navigate to="/my" replace />;
+    // 약관 페이지로 보내기
+    return <Navigate to="/onboarding/terms" replace />;
   }
   return children;
 }
@@ -35,8 +48,8 @@ function RequireOnboarding({ children }) {
 function AppContent() {
   const navigate = useNavigate();
 
-  // 퀴즈 결과 데이터 (정산 페이지에서 사용)
-  const [settlementData, setSettlementData] = useState(null);
+  // // 퀴즈 결과 데이터 (정산 페이지에서 사용)
+  // const [settlementData, setSettlementData] = useState(null);
   // 현재 영상에 퀴즈 중간 저장 데이터가 있는지 확인용
   const [videoId, setVideoId] = useState(null);
   // 단어 수집으로 보낼 영상제목
@@ -156,13 +169,13 @@ function AppContent() {
 
 
 
-  // 정산 페이지로 이동
-  const handleSettlement = (data) => {
-    // 데이터 저장
-    setSettlementData(data);
-    // 정산 페이지로 이동
-    navigate('/settlement');
-  };
+  // // 정산 페이지로 이동
+  // const handleSettlement = (data) => {
+  //   // 데이터 저장
+  //   setSettlementData(data);
+  //   // 정산 페이지로 이동
+  //   navigate('/settlement');
+  // };
 
 
 
@@ -176,6 +189,11 @@ function AppContent() {
   const handleMyPage = () => {
     navigate('/my');
   };
+
+  // // ai 채팅방으로 이동
+  // const handleAiChat = () => {
+  //   navigate('/ai');
+  // };
 
 
   return (
@@ -193,12 +211,46 @@ function AppContent() {
               <RequireOnboarding>
                 <DefaultPage 
                   onMyPage={handleMyPage}
+                  // onAiChatPage={handleAiChat}
                 />
               </RequireOnboarding>
             </ProtectedRoute>
           } 
         />
         <Route path="/login" element={<LoginPage />} />
+          {/* 온보딩 라우트 추가 (ProtectedRoute로 감싸야 로그인된 유저만 접근) */}
+  <Route 
+    path="/onboarding/terms" 
+    element={
+      <ProtectedRoute>
+        <TermsAgreementPage />
+      </ProtectedRoute>
+    } 
+  />
+  <Route 
+    path="/onboarding/level" 
+    element={
+      <ProtectedRoute>
+        <LevelSelectPage />
+      </ProtectedRoute>
+    } 
+  />
+  <Route 
+    path="/onboarding/goal" 
+    element={
+      <ProtectedRoute>
+        <GoalSelectPage />
+      </ProtectedRoute>
+    } 
+  />
+  <Route 
+    path="/onboarding/difficulty" 
+    element={
+      <ProtectedRoute>
+        <DifficultySelectPage />
+      </ProtectedRoute>
+    } 
+  />
         <Route 
           path="/quiz" 
           element={
@@ -207,30 +259,32 @@ function AppContent() {
                 key={resetKey}
                 videoId={videoId}
                 videoTitle={videoTitle}
-                duration={duration}
-                onExitPage={handleExit}
-                onSettlementPage={handleSettlement}
                 channelName={channelName}
                 thumbnailUrl={thumbnailUrl}
+                duration={duration}
+                // onSettlementPage={handleSettlement}
+
+
               />
             </ProtectedRoute>
           } 
         />
         <Route 
-          path="/settlement" 
+          path="/ai" 
           element={
             <ProtectedRoute>
-              <SettlementPage
-                data={settlementData}
-                videoId={videoId}
-                videoTitle={videoTitle}
-                channelName={channelName}
-                duration={duration}
-                onExitPage={handleExit}
+              <AiChatPage
               />
             </ProtectedRoute>
-          } 
+          }
         />
+        <Route 
+        path="/feedback" 
+        element={
+          <ProtectedRoute>
+            <FeedbackPage />
+          </ProtectedRoute>
+        } />
         <Route 
           path="/my" 
           element={
@@ -252,7 +306,10 @@ function App() {
   return (
     <MemoryRouter>
       <AuthProvider>
-        <AppContent />
+        <OnboardingProvider>
+          <AppContent />
+        </OnboardingProvider>
+        
       </AuthProvider>
     </MemoryRouter>
   );

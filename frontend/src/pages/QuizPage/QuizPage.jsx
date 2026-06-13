@@ -1,20 +1,26 @@
 /* global chrome */
 
 import nlp from 'compromise';
-import React, { useState, useEffect } from 'react';
-import frog from '../../imgs/image_710.png';
-import frog1 from '../../imgs/image_712.png';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
+// import frog from '../../imgs/image_710.png';
+// import frog1 from '../../imgs/image_712.png';
 import { apiFetch } from '../../utils/api';
-import bulb from '../../imgs/image_62.png';
-import frog2 from '../../imgs/image_750.png';
+// import bulb from '../../imgs/image_62.png';
+// import frog2 from '../../imgs/image_750.png';
 import { log } from '../../utils/logger';
 import styles from './QuizPage.module.css';
 import frog3 from '../../imgs/image_809.png';
+import { useNavigate } from 'react-router-dom';
+
+import SettlementPage from '../SettlementPage/SettlementPage';
+import { saveUserData, loadUserData, removeUserData } from '../../utils/userStorage';
+
+
 
 // 렌더링해도 1번만 셔플 (비교값을 -0.5 ~ 0.5으로 설정)
 const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
 
-function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage, channelName, thumbnailUrl }) {
+function QuizPage({ videoId, videoTitle, channelName, thumbnailUrl, duration }) {
 
   // 현재 문제 번호 (0부터 시작)
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -23,8 +29,7 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage,
   // 정답 확인 버튼을 눌렀는지 여부
   const [isConfirmed, setIsConfirmed] = useState(false);
   // 퀴즈 나가기 확인 팝업 표시 여부
-  const [exitModal, setExitModal] = useState(false);
-
+  const [exitModal, setExitModal] = useState(null);
 
   // 퀴즈 세션 고유 번호 (서버에서 받기)
   const [sessionId, setSessionId] = useState(null);
@@ -80,8 +85,8 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage,
   // 단어 수집 버튼 누름 여부
   const [isCollected, setIsCollected] = useState(false);
 
-  // 다음 목표 뱃지 저장
-  const [nextBadge, setNextBadge] = useState(null);
+  // // 다음 목표 뱃지 저장
+  // const [nextBadge, setNextBadge] = useState(null);
 
   // 매칭 퀴즈 선택한 영단어
   const [matchingSelectedWord, setMatchingSelectedWord] = useState(null);
@@ -95,7 +100,23 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage,
   // 퀴즈 셔플용
   const [matchingShuffledMeanings, setMatchingShuffledMeanings] = useState([]);
 
+  // 정산 상태 저장
+  const [isSettlement, setIsSettlement] = useState(false);
 
+  const [settlementData, setSettlementData] = useState(null);
+
+  // 팝업 측정 여부 체크
+  const [isPositioned, setIsPositioned] = useState(false);
+
+  // 클릭한 단어의 위치/크기 저장 (위치 계산용)
+  const [wordRect, setWordRect] = useState(null);
+
+  // useRef = DOM 요소에 직접 접근하기 위한 참조 상자
+  // useState와 달리 값이 바뀌어도 리렌더링 안 됨
+  // .current로 실제 값(DOM 노드)에 접근
+  // JSX의 ref={popupRef} 속성으로 DOM과 연결됨
+  // 렌더링 후에 popupRef.current = <div> 실제 DOM이 들어감
+  const popupRef = useRef(null);
 
   // content.jsx에서 자막 수신
   useEffect(() => {
@@ -162,12 +183,54 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage,
   }, []);
 
 
+  //  useEffect는 렌더 -> 화면에 그림 -> 실행  (사용자가 변경 전 화면을 봄 = 깜빡임)
+  //  useLayoutEffect는 렌더 -> 실행 -> 화면에 그림  (사용자는 변경된 화면만 봄 = 깜빡임 없음)
+  //  DOM 크기/위치 측정 후 그 값으로 다시 위치 조정하기 위해 사용
+  useLayoutEffect(() => {
+    // 필요한 값이 다 준비되지 않았으면 실행 안 함
+    // popupRef.current가 null이면 아직 DOM에 팝업이 없음
+    // wordRect가 null이면 단어 클릭 정보가 없음
+    // dictionaryData가 null이면 사전 데이터가 아직 없음
+    if (!popupRef.current || !wordRect || !dictionaryData) return;
+
+    // 실제 렌더링된 팝업의 너비/높이 측정
+    // offsetWidth/offsetHeight = 패딩과 테두리를 포함한 실제 픽셀 크기
+    const popupWidth = popupRef.current.offsetWidth;
+    const popupHeight = popupRef.current.offsetHeight;
+    // 단어 중앙 X 좌표 (화면 기준)
+    const wordCenter = wordRect.left + wordRect.width / 2;
+
+    // 팝업 좌측 X 좌표 = 단어 중앙에 팝업 중앙을 맞춤
+    let popupLeft = wordCenter - popupWidth / 2;
+    // 화면 왼쪽으로 삐져나가지 않게 보정
+    if (popupLeft < 10) popupLeft = 10;
+    // 화면 오른쪽으로 삐져나가지 않게 보정
+    if (popupLeft + popupWidth > window.innerWidth - 10) {
+      popupLeft = window.innerWidth - popupWidth - 10;
+    }
+
+    // 꼬리(말풍선 삼각형) 위치 = 단어 중앙 - 팝업 좌측 - 16(padding 값)
+    // .popup의 padding-left가 16이라서 .wrapper는 그만큼 안쪽에 있음
+    const arrowLeft = wordCenter - popupLeft - 16;
+
+    // 최종 위치 state 업데이트, JSX에 반영됨
+    setPopupPosition({
+      // 단어 위에 + 여백 10
+      top: wordRect.top - popupHeight - 10,
+      left: popupLeft,
+      arrowLeft,
+    });
+
+    // 측정 완료
+    setIsPositioned(true);
+  // dictionaryData 바뀌면 팝업 내용 바뀜 -> 너비 변할 수 있음 -> 재계산 필요
+  // wordRect 바뀌면 다른 단어 클릭한 것 -> 재계산 필요
+  }, [dictionaryData, wordRect]);
+
+
 
   // 이전 자막 스크립트 이동
   const goPrev = () => {
-    console.log('현재 subtitleIndex:', subtitleIndex);
-    console.log('현재 currentSubtitle:', currentSubtitle);
-    console.log('subtitles 길이:', subtitles.length);
     if (subtitleIndex > 0) {
       const newIndex = subtitleIndex - 1;
       setSubtitleIndex(newIndex);
@@ -179,9 +242,6 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage,
 
   // 다음 자막 스크립트 이동
   const goNext = () => {
-    console.log('현재 subtitleIndex', subtitleIndex);
-    console.log('현재 currentSubtitle', currentSubtitle);
-    console.log('subtitles 길이', subtitles.length);
     if (subtitleIndex < subtitles.length - 1) {
       const newIndex = subtitleIndex + 1;
       setSubtitleIndex(newIndex);
@@ -215,37 +275,48 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage,
 
 
 
-  // 단서 사전 번역 API 호출
-  async function fetchTranslation(word) {
+  // 백그라운드에 단어 전용 번역 API 호출 메시지 전송
+  async function fetchTranslation(word, meanings) {
     try {
-      const response = await apiFetch('/translate/subtitles', {
-        method: 'POST',
-        body: JSON.stringify({
-          videoId: videoId,
-          title: videoTitle,
-          duration: duration,
-          channelName: channelName,
-          thumbnailUrl: thumbnailUrl,
-          subtitleRequests: [
-            {
-              text: word,
-              startTime: currentSubtitle.startTime,
-              endTime: currentSubtitle.endTime,
-            }
-          ]
-        })
+      const response = await chrome.runtime.sendMessage({
+        type: 'TRANSLATE_WORD',
+        endpoint: '/translate/word',
+        options: {
+          method: 'POST',
+          body: JSON.stringify({ word, meanings })
+        }
       });
-      return response?.data?.translatedTexts?.[0] || '';
+      // 배열 전체 반환
+      return response?.data?.translations || [];
     } catch (error) {
-      log.debug('번역 실패', error);
-      return '';
+      log.debug('번역 실패:', error);
+      return [];
     }
   }
 
 
 
+
+
+
+
+
+
+  // 품사명 매핑 테이블
+  const posKor = {
+    noun: '명사',
+    verb: '동사',
+    adjective: '형용사',
+    adverb: '부사',
+    pronoun: '대명사',
+    preposition: '전치사',
+    conjunction: '접속사',
+    interjection: '감탄사',
+  };
+
   // 단어 클릭 시 사전 팝업 열기
   const togglePin = async (e, word, wordFilter) => {
+
     // 다른 클릭 이벤트 막기
     e.stopPropagation();
 
@@ -254,6 +325,7 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage,
       setIsPinned(false);
       setDictionaryData(null);
       setClickedSubtitle(null);
+      setIsPositioned(false);
 
       // 나중에 조회해서 이미 수집했는지 확인 후 대응하기 (오류)
       setIsCollected(false);
@@ -265,56 +337,39 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage,
     const savedSubtitle = { ...currentSubtitle };
     setClickedSubtitle({ ...savedSubtitle });
 
-    // 클릭한 단어 위치 계산
+    // 클릭한 단어 위치만 저장 (너비 계산은 useLayoutEffect에서)
     const rect = e.target.getBoundingClientRect();
-    // 팝업 너비
-    const popupWidth = 270;
-
-    // 단어 중앙 위치
-    const wordCenter = rect.left + (rect.width / 2);
-
-    // 팝업 left 계산
-    let popupLeft = wordCenter - popupWidth / 2;
-
-    // 화면 왼쪽 밖으로 나가면 조정
-    if (popupLeft < 10) {
-      popupLeft = 10;
-    }
-
-    // 화면 오른쪽 밖으로 나가면 조정
-    if (popupLeft + popupWidth > window.innerWidth - 10) {
-      popupLeft = window.innerWidth - popupWidth - 10;
-    }
-
-    // 화살표 위치 = 단어 중앙 - 팝업 left (조정 후 기준)
-    const arrowLeft = rect.left + (rect.width / 2) - popupLeft;
-
-    // let left = rect.left + (rect.width / 2);
-
-    // // 화면 왼쪽 밖으로 나가면 조정
-    // if (left - popupWidth / 2 < 10) {
-    //   left = popupWidth / 2 + 10;
-    // }
-  
-    // // 화면 오른쪽 밖으로 나가면 조정
-    // if (left + popupWidth / 2 > window.innerWidth - 10) {
-    //   left = window.innerWidth - popupWidth / 2 - 10;
-    // }
-
-    setPopupPosition({
-      // 단어 위쪽에 표시
-      top: rect.top - 215,
-      // 중앙 정렬
-      left: popupLeft,
-      arrowLeft: arrowLeft,
+    // 측정 전
+    setIsPositioned(false);
+    setWordRect({
+      left: rect.left,
+      top: rect.top,
+      width: rect.width,
     });
+
+    // popupPosition 초기화 (측정 전)
+    // 보이지 않게 화면 밖으로 보내기
+    setPopupPosition({ top: -9999, left: -9999, arrowLeft: 0 });
+
+
 
     // 서버에서 조회한 단어에서 찾기
     const collected = collectedWords.find(w => w.word === word);
     if (collected) {
+      // 자막 문맥 품사로 골라서 표시
+    const filterKor = posKor[wordFilter] || wordFilter;
+    const target = collected.meaningsByPos.find(m => m.partOfSpeech === filterKor) || collected.meaningsByPos[0];
+
       setDictionaryData({
         word: collected.word,
-        meaningTranslation: collected.translation,
+        phonetic: collected.phonetic,
+        // meaningsByPos에서 추출
+        partOfSpeech: target.partOfSpeech,
+        // meaningsByPos에서 추출
+        meanings: target.meanings,
+        // 전체 데이터 보관
+        meaningsByPos: collected.meaningsByPos,
+        // meaningTranslations: collected.translations,
       });
       setIsPinned(true);
       return;
@@ -331,21 +386,17 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage,
 
       const data = await response.json();
 
-      // API 응답이 있고, 데이터가 있으면 실행
-      if (data && data[0]) {
-        // 자막과 일치하는 품사에 대한 정보만 가져오기 (구동사 혹은 일치하는게 없으면 해당 단어의 첫 번째 품사에 대한 정보만 가져오기)
-        const meaning = data[0].meanings.find(m => m.partOfSpeech === wordFilter) || data[0].meanings[0];
+      // API 응답이 없거나, 데이터가 없으면 종료
+      if (!data || !data[0]) return;
 
-        // 품사 없으면 팝업 닫고 종료
-        if (!meaning?.partOfSpeech) {
-          setIsPinned(false);
-          setDictionaryData(null);
-          setClickedSubtitle(null);
-          return;
-        }
 
-        // 해당 품사의 첫 번째 뜻 목록 가져오기
-        const def = meaning.definitions[0];
+        // // 자막과 일치하는 품사에 대한 정보만 가져오기 (구동사 혹은 일치하는게 없으면 해당 단어의 첫 번째 품사에 대한 정보만 가져오기)
+        // const meaning = data[0].meanings.find(m => m.partOfSpeech === wordFilter) || data[0].meanings[0];
+
+
+
+        // 해당 품사의 목록 최대 3개 가져오기
+        // const def = meaning.definitions[0];
         const result = {
           word: word,
           // 발음 기호(품사는 있어도 발음이 없는 경우가 있음)
@@ -353,33 +404,99 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage,
           // 발음 음성
           audio: data[0].phonetics?.find(p => p.audio)?.audio || '',
           // 품사
-          partOfSpeech: meaning.partOfSpeech,
-          // 영어 뜻
-          definition: def.definition,
-          // 예문
-          example: def.example || '',
+          // partOfSpeech: meaning.partOfSpeech,
+          partOfSpeech: '',
+          // 영어 뜻 (최대 3개 배열)
+          // definition: def.definition,
+
+
+
+          // definitions: meaning.definitions.slice(0, 3).map(d => d.definition),
+
+
+
+          // 예문 (최대 3개 배열)
+          // example: def.example || '',
+
+
+          // examples: meaning.definitions.slice(0, 3).map(d => d.example || ''),
+
+
+
           // 유의어
-          synonyms: meaning.synonyms?.slice(0, 5) || [],
+          // synonyms: meaning.synonyms?.slice(0, 5) || [],
           // 반의어
-          antonyms: meaning.antonyms?.slice(0, 5) || [],
-          // 단어 번역
-          meaningTranslation: '',
+          // antonyms: meaning.antonyms?.slice(0, 5) || [],
+          // 단어 번역 (최대 3개 배열)
+          // meaningTranslation: '',
+
+
+
+
+          // meaningTranslations: [],
+          meanings: [],
+          meaningsByPos: [],
         };
 
-        // 뜻 번역
-        result.meaningTranslation = await fetchTranslation(result.definition) || '';
+        // 모든 품사의 모든 뜻 추출
+        const allByPos = data[0].meanings.map(m => ({
+          partOfSpeech: m.partOfSpeech,                                  // "noun" 영어
+          definitions: m.definitions.slice(0, 3).map(d => d.definition),
+        }));
+
+        // 추출된 게 없으면 팝업 닫고 종료
+        if (allByPos.length === 0) {
+          setIsPinned(false);
+          setDictionaryData(null);
+          setClickedSubtitle(null);
+          setIsPositioned(false);
+          return;
+        }
+        // 모든 뜻을 한 배열로 합치기
+        const allDefinitions = allByPos.flatMap(m => m.definitions);
+        // 배열 전체 번역 요청
+        const translations = await fetchTranslation(word, allDefinitions);
+
+        // // 뜻 번역
+        // result.meaningTranslation = await fetchTranslation(result.definition) || '';
+
+        // // 뜻 배열 번역
+        // result.meaningTranslations = await fetchTranslation (word, result.definitions);
+
+        // 번역 결과를 품사별로 매칭
+        let cursor = 0;
+        result.meaningsByPos = allByPos.map(m => {
+          const slice = translations.slice(cursor, cursor + m.definitions.length);
+          cursor += m.definitions.length;
+          return {
+            partOfSpeech: posKor[m.partOfSpeech] || m.partOfSpeech,
+            meanings: slice
+          };
+        });
+
+
+
+        // 자막 문맥 품사 골라서 result에 담기
+        const filterKor = posKor[wordFilter] || wordFilter;
+        const target = result.meaningsByPos.find(m => m.partOfSpeech === filterKor) || result.meaningsByPos[0];
+
+        result.partOfSpeech = target.partOfSpeech;
+        result.meanings = target.meanings;
 
         setDictionaryData(result);
         setIsPinned(true);
 
         // 팝업 열 때 서버에 타입 POPUP으로 보내기
-        await apiFetch('/words/collect', {
+        const collect = await apiFetch('/words/collect', {
           method: 'POST',
           body: JSON.stringify({
             wordType: 'POPUP',
-            videoId: videoId,
-            word: word,
-            meaning: result.meaningTranslation,
+            // videoId: videoId,
+            videoId,
+            // word: word,
+            word,
+            // meanings: result.meaningTranslations,
+            meaningsByPos: result.meaningsByPos,
             sentence: savedSubtitle.text,
             timestamp: formatTime(savedSubtitle.startTime),
             // set은 다음 렌더링에 반영되기에 즉시 사용해야 하는 api는 dictionaryData.translation 대신 savedSubtitle.translation 사용
@@ -389,20 +506,32 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage,
           })
         });
 
+        // 응답 성공 후 현재 로그인 유저의 캐시에서 ai챗 허용으로 갱신
+        if (collect.success) {
+          // await chrome.storage.local.set({ hasWords: true });
+          await saveUserData('hasWords', true);
+        }
         // 서버에 저장된 단어 추가
         setCollectedWords(prev => [...prev, {
           word: word,
-          translation: result.meaningTranslation
+          // translations: result.meaningTranslations
+          phonetic: result.phonetic,
+          meaningsByPos: result.meaningsByPos,
         }]);
-      }
+
     } catch (error) {
       log.debug('사전 조회 실패:', error);
       setIsPinned(false);
       setDictionaryData(null);
       setClickedSubtitle(null);
+      setIsPositioned(false);
       return;
     }
   };
+
+
+
+
 
 
 
@@ -411,6 +540,7 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage,
     setIsPinned(false);
     setDictionaryData(null);
     setClickedSubtitle(null);
+    setIsPositioned(false);
 
     // 나중에 조회해서 이미 수집했는지 확인 후 대응하기 (오류)
     setIsCollected(false);
@@ -430,14 +560,16 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage,
 
   // 단어 수집 버튼
   const collectWord = async () => {
+
     try {
-      await apiFetch('/words/collect', {
+      const collect = await apiFetch('/words/collect', {
         method: 'POST',
         body: JSON.stringify({
           wordType: 'COLLECT',
           videoId: videoId,
           word: dictionaryData.word,
-          meaning: dictionaryData.meaningTranslation,
+          meaningsByPos: dictionaryData.meaningsByPos,
+          // meaning: dictionaryData.meaningTranslation,
           // 단어가 포함된 문장
           sentence: clickedSubtitle.text,
           // 영상 시간
@@ -449,10 +581,17 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage,
         })
       });
 
+      // 응답 성공 후 현재 로그인 유저의 캐시에서 ai챗 허용으로 갱신
+      if (collect.success) {
+        // await chrome.storage.local.set({ hasWords: true });
+        await saveUserData('hasWords', true);
+      }
+
       // 서버에 저장된 단어 추가
       setCollectedWords(prev => [...prev, {
         word: dictionaryData.word,
-        translation: clickedSubtitle.translation,
+        // translation: clickedSubtitle.translation,
+        meaningsByPos: dictionaryData.meaningsByPos,
       }]);
       setIsCollected(true);
     } catch (error) {
@@ -462,13 +601,13 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage,
 
 
 
-  // 해당하는 품사를 한글로 변환
-  const partOfSpeechKo = {
-    verb: '동사',
-    noun: '명사',
-    adjective: '형용사',
-    adverb: '부사'
-  };
+  // // 해당하는 품사를 한글로 변환
+  // const partOfSpeechKo = {
+  //   verb: '동사',
+  //   noun: '명사',
+  //   adjective: '형용사',
+  //   adverb: '부사'
+  // };
 
 
 
@@ -539,7 +678,10 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage,
 
   // 현재 문제 정보
   const currentQuiz = quizzes[currentIndex];
-  const isCorrect = feedback?.correct;
+  // if (currentQuiz?.quizType === 'MATCHING') {
+  //   log.debug(feedback?.feedback);
+  // }
+
 
 
 
@@ -585,437 +727,8 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage,
 
 
 
-  // 빈칸 퀴즈 타입별 나타나는 박스
-  const blankQuiz = () => {
-    if (!currentQuiz?.options?.length) return null;
-    return(
-      // {/* 전체 퀴즈 박스 */}
-      <div style={{
-        display: 'flex',
-        width: '370px',
-        padding: '24px 16px 20px 16px',
-        flexDirection: 'column',
-        alignItems: 'flex-start',
-        gap: '24px',
-        borderRadius: '24px',
-        background: '#FFF'
-      }}>
-
-        {/* 문제 박스 */}
-        <div style={{
-          display: 'flex',
-          width: '334px',
-          padding: '0 4px',
-          flexDirection: 'column',
-          alignItems: 'flex-start',
-          gap: '12px',
-        }}>
-
-          {/* 빈칸 채우기 박스 */}
-          <div style={{
-            display: 'flex',
-            padding: '6px 12px',
-            justifyContent: 'center',
-            alignItems: 'center',
-            borderRadius: '999px',
-            background: '#F5F3FF',
-          }}>
-
-            <p style={{
-              color: '#01030D',
-              fontFamily: 'Pretendard',
-              fontSize: '12px',
-              fontStyle: 'normal',
-              fontWeight: '400',
-              lineHeight: 'normal'
-            }}>
-              빈칸 채우기
-            </p>
-          </div>
-
-          {/* 자막, 뜻 들어가는 박스 */}
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'flex-start',
-            gap: '8px',
-            alignSelf: 'stretch'
-          }}>
-
-            {/* 자막 전용 박스 */}
-            <div style={{
-              display: 'flex',
-              width: '191px',
-              flexDirection: 'column',
-              alignItems: 'flex-start',
-              gap: '4px'
-            }}>
-
-              {/* 빈칸 채우기 문제 자막 박스 */}
-              <div style={{
-                display: 'flex',
-                alignItems: 'flex-end',
-                gap: '4px',
-                alignSelf: 'stretch'
-              }}>
-
-                {/* 빈칸 채우기 문제 질문 */}
-                <p style={{ 
-                  alignSelf: 'stretch',
-                  color: '#01030D',
-                  fontFamily: 'Pretendard',
-                  fontSize: '16px',
-                  fontStyle: 'normal',
-                  fontWeight: '700',
-                  lineHeight: 'normal'
-                }}>
-                  {/* 회색 박스 대신 _____ 사용 */}
-                  {currentQuiz?.content.replace('[ ]', tempChoice || '[ ]')}
-                </p>
-              </div>
-            </div>
-
-            {/* 빈칸 채우기 문제 번역 */}
-            <p style={{
-              alignSelf: 'stretch',
-              color: '#9198A3',
-              fontFamily: 'Pretendard',
-              fontSize: '16px',
-              fontStyle: 'normal',
-              fontWeight: '700',
-              lineHeight: 'normal'
-            }}>
-              {currentQuiz?.translation}
-            </p>
-          </div>
-        </div>
-
-        {/* 보기 버튼 전체 박스 */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          alignContent: 'flex-start',
-          gap: '8px',
-          alignSelf: 'stretch',
-          flexWrap: 'wrap'
-        }}>
-
-          {/* 보기 버튼 */}
-          {currentQuiz?.options.map((choice, i) => (
-            <button
-            key={i}
-            disabled={isConfirmed}
-            onClick={() => handleChoice(choice)}
-            style={{
-              display: 'flex',
-              width: '165px',
-              height: '40px',
-              padding: buttonPositions[i].padding,
-              justifyContent: 'center',
-              alignItems: 'center',
-              gap: '10px',
-              borderRadius: '10px',
-              border: borderColor(choice),
-              background: backgroundColor(choice),
-              boxShadow: '0 4px 4px 0 rgba(206, 210, 223, 0.16)',
-              color: textColor(choice),
-              textAlign: 'center',
-              fontFamily: 'Pretendard',
-              fontSize: '14px',
-              fontStyle: 'normal',
-              fontWeight: '400',
-              lineHeight: 'normal',
-            }}>
-              {choice}
-            </button>
-          ))}
-        </div>
-      </div>
-    );
-  }
 
 
-
-  // ox 퀴즈 타입별 나타나는 박스
-  const oxQuiz = () => {
-    if (!currentQuiz) return null;
-    return(
-      // {/* 전체 퀴즈 박스 */}
-      <div style={{
-        display: 'flex',
-        width: '370px',
-        padding: '24px 16px 20px 16px',
-        flexDirection: 'column',
-        justifyContent: 'flex-end',
-        alignItems: 'flex-start',
-        gap: '24px',
-        borderRadius: '24px',
-        background: '#FFF'
-      }}>
-
-        {/* 문제 박스 */}
-        <div style={{
-          display: 'flex',
-          width: '334px',
-          padding: '0 4px',
-          flexDirection: 'column',
-          alignItems: 'flex-start',
-          gap: '12px',
-        }}>
-
-          {/* 빈칸 채우기 박스 */}
-          <div style={{
-            display: 'flex',
-            padding: '6px 12px',
-            justifyContent: 'center',
-            alignItems: 'center',
-            borderRadius: '999px',
-            background: '#F5F3FF',
-          }}>
-
-            <p style={{
-              color: '#01030D',
-              fontFamily: 'Pretendard',
-              fontSize: '12px',
-              fontStyle: 'normal',
-              fontWeight: '400',
-              lineHeight: 'normal'
-            }}>
-              OX 퀴즈
-            </p>
-          </div>
-
-          {/* ox 문제 질문, 뜻 들어가는 박스 */}
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'flex-start',
-            gap: '8px',
-            alignSelf: 'stretch'
-          }}>
-
-            {/* ox 문제 질문 전용 박스 */}
-            <div style={{
-              display: 'flex',
-              width: '191px',
-              flexDirection: 'column',
-              alignItems: 'flex-start',
-              gap: '4px'
-            }}>
-
-              {/* ox 문제 질문 박스 */}
-              <div style={{
-                display: 'flex',
-                alignItems: 'flex-end',
-                gap: '4px',
-                alignSelf: 'stretch'
-              }}>
-
-                {/* ox 문제 질문 */}
-                <p>
-                  {highlightWord(currentQuiz?.content, currentQuiz?.question?.match(/[a-zA-Z]+/)?.[0])}
-                </p>
-              </div>
-            </div>
-
-            {/* ox 문제 질문 뜻 */}
-            <p style={{
-              alignSelf: 'stretch',
-              color: '#9198A3',
-              fontFamily: 'Pretendard',
-              fontSize: '16px',
-              fontStyle: 'normal',
-              fontWeight: '700',
-              lineHeight: 'normal'
-            }}>
-              {currentQuiz?.translation}
-            </p>
-          </div>
-        </div>
-
-        {/* 보기 버튼 전체 박스 */}
-        <div style={{
-          display: 'inline-grid',
-          height: '60px',
-          columnGap: '8px',
-          gridTemplateRows: 'repeat(1,fit-content(100%))',
-          gridTemplateColumns: 'repeat(2,fit-content(100%))',
-        }}>
-
-          {/* O 버튼 */}
-          <button
-          disabled={isConfirmed}
-          onClick={() => handleChoice('O')}
-          style={{
-            display: 'flex',
-            width: '165px',
-            height: '60px',
-            padding: '11px 63px 12px 63px',
-            justifyContent: 'center',
-            alignItems: 'center',
-            gap: '10px',
-            gridRow: '1 / span 1',
-            gridColumn: '1 / span 1',
-            borderRadius: '14px',
-            border: oxBorderColor('O'),
-            background: oxBackgroundColor('O'),
-            boxShadow: tempChoice === 'O' ? '0 4px 4px 0 rgba(206, 210, 223, 0.16)' : 'none',
-          }}>
-            O
-          </button>
-
-          {/* X 버튼 */}
-          <button
-          disabled={isConfirmed}
-          onClick={() => handleChoice('X')}
-          style={{
-            display: 'flex',
-            width: '165px',
-            height: '60px',
-            padding: '11px 63px 12px 63px',
-            justifyContent: 'center',
-            alignItems: 'center',
-            gap: '10px',
-            gridRow: '1 / span 1',
-            gridColumn: '2 / span 1',
-            borderRadius: '14px',
-            border: oxBorderColor('X'),
-            background: oxBackgroundColor('X'),
-            boxShadow: tempChoice === 'X' ? '0 4px 4px 0 rgba(206, 210, 223, 0.16)' : 'none',
-          }}>
-            X
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-
-
-  // 매칭 퀴즈 타입별 나타나는 박스
-  const matchingQuiz = () => {
-    if (!quizzes?.length || !matchingShuffledMeanings?.length) return null;
-    return(
-      // {/* 전체 퀴즈 박스 */}
-      <div style={{
-        display: 'flex',
-        width: '370px',
-        padding: '24px 16px 20px 16px',
-        flexDirection: 'column',
-        alignItems: 'flex-start',
-        gap: '24px',
-        borderRadius: '24px',
-        background: '#FFF'
-      }}>
-
-        {/* 문제 박스 */}
-        <div style={{
-          display: 'flex',
-          width: '334px',
-          padding: '0 4px',
-          flexDirection: 'column',
-          alignItems: 'flex-start',
-          gap: '12px',
-        }}>
-
-          {/* 단어와 뜻 매칭하기 박스 */}
-          <div style={{
-            display: 'flex',
-            padding: '6px 12px',
-            justifyContent: 'center',
-            alignItems: 'center',
-            borderRadius: '999px',
-            background: '#F5F3FF',
-          }}>
-
-            <p style={{
-              color: '#01030D',
-              fontFamily: 'Pretendard',
-              fontSize: '12px',
-              fontStyle: 'normal',
-              fontWeight: '400',
-              lineHeight: 'normal'
-            }}>
-              단어와 뜻 매칭하기
-            </p>
-          </div>
-
-          {/* 단어와 뜻 들어가는 박스 */}
-          <div style={{
-            display: 'inline-grid',
-            rowGap: '8px',
-            columnGap: '8px',
-            alignSelf: 'stretch',
-            gridTemplateRows: 'repeat(3,fit-content(100%))',
-            gridTemplateColumns: 'repeat(2,minmax(0,1fr))',
-          }}>
-
-            {/* 매칭 퀴즈 보기 버튼 */}
-            {quizzes?.map((quiz, i) => (
-              <React.Fragment key={i}>
-                {/* 영어 단어 */}
-                <button
-                  disabled={matchingMatchedPairs.some(p => p.word === quiz.question)}
-                  onClick={() => matchingHandleWordClick(quiz.question)}
-                  style={{
-                    display: 'flex',
-                    width: '165px',
-                    height: '40px',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    borderRadius: '10px',
-                    ...matchingGetWordStyle(quiz.question),
-                }}>
-                  {quiz.question}
-                </button>
-
-                {/* 단어 뜻 */}
-                <button
-                  disabled={matchingMatchedPairs.some(p => p.meaning === matchingShuffledMeanings[i])}
-                  onClick={() => matchingHandleMeaningClick(matchingShuffledMeanings[i])}
-                  style={{
-                    display: 'flex',
-                    width: '165px',
-                    height: '40px',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    borderRadius: '10px',
-                    ...matchingGetMeaningStyle(matchingShuffledMeanings[i]),
-                }}>
-                  {matchingShuffledMeanings[i]}
-                </button>
-              </React.Fragment>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-
-
-  // 정답 오답 선택 미선택에 따른 border 색상 변화 (빈칸 퀴즈)
-  const borderColor = (choice) => {
-    // feedback에서 정답 가져오기
-    const correctAnswer = feedback?.correctAnswer;
-    if (!isConfirmed) {
-      // 확정 전: 선택한 것 : 선택안한 것 표시
-      return tempChoice === choice ? '1px solid #9B87E8' : 'none';
-    }
-
-    // 확정 후: 정답이면
-    if (choice === correctAnswer) {
-      return '1px solid #C1C0FC';
-    }
-
-    // 확정 후: 내가 선택한 답이 오답이면
-    if (choice === tempChoice && tempChoice !== correctAnswer) {
-      return '1px solid #FFB484';
-    }
-
-    // 확정 후: 미선택이면
-    return 'none';
-  };
 
 
 
@@ -1069,27 +782,27 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage,
 
 
 
-  // 정답 오답 선택 미선택에 따른 border 색상 변화 (ox 퀴즈)
-  const oxBorderColor = (choice) => {
+  // 정답 오답 선택 미선택에 따른 Color 색상 변화 (ox 퀴즈)
+  const oxColor = (choice) => {
     // feedback에서 정답 가져오기
     const correctAnswer = feedback?.correctAnswer;
     if (!isConfirmed) {
       // 확정 전: 선택한 것 : 선택안한 것 표시
-      return tempChoice === choice ? '1px solid #9B87E8' : 'none';
+      return tempChoice === choice ? '#FFF' : '#A0A08A';
     }
 
     // 확정 후: 정답이면
     if (choice ===  correctAnswer) {
-      return '1px solid #C1C0FC';
+      return '#FFF';
     }
 
     // 확정 후: 내가 선택한 답이 오답이면
     if (choice === tempChoice && tempChoice !==  correctAnswer) {
-      return '1px solid #F7731E';
+      return '#FFC229';
     }
 
     // 확정 후: 미선택이면
-    return 'none';
+    return '#A0A08A';
   };
 
 
@@ -1100,108 +813,108 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage,
     const correctAnswer = feedback?.correctAnswer;
     if (!isConfirmed) {
       // 확정 전: 선택한 것 : 선택안한 것 표시
-      return tempChoice === choice ? '#FFF' : '#F7F7F7';
+      return tempChoice === choice ? '#45A84D' : '#E9E9DE';
     }
 
     // 확정 후: 정답이면
     if (choice ===  correctAnswer) {
-      return '#F0F3FF';
+      return '#76B9F0';
     }
 
     // 확정 후: 내가 선택한 답이 오답이면
     if (choice === tempChoice && tempChoice !==  correctAnswer) {
-      return '#FFF4EE';
+      return '#FFF2D0';
     }
 
     // 확정 후: 미선택이면
-    return '#F7F7F7';
+    return '#E9E9DE';
   };
 
 
 
   // 매칭 퀴즈 영단어 클릭
-  const matchingHandleWordClick = (word) => {
+  const matchingHandleWordClick = (wordQuizId) => {
     // 이미 맞춘 단어면 무시
-    if (matchingMatchedPairs.some(pair => pair.word === word)) return;
+    if (matchingMatchedPairs.some(pair => pair.wordQuizId === wordQuizId)) return;
 
     // 다른 단어 클릭하면 선택 변경
-    setMatchingSelectedWord(word);
+    setMatchingSelectedWord(wordQuizId);
 
     // 뜻이 이미 선택되어 있으면 매칭 시도
-    if (matchingSelectedMeaning) {
-      checkMatch(word, matchingSelectedMeaning);
+    if (matchingSelectedMeaning !== null) {
+      checkMatch(wordQuizId, matchingSelectedMeaning);
     }
   };
 
 
 
   // 매칭 퀴즈 뜻 클릭
-  const matchingHandleMeaningClick = (meaning) => {
+  const matchingHandleMeaningClick = (meaningQuizId) => {
     // 이미 맞춘 뜻이면 무시
-    if (matchingMatchedPairs.some(pair => pair.meaning === meaning)) return;
+    if (matchingMatchedPairs.some(pair => pair.meaningQuizId === meaningQuizId)) return;
 
     // 다른 뜻 클릭하면 선택 변경
-    setMatchingSelectedMeaning(meaning);
+    setMatchingSelectedMeaning(meaningQuizId);
 
     // 단어가 이미 선택되어 있으면 매칭 시도
-    if (matchingSelectedWord) {
-      checkMatch(matchingSelectedWord, meaning);
+    if (matchingSelectedWord !== null) {
+      checkMatch(matchingSelectedWord, meaningQuizId);
     }
   };
 
 
-
   // 매칭 퀴즈 매칭확인
-  const checkMatch = async (word, meaning) => {
-    // 정답 찾기
-    const quiz = quizzes.find(q => q.question === word);
-    const isMatchingCorrect = quiz?.answer === meaning;
+  const checkMatch = async (wordQuizId, meaningQuizId) => {
+    // 같은 quizId면 정답 (단어와 뜻이 같은 퀴즈에 속함)
+    const isMatchingCorrect = wordQuizId === meaningQuizId;
+    const quiz = quizzes.find(q => q.quizId === wordQuizId);
 
     // 이미 전송한 quizId면 서버 전송 스킵
-    const alreadySubmitted = submittedQuizIds.includes(quiz?.quizId);
+    const alreadySubmitted = submittedQuizIds.includes(wordQuizId);
 
     // 정답일 경우
     if (isMatchingCorrect) {
       // 전송하지 않은 quizId인 경우 전송
-      if (!alreadySubmitted) {
+      if (isMatchingCorrect) {
         try {
           await apiFetch('/quiz/submit', {
             method: 'POST',
             body: JSON.stringify({
               sessionId,
-              quizId: quiz?.quizId,
-              userAnswer: meaning
+              quizId: wordQuizId,
+              userAnswer: quiz.answer
             })
           });
-          setSubmittedQuizIds(prev => [...prev, quiz?.quizId]);
+          setSubmittedQuizIds(prev => [...prev, wordQuizId]);
         } catch (error) {
           log.debug('매칭 정답 전송 실패:', error);
         }
       }
 
     // 화면 업데이트
-    setMatchingMatchedPairs(prev => [...prev, { word, meaning }]);
+    setMatchingMatchedPairs(prev => [...prev, { wordQuizId, meaningQuizId }]);
     setMatchingSelectedWord(null);
     setMatchingSelectedMeaning(null);
     } else {
       // 오답일 경우
       // 전송하지 않은 quizId인 경우 전송
       if (!alreadySubmitted) {
+        const wrongMeaning = quizzes.find(q => q.quizId === meaningQuizId)?.answer;
         try {
           await apiFetch('/quiz/submit', {
             method: 'POST',
             body: JSON.stringify({
               sessionId,
-              quizId: quiz?.quizId,
-              userAnswer: meaning
+              quizId: wordQuizId,
+              userAnswer: wrongMeaning
             })
           });
-          setSubmittedQuizIds(prev => [...prev, quiz?.quizId]);
+          setSubmittedQuizIds(prev => [...prev, wordQuizId]);
         } catch (error) {
           log.debug('매칭 오답 전송 실패:', error);
         }
       }
-      setMatchingWrongPair({ word, meaning });
+      setMatchingWrongPair({ wordQuizId, meaningQuizId });
 
       // 1초 후 초기화
       setTimeout(() => {
@@ -1215,41 +928,41 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage,
 
 
   // 단어 버튼의 정답 오답 선택 미선택에 따른 background, border, box-shadow 색상 변화 (매칭)
-  const matchingGetWordStyle = (word) => {
+  const matchingGetWordStyle = (wordQuizId) => {
     // 맞춘 단어 - 파란색 유지
-    if (matchingMatchedPairs.some(pair => pair.word === word)) {
-      return { background: '#F0F3FF', border: '1px solid #C1C0FC', boxShadow: '0 4px 4px 0 rgba(206, 210, 223, 0.16)' };
+    if (matchingMatchedPairs.some(pair => pair.wordQuizId === wordQuizId)) {
+      return { background: '#76B9F0', color: '#FFF'};
     }
     // 틀린 단어 - 주황색
-    if (matchingWrongPair?.word === word) {
-      return { background: '#FFF4EE', border: '1px solid #FFB484', boxShadow: '0 4px 4px 0 rgba(206, 210, 223, 0.16)'};
+    if (matchingWrongPair?.wordQuizId === wordQuizId) {
+      return { background: '#FFF2D0', color: '#FFC229'};
     }
     // 선택된 단어 - 파란색
-    if (matchingSelectedWord === word) {
-      return { background: '#FFF', border: '1px solid #9B87E8', boxShadow: '0 4px 4px 0 rgba(206, 210, 223, 0.16)' };
+    if (matchingSelectedWord === wordQuizId) {
+      return { background: '#76B9F0', color: '#FFF'};
     }
     // 미선택
-    return { background: '#F7F7F7', border: 'none', boxShadow: 'none' };
+    return { background: '#E9E9DE', color: '#A0A08A'};
   };
 
 
 
-  // 뜻 버튼의 정답 오답 선택 미선택에 따른 background, border, box-shadow 색상 변화 (매칭)
-  const matchingGetMeaningStyle = (meaning) => {
+  // 뜻 버튼의 정답 오답 선택 미선택에 따른 background, color 색상 변화 (매칭)
+  const matchingGetMeaningStyle = (meaningQuizId) => {
     // 맞춘 뜻 - 파란색 유지
-    if (matchingMatchedPairs.some(pair => pair.meaning === meaning)) {
-      return { background: '#F0F3FF', border: '1px solid #C1C0FC', boxShadow: '0 4px 4px 0 rgba(206, 210, 223, 0.16)'};
+    if (matchingMatchedPairs.some(pair => pair.meaningQuizId === meaningQuizId)) {
+      return { background: '#76B9F0', color: '#FFF'};
     }
     // 틀린 뜻 - 주황색
-    if (matchingWrongPair?.meaning === meaning) {
-      return { background: '#FFF4EE', border: '1px solid #FFB484', boxShadow: '0 4px 4px 0 rgba(206, 210, 223, 0.16)'};
+    if (matchingWrongPair?.meaningQuizId === meaningQuizId) {
+      return { background: '#FFF2D0', color: '#FFC229'};
     }
     // 선택된 뜻 - 파란색
-    if (matchingSelectedMeaning === meaning) {
-      return { background: '#FFF', border: '1px solid #9B87E8', boxShadow: '0 4px 4px 0 rgba(206, 210, 223, 0.16)'};
+    if (matchingSelectedMeaning === meaningQuizId) {
+      return { background: '#76B9F0', color: '#FFF'};
     }
     // 미선택
-    return { background: '#F7F7F7', border: 'none', boxShadow: 'none' };
+    return { background: '#E9E9DE', color: '#A0A08A'};
   };
 
 
@@ -1262,10 +975,13 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage,
         const finalResult = await apiFetch(`/quiz/sessions/${sessionId}/complete`, {
           method: 'POST'
         });
-        // 저장된 진행 상황 삭제
-        chrome.storage.local.remove('quizState');
+        // 해당 유저의 저장된 진행 상황 삭제
+        // chrome.storage.local.remove('quizState');
+        await removeUserData('quizState');
         // 정산 페이지로 이동
-        onSettlementPage(finalResult.data);
+        setSettlementData(finalResult.data);
+        setIsSettlement(true);
+        // onSettlementPage(finalResult.data);
       } catch (error) {
         log.debug('handleMatchingComplete 세션 종료 실패', error);
       }
@@ -1276,26 +992,30 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage,
 
   // 퀴즈 초기화 및 이전 진행 상황 복원
   useEffect(() => {
+    const restoreQuiz = async () => {
+      // 크롬 저장소에서 유저 id에 맞는 이전 진행 상황 확인
+      const quizState = await loadUserData('quizState');
     // 크롬 저장소에서 이전 진행 상황 확인
-    chrome.storage.local.get('quizState', async (result) => {
-      // 같은 영상의 저장된 퀴즈가 있으면 이어하기
-      if (result.quizState?.videoId === videoId) {
-        log.debug('사이드패널 퀴즈 복원', result, Date.now());
-        setQuizzes(result.quizState.quizzes);
-        setMatchingShuffledMeanings(result.quizState.matchingShuffledMeanings ?? []);
-        setSessionId(result.quizState.sessionId);
-        setCurrentIndex(result.quizState.currentIndex);
-        setCorrectCount(result.quizState.correctCount);
-        setWrongCount(result.quizState.wrongCount);
-        setAnswers(result.quizState.answers);
-        setIsConfirmed(result.quizState.isConfirmed ?? false);
-        setTempChoice(result.quizState.tempChoice ?? null);
+    // chrome.storage.local.get('quizState', async (result) => {
 
-        setMatchingSelectedWord(result.quizState.matchingSelectedWord ?? null);
-        setMatchingSelectedMeaning(result.quizState.matchingSelectedMeaning ?? null);
-        setMatchingMatchedPairs(result.quizState.matchingMatchedPairs ?? []);
+      // 같은 영상의 저장된 퀴즈가 있으면 이어하기
+      // if (result.quizState?.videoId === videoId) {
+      if (quizState && quizState.videoId === videoId) {
+        setQuizzes(quizState.quizzes);
+        setMatchingShuffledMeanings(quizState.matchingShuffledMeanings ?? []);
+        setSessionId(quizState.sessionId);
+        setCurrentIndex(quizState.currentIndex);
+        setCorrectCount(quizState.correctCount);
+        setWrongCount(quizState.wrongCount);
+        setAnswers(quizState.answers);
+        setIsConfirmed(quizState.isConfirmed ?? false);
+        setTempChoice(quizState.tempChoice ?? null);
+
+        setMatchingSelectedWord(quizState.matchingSelectedWord ?? null);
+        setMatchingSelectedMeaning(quizState.matchingSelectedMeaning ?? null);
+        setMatchingMatchedPairs(quizState.matchingMatchedPairs ?? []);
         setMatchingWrongPair(null);
-        setSubmittedQuizIds(result.quizState.submittedQuizIds ?? []);
+        setSubmittedQuizIds(quizState.submittedQuizIds ?? []);
         // 영상 일시정지 메시지 전송
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
           if (tabs[0]) chrome.tabs.sendMessage(tabs[0].id, { type: 'SET_QUIZ_MODE', active: true }).catch((error) => {log.debug('이거 에러22:', error)});
@@ -1304,20 +1024,27 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage,
 
       // 복원 완료 체크
       setIsRestoring(false);
-    });
+    };
+    // });
+    restoreQuiz();
 
     // content.jsx에서 새 퀴즈 받기
     const listener = (message) => {
       if (message.type === 'QUIZ_READY') {
-        log.debug('사이드패널 퀴즈 받음', message, Date.now());
+
         // 새 퀴즈로 초기화
         setSessionId(message.sessionId);
         setQuizzes(message.quizzes);
         if (message.quizzes[0]?.quizType === 'MATCHING') {
-          setMatchingShuffledMeanings(shuffle(message.quizzes.map(q => q.answer)));
-        } else {
-          setMatchingShuffledMeanings([]);
-        }
+  // { quizId, meaning } 형태로 저장
+  const meaningsWithId = message.quizzes.map(q => ({
+    quizId: q.quizId,
+    meaning: q.answer
+  }));
+  setMatchingShuffledMeanings(shuffle(meaningsWithId));
+} else {
+  setMatchingShuffledMeanings([]);
+}
         setCurrentIndex(0);
         setCorrectCount(0);
         setWrongCount(0);
@@ -1344,45 +1071,32 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage,
 
 
 
-  // 다음 목표 뱃지 조회하기
-  useEffect(() => {
-    const fetchBadge = async () => {
-      try {
-        const badge = await apiFetch(`/badges/video/${videoId}`, {
-          method: 'GET'
-        });
-        setNextBadge(badge?.data?.nextBadge);
-      } catch (error) {
-        log.debug('목표 뱃지 조회 에러', error);
-      }}
-    fetchBadge();
-  }, [videoId]);
-
-
 
   // 진행 상황 자동 저장 (상태 바뀔 때마다)
   useEffect(() => {
     // 복원 중 아닐 때만 저장
     if (sessionId && !isRestoring) {
-      chrome.storage.local.set({
-        quizState: {
-          videoId,
-          sessionId,
-          quizzes,
-          currentIndex,
-          correctCount,
-          wrongCount,
-          answers,
-          isConfirmed,
-          tempChoice,
-          matchingSelectedWord,
-          matchingSelectedMeaning,
-          matchingMatchedPairs,
-          matchingShuffledMeanings,
-          submittedQuizIds,
-        }
-      });
-    }
+    // chrome.storage.local.set({
+    //   quizState: {
+      saveUserData('quizState', {
+        videoId,
+        sessionId,
+        quizzes,
+        currentIndex,
+        correctCount,
+        wrongCount,
+        answers,
+        isConfirmed,
+        tempChoice,
+        matchingSelectedWord,
+        matchingSelectedMeaning,
+        matchingMatchedPairs,
+        matchingShuffledMeanings,
+        submittedQuizIds,
+      }
+    )
+  };
+      // });
   }, [currentIndex, correctCount, wrongCount, answers, isConfirmed, sessionId, tempChoice, videoId, isRestoring, quizzes, matchingSelectedWord, matchingSelectedMeaning, matchingMatchedPairs, matchingShuffledMeanings, submittedQuizIds]);
 
 
@@ -1432,8 +1146,14 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage,
         const finalResult = await apiFetch(`/quiz/sessions/${sessionId}/complete`, {
           method: 'POST'
         });
-        chrome.storage.local.remove('quizState');
-        onSettlementPage(finalResult.data);
+        // chrome.storage.local.remove('quizState');
+        // 해당 유저의 저장된 진행 상황 삭제
+        await removeUserData('quizState');
+
+        // 정산 페이지로 이동
+        setSettlementData(finalResult.data);
+        setIsSettlement(true);
+        // onSettlementPage(finalResult.data);
       } catch (error) {
         log.debug('MATCHING handleNext 세션 종료 실패', error);
       }
@@ -1450,8 +1170,9 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage,
     } else {
       // 마지막 문제였으면 퀴즈 종료
       try {
-        // 저장된 진행 상황 삭제
-        chrome.storage.local.remove('quizState');
+        // 해당 유저의 저장된 진행 상황 삭제
+        // chrome.storage.local.remove('quizState');
+        await removeUserData('quizState');
 
         // 영상 재생 신호
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -1486,22 +1207,86 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage,
 
 
   // 퀴즈 중간에 나가기
-  const handleExit = async () => {
-    // 디폴트페이지로 이동
-    onExitPage();
+  const handleExit = () => {
+    if (exitModal === 'back') {
+      navigate(-1);
+    } else if (exitModal === 'mypage') {
+      navigate('/my');
+    }
+    // 모달 닫기
+    setExitModal(null);
+  };
+
+
+  // 뒤로가기 버튼
+  const handleBack = () => {
+    if (currentQuiz) {
+      setExitModal('back');
+    } else {
+      navigate(-1);
+    }
+  };
+
+  // 마이페이지 버튼
+  const handleMyPage = () => {
+    if (currentQuiz) {
+      setExitModal('mypage');
+    } else {
+      navigate('/my');
+    }
   };
 
 
 
+  // // 테스트 버튼 오류
+  // const testButton = async () => {
+  //   try {
+  //       const finalResult = await apiFetch(`/quiz/sessions/${sessionId}/complete`, {
+  //         method: 'POST'
+  //       });
+  //       // chrome.storage.local.remove('quizState');
+  //       // 해당 유저의 저장된 진행 상황 삭제
+  //       await removeUserData('quizState');
 
-  // 테스트용 오류
+  //       // 정산 페이지로 이동
+  //       setSettlementData(finalResult.data);
+  //       setIsSettlement(true);
+  //       // onSettlementPage(finalResult.data);
+  //     } catch (error) {
+  //       log.debug('MATCHING handleNext 세션 종료 실패', error);
+  //     }
+  // };
+
+
+
+
+
+
+
+
+
+  // 퀴즈 기본 화면 테스트용 오류
   const testQuiz = () => {
+
     return (
       <div className={styles.container}>
+
+
+
+
         <div className={styles.header}>
           <div className={styles.header2}>
-            <div className={styles['header3-l']}>뒤로가기 미구현</div>
-            <div className={styles['header3-r']}>마이페이지 이동 미구현</div>
+            <button
+            onClick={handleBack}
+            className={styles['header3-l']}>
+              뒤로가기
+            </button>
+
+            <button
+            onClick={handleMyPage}
+            className={styles['header3-r']}>
+              마이페이지
+            </button>
           </div>
           <div className={styles.header4}>
             <p className={styles['header4-t']}>퀴즈</p>
@@ -1515,14 +1300,17 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage,
             className={styles.bar3}
             style={{ backgroundImage: `url(${frog3})` }}
             >
-              이미지
+              
             </div>
           </div>
+
           <div className={styles.bar4}>
+          {quizzes && quizzes.length > 0 && (
             <div className={styles.bar5}>
               <p className={styles['bar5-t']}>{currentQuiz?.quizType === 'MATCHING' ? matchingMatchedPairs.length : currentIndex + 1}</p>
               <span className={styles['bar5-t']}> /{quizzes?.length}</span>
             </div>
+            )}
             <div className={styles.bar6}>
               <div className={styles.bar7}></div>
               <div 
@@ -1531,14 +1319,35 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage,
               ></div>
             </div>
           </div>
+
         </div>
 
+
+
+        {quizzes && quizzes.length > 0 && (
         <div className={styles.balloon}>
           <div className={styles.balloon2}>
-            <p className={styles['balloon2-t']}>방금 영상에서 나온 문장이에요. 이 자리에 어떤 단어가 들어갈까요? 이 자리에 어떤 단어가 들어갈까요?</p>
+            <p className={styles['balloon2-t']}>
+                    {currentQuiz?.quizType === 'BLANK' && (!isConfirmed ? "방금 영상에서 나온 문장이에요. 이 자리에 어떤 단어가 들어갈까요?"  : feedback?.feedback)}
+                    {currentQuiz?.quizType === 'OX' && (!isConfirmed ? "방금 영상에서 나온 문장이에요. 이 자리에 어떤 단어가 들어갈까요?" : feedback?.feedback)}
+                    {currentQuiz?.quizType === 'MATCHING' && (!isConfirmed ? "방금 영상에서 나온 문장이에요. 이 자리에 어떤 단어가 들어갈까요?" : matchingMatchedPairs.length === quizzes.length ? "수고했어! 이제 결과를 볼까?" : "방금 영상에서 나온 문장이에요. 이 자리에 어떤 단어가 들어갈까요?")}
+            </p>
           </div>
         </div>
+        )}
 
+{/* 정산 상태에 따라 분기, 오류 테스트 끝내고 !지우기 */}
+      {isSettlement ? (
+        <SettlementPage 
+        data={settlementData}
+        videoId={videoId}
+        videoTitle={videoTitle}
+        channelName={channelName}
+        duration={duration}
+        thumbnailUrl={thumbnailUrl}
+        />
+      ) : (
+        <>
         <div className={styles.subtitles}>
           <div className={styles['subtitles-badge']}>
             <div className={styles['subtitles-badge2']}>
@@ -1580,9 +1389,34 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage,
               </div>
             </div>
             <div className={styles.subtitles7}>
-              <div className={styles.subtitles8}>1</div>
-              <div className={styles.subtitles8}>1</div>
-              <div className={styles.subtitles8}>1</div>
+              {/* 전 스크립트 보기 */}
+              <button
+              onClick= {() => goPrev()}
+              className={styles.subtitles8}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="35" height="35" viewBox="0 0 35 35" fill="none">
+                  <path d="M25.4625 8.91042C24.9812 8.6625 24.3979 8.70625 23.9458 9.02708L13.7375 16.3187C13.3583 16.5958 13.125 17.0333 13.125 17.5C13.125 17.9667 13.3583 18.4188 13.7375 18.6813L23.9458 25.9729C24.1938 26.1479 24.5 26.25 24.7917 26.25C25.025 26.25 25.2437 26.1917 25.4625 26.0896C25.9437 25.8417 26.25 25.3458 26.25 24.7917V10.2083C26.25 9.66875 25.9437 9.15833 25.4625 8.91042ZM23.3333 21.9625L17.0917 17.5L23.3333 13.0375V21.9479V21.9625ZM8.75 8.75H11.6667V26.25H8.75V8.75Z" fill="black"/>
+                </svg>
+              </button>
+
+
+              {/* 현재 스크립트 구간 반복 */}
+              <button 
+              onClick={() => toggleLoop()}
+              className={styles.subtitles8}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="35" height="35" viewBox="0 0 35 35" fill="none">
+                  <path d="M8.75001 26.25H14.5833C15.3854 26.25 16.0417 25.5938 16.0417 24.7917V10.2083C16.0417 9.40625 15.3854 8.75 14.5833 8.75H8.75001C7.94792 8.75 7.29167 9.40625 7.29167 10.2083V24.7917C7.29167 25.5938 7.94792 26.25 8.75001 26.25ZM10.2083 11.6667H13.125V23.3333H10.2083V11.6667ZM20.4167 8.75C19.6146 8.75 18.9583 9.40625 18.9583 10.2083V24.7917C18.9583 25.5938 19.6146 26.25 20.4167 26.25H26.25C27.0521 26.25 27.7083 25.5938 27.7083 24.7917V10.2083C27.7083 9.40625 27.0521 8.75 26.25 8.75H20.4167ZM24.7917 23.3333H21.875V11.6667H24.7917V23.3333Z" fill="black"/>
+                </svg>
+              </button>
+
+
+              {/* 다음 스크립트 보기 */}
+              <button
+              onClick={() => goNext()}
+              className={styles.subtitles8}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="35" height="35" viewBox="0 0 35 35" fill="none">
+                  <path d="M21.2625 16.3187L11.0542 9.02708C10.6021 8.70625 10.0187 8.6625 9.5375 8.91042C9.05625 9.15833 8.75 9.65417 8.75 10.2083V24.7917C8.75 25.3313 9.05625 25.8417 9.5375 26.0896C9.74167 26.1917 9.975 26.25 10.2083 26.25C10.5 26.25 10.8062 26.1625 11.0542 25.9729L21.2625 18.6813C21.6417 18.4042 21.875 17.9667 21.875 17.5C21.875 17.0333 21.6417 16.5812 21.2625 16.3187ZM11.6667 21.9625V13.0521L17.9083 17.5146L11.6667 21.9771V21.9625ZM23.3333 8.75H26.25V26.25H23.3333V8.75Z" fill="black"/>
+                </svg>
+              </button>
             </div>
           </div>
         </div>
@@ -1603,22 +1437,97 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage,
         )}
 
 
-        {currentQuiz?.quizType === 'BLANK' && testQuiz2()}
+        {currentQuiz?.quizType === 'BLANK' && blankQuiz()}
         {currentQuiz?.quizType === 'OX' && oxQuiz()}
         {currentQuiz?.quizType === 'MATCHING' &&  matchingShuffledMeanings?.length > 0 &&  matchingQuiz()}
+      </>
+      )}
       </div>
     )
   }
 
 
-  // 실제 퀴즈문제 테스트용 오류
-  const testQuiz2 = () => {
+  // 실제 빈칸퀴즈 테스트용 오류
+  const blankQuiz = () => {
+    if (!currentQuiz?.options?.length) return null;
     return (
+          isConfirmed && !feedback?.correct ? (
+            // 틀린 경우 해설 보이기
       <div className={styles.quiz}>
         <div className={styles['quiz-a']}>
           <div className={styles['quiz-badge-n']}>
             <div className={styles['quiz-badge2']}>
-              <p className={styles['quiz-badge3']}>Q.1</p>
+              <p className={styles['quiz-badge3']}>해설</p>
+            </div>
+          </div>
+
+          <div className={styles['quiz-b']}>
+            <div className={styles.explain}>
+              <div className={styles.explain2}>
+                <p className={styles.explain3}>{feedback?.correctAnswer} 정답인 이유!</p>
+              </div>
+              <div className={styles.explain4}>
+                <p className={styles.explain5}>{feedback?.explanation}</p>
+                {/* <p className={styles.explain6}></p> */}
+              </div>
+            </div>
+
+
+            <div className={styles.information}>
+              <div className={styles.information2}>
+                <p className={styles.information3}>💡 함께 알아두면 좋은 표현</p>
+              </div>
+              <div className={styles.information4}>
+                <p className={styles.information5}>stop -ing : ~하는 것을 멈추다 (He stopped smoking. 그는 담배를 끊었다.)</p>
+                <p className={styles.information5}>stop to 동사원형 : ~하기 위해 멈추다 (He stopped to smoke. 그는 담배를 피우려고 멈췄다.)</p>
+              </div>
+            </div>
+
+
+            <div className={styles['quiz-s']}>
+              <div className={styles['quiz-s2']}>
+                <div className={styles['quiz-s3']}>
+                  <button
+                  onClick={handleNext}
+                  className={styles['quiz-s4']}>
+                    건너뛰기
+                  </button>
+                </div>
+
+
+
+
+          {/* 제출 및 넘어가기 버튼 */}
+            {/* ox, 빈칸 채우기 전용 */}
+            {!isConfirmed ? (
+              <button
+              onClick={handleSubmit}
+              className={styles['quiz-s5']}>
+                <p className={styles['quiz-s6']}>
+                  정답확인
+                </p>
+              </button>
+            ) : (
+              <button
+              onClick={handleNext}
+              className={styles['quiz-s5']}>
+                <p className={styles['quiz-s6']}>
+                  계속하기
+                </p>
+              </button>
+            )}
+
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      ) : (
+      <div className={styles.quiz}>
+        <div className={styles['quiz-a']}>
+          <div className={styles['quiz-badge-n']}>
+            <div className={styles['quiz-badge2']}>
+              <p className={styles['quiz-badge3']}>Q.<span>{currentIndex + 1}</span></p>
             </div>
           </div>
 
@@ -1653,21 +1562,6 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage,
 
 
               <div className={styles.quiz7}>
-                <div className={styles['quiz8-bt']}>
-                  <p className={styles['quiz9-bt']}>Stops</p>
-                </div>
-                <div className={styles['quiz10-bn']}>
-                  <p className={styles['quiz10-bn']}>Move</p>
-                </div>
-                <div className={styles['quiz10-bn']}>
-                  <p className={styles['quiz10-bn']}>Move</p>
-                </div>
-                <div className={styles['quiz10-bn']}>
-                  <p className={styles['quiz10-bn']}>Move</p>
-                </div>
-              </div>
-
-
 
           {/* 보기 버튼 */}
           {currentQuiz?.options.map((choice, i) => (
@@ -1675,6 +1569,7 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage,
             key={i}
             disabled={isConfirmed}
             onClick={() => handleChoice(choice)}
+            className={styles['quiz8-bt']}
             style={{
               padding: buttonPositions[i].padding,
               // border: borderColor(choice),
@@ -1684,12 +1579,8 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage,
               {choice}
             </button>
           ))}
-
-
-
-
+              </div>
             </div>
-
 
             <div className={styles['quiz-s']}>
               <div className={styles['quiz-s2']}>
@@ -1702,27 +1593,10 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage,
                 </div>
 
 
-                <div className={styles['quiz-s5']}>
-                  <div className={styles['quiz-s6']}>정답확인</div>
-                </div>
-
-
 
           {/* 제출 및 넘어가기 버튼 */}
-          {currentQuiz?.quizType === 'MATCHING' ? (
-            // 매칭 퀴즈는 결과 보기만 나옴
-            <button
-            onClick={handleMatchingComplete}
-            disabled={matchingMatchedPairs.length < quizzes.length}
-            className={styles['quiz-s5']}
-            >
-              <p className={styles['quiz-s6']}>
-                결과 보기
-              </p>
-            </button>
-          ) : (
-            // ox, 빈칸 채우기 전용
-            !isConfirmed ? (
+            {/* ox, 빈칸 채우기 전용 */}
+            {!isConfirmed ? (
               <button
               onClick={handleSubmit}
               className={styles['quiz-s5']}>
@@ -1738,8 +1612,111 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage,
                   계속하기
                 </p>
               </button>
-            )
-          )}
+            )}
+
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      )
+    )
+  }
+
+
+
+
+  // 실제 ox 퀴즈문제 테스트용 오류
+  const oxQuiz = () => {
+    if (!currentQuiz) return null;
+    return (
+      <div className={styles.quiz}>
+        <div className={styles['quiz-a']}>
+          <div className={styles['quiz-badge-n']}>
+            <div className={styles['quiz-badge2']}>
+              <p className={styles['quiz-badge3']}>Q.<span>{currentIndex + 1}</span></p>
+            </div>
+          </div>
+
+          <div className={styles['quiz-b']}>
+            <div className={styles['quiz-c']}>
+              <div className={styles['quiz-d']}>
+                <div className={styles['quiz-e']}>
+                  <p className={styles['quiz2-q']}>
+                    {highlightWord(currentQuiz?.content, currentQuiz?.question?.match(/[a-zA-Z]+/)?.[0])}
+                  </p>
+                </div>
+
+
+                <div className={styles.quiz5}>
+                  <p className={styles['quiz5-t']}>
+                    {currentQuiz?.translation}
+                  </p>
+                </div>
+              </div>
+
+
+              <div className={styles.ox}>
+                {/* O 버튼 */}
+                <button 
+                disabled={isConfirmed}
+                onClick={() => handleChoice('O')}
+                className={styles.ox2}
+                style={{
+                  color: oxColor('O'),
+                  background: oxBackgroundColor('O'),
+
+                }}>
+                  O
+                </button>
+
+                {/* X 버튼 */}
+                <button
+                disabled={isConfirmed}
+                onClick={() => handleChoice('X')}
+                className={styles.ox3}
+                style={{
+                  color: oxColor('X'),
+                  background: oxBackgroundColor('X'),
+                }}>
+                  X
+                </button>
+              </div>
+            </div>
+
+            <div className={styles['quiz-s']}>
+              <div className={styles['quiz-s2']}>
+                <div className={styles['quiz-s3']}>
+                  <button
+                  onClick={handleNext}
+                  className={styles['quiz-s4']}>
+                    건너뛰기
+                  </button>
+                </div>
+
+
+
+
+          {/* 제출 및 넘어가기 버튼 */}
+            {/* ox, 빈칸 채우기 전용 */}
+            {!isConfirmed ? (
+              <button
+              onClick={handleSubmit}
+              className={styles['quiz-s5']}>
+                <p className={styles['quiz-s6']}>
+                  정답확인
+                </p>
+              </button>
+            ) : (
+              <button
+              onClick={handleNext}
+              className={styles['quiz-s5']}>
+                <p className={styles['quiz-s6']}>
+                  계속하기
+                </p>
+              </button>
+            )}
+
               </div>
             </div>
           </div>
@@ -1747,6 +1724,103 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage,
       </div>
     )
   }
+
+
+
+
+
+  // 실제 매칭 퀴즈문제 테스트용 오류
+  const matchingQuiz = () => {
+    if (!quizzes?.length || !matchingShuffledMeanings?.length) return null;
+
+    return (
+      <div className={styles.quiz}>
+        <div className={styles['quiz-a']}>
+          <div className={styles['quiz-badge-n']}>
+            <div className={styles['quiz-badge2']}>
+              <p className={styles['quiz-badge3']}>Q.1</p>
+            </div>
+          </div>
+
+          <div className={styles['quiz-b']}>
+            <div className={styles['quiz-c']}>
+
+              <div className={styles.matching}>
+                {/* 매칭 퀴즈 보기 버튼 */}
+            {quizzes?.map((quiz, i) => {
+  const meaningItem = matchingShuffledMeanings[i]; // { quizId, meaning }
+  return (
+    <React.Fragment key={quiz.quizId}>
+      {/* 영어 단어 */}
+      <button
+        disabled={matchingMatchedPairs.some(p => p.wordQuizId === quiz.quizId)}
+        onClick={() => matchingHandleWordClick(quiz.quizId)}
+        className={styles.matching2}
+        style={{ ...matchingGetWordStyle(quiz.quizId) }}
+      >
+        {quiz.question}
+      </button>
+
+      {/* 단어 뜻 */}
+      <button
+        disabled={matchingMatchedPairs.some(p => p.meaningQuizId === meaningItem.quizId)}
+        onClick={() => matchingHandleMeaningClick(meaningItem.quizId)}
+        className={styles.matching3}
+        style={{ ...matchingGetMeaningStyle(meaningItem.quizId) }}
+      >
+        {meaningItem.meaning}
+      </button>
+    </React.Fragment>
+  );
+})}
+              </div>
+            </div>
+
+            <div className={styles['quiz-s']}>
+              <div className={styles['quiz-s2']}>
+                <div className={styles['quiz-s3']}>
+                  <button
+                  onClick={handleNext}
+                  className={styles['quiz-s4']}>
+                    건너뛰기
+                  </button>
+                </div>
+
+
+
+
+          {/* 제출 및 넘어가기 버튼 */}
+            {/* 매칭 퀴즈는 결과 보기만 나옴 */}
+            <button
+            onClick={handleMatchingComplete}
+            disabled={matchingMatchedPairs.length < quizzes.length}
+            className={styles['quiz-s5']}
+            >
+              <p className={styles['quiz-s6']}>
+                결과 보기
+              </p>
+            </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1765,7 +1839,7 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage,
         <div className={styles.exit6}>
           <button 
           className={styles.exit7}
-          onClick={() => setExitModal(false)}>
+          onClick={() => setExitModal(null)}>
             <p className={styles.exit8}>퀴즈 계속하기</p>
           </button>
           <button 
@@ -1781,247 +1855,91 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage,
 
 
 
-  // // 실제 퀴즈사전 모아둔거? 테스트용 오류
-  // const testDictionary1= () => {
-  //   return (
-  //     <div className={styles.dictionary}>
-  //       <div className={styles.dictionary2}>
-  //         <div className={styles.dictionary3}>
-  //           <div className={styles.dictionary4}>
-  //             <div className={styles.dictionary5}>
-  //               <div className={styles.dictionary8}>
-  //                 <div className={styles.dictionary9}>
-  //                   <p className={styles['dictionary9-t']}>serendipity</p>
-  //                 </div>
-  //                 <div className={styles.dictionary10}>
-  //                   <div className={styles.dictionary11}>
-  //                     <div className={styles['dictionary11-a']}>
-  //                       <div className={styles['dictionary11-b']}>
-  //                         <div className={styles['dictionary11-c']}>
-  //                           <p className={styles['dictionary11-d']}>US</p>
-  //                         </div>
-  //                         <div className={styles['dictionary11-e']}>
-  //                           <div className={styles['dictionary11-f']}>
-  //                             <svg 
-  //                             className={styles['dictionary11-f2']}
-  //                             xmlns="http://www.w3.org/2000/svg" 
-  //                             width="16" 
-  //                             height="16" 
-  //                             viewBox="0 0 16 16" 
-  //                             fill="none">
-  //                               <path d="M7.33337 4.18509C7.33337 3.54139 6.61183 3.16128 6.08095 3.52531L4.10228 4.88211C4.03568 4.92778 3.95682 4.95222 3.87607 4.95222H2.13337C1.69155 4.95222 1.33337 5.31039 1.33337 5.75222V10.2475C1.33337 10.6893 1.69155 11.0475 2.13337 11.0475H3.87607C3.95682 11.0475 4.03568 11.0719 4.10228 11.1176L6.08095 12.4744C6.61183 12.8384 7.33337 12.4583 7.33337 11.8146V4.18509Z" fill="#A0A08A"/>
-  //                               <path d="M9.69336 5.64014C10.3183 6.26523 10.6693 7.11292 10.6693 7.9968C10.6693 8.88068 10.3183 9.72838 9.69336 10.3535" stroke="#A0A08A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
-  //                               <path d="M11.4879 3.99658C12.7685 5.05756 13.4879 6.49636 13.4879 7.99658C13.4879 9.4968 12.7685 10.9356 11.4879 11.9966" stroke="#A0A08A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
-  //                             </svg>
-  //                           </div>
-  //                         </div>
-  //                       </div>
-  //                       <div className={styles['dictionary11-g']}>
-  //                         <p className={styles['dictionary11-h']}>[ jʌŋ ]</p>
-  //                       </div>
-  //                     </div>
 
 
-  //                     <div className={styles['dictionary11-a']}>
-  //                       <div className={styles['dictionary11-b']}>
-  //                         <div className={styles['dictionary11-c']}>
-  //                           <p className={styles['dictionary11-d']}>US</p>
-  //                         </div>
-  //                         <div className={styles['dictionary11-e']}>
-  //                           <div className={styles['dictionary11-f']}>
-  //                             <svg 
-  //                             className={styles['dictionary11-f2']}
-  //                             xmlns="http://www.w3.org/2000/svg" 
-  //                             width="16" 
-  //                             height="16" 
-  //                             viewBox="0 0 16 16" 
-  //                             fill="none">
-  //                               <path d="M7.33337 4.18509C7.33337 3.54139 6.61183 3.16128 6.08095 3.52531L4.10228 4.88211C4.03568 4.92778 3.95682 4.95222 3.87607 4.95222H2.13337C1.69155 4.95222 1.33337 5.31039 1.33337 5.75222V10.2475C1.33337 10.6893 1.69155 11.0475 2.13337 11.0475H3.87607C3.95682 11.0475 4.03568 11.0719 4.10228 11.1176L6.08095 12.4744C6.61183 12.8384 7.33337 12.4583 7.33337 11.8146V4.18509Z" fill="#A0A08A"/>
-  //                               <path d="M9.69336 5.64014C10.3183 6.26523 10.6693 7.11292 10.6693 7.9968C10.6693 8.88068 10.3183 9.72838 9.69336 10.3535" stroke="#A0A08A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
-  //                               <path d="M11.4879 3.99658C12.7685 5.05756 13.4879 6.49636 13.4879 7.99658C13.4879 9.4968 12.7685 10.9356 11.4879 11.9966" stroke="#A0A08A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
-  //                             </svg>
-  //                           </div>
-  //                         </div>
-  //                       </div>
-
-
-  //                       <div className={styles['dictionary11-g']}>
-  //                         <p className={styles['dictionary11-h']}>[ jʌŋ ]</p>
-  //                       </div>
-  //                     </div>
-  //                   </div>
-  //                 </div>
-  //               </div>
-
-
-  //               <div className={styles.dictionary12}>
-  //                 <div className={styles.dictionary13}>
-  //                   <div className={styles['dictionary14-s']}>
-  //                     <p className={styles['dictionary15-s']}>뜻</p>
-  //                   </div>
-  //                   <div className={styles['dictionary16-n']}>
-  //                     <p className={styles['dictionary17-n']}>표현</p>
-  //                   </div>
-  //                   <div className={styles.dictionary18}>
-  //                     <p className={styles.dictionary19}>관계어</p>
-  //                   </div>
-  //                   <div className={styles['dictionary16-n']}>
-  //                     <p className={styles['dictionary17-n']}>파생형</p>
-  //                   </div>
-  //                 </div>
-
-
-  //                 <div className={styles.dictionary20}>
-  //                   <p className={styles.dictionary21}>명사</p>
-  //                   <div className={styles.dictionary22}>
-  //                     <div className={styles.dictionary23}>
-  //                       <div className={styles.dictionary24}>뜻 밖의 재미[기쁨]</div>
-  //                     </div>
-  //                     <div className={styles.dictionary23}>
-  //                       <div className={styles.dictionary24}>발견하는 능력이 있는.</div>
-  //                     </div>
-  //                     <div className={styles.dictionary25}>
-  //                       <div className={styles.dictionary26}>좋은, 유리한(good, beneficial, favorable).</div>
-  //                     </div>
-  //                   </div>
-  //                 </div>
-  //               </div>
-  //             </div>
-
-
-  //             <div className={styles['dictionary-bar']}></div>
-
-  //             <div className={styles.dictionary27}>
-  //               <div className={styles.dictionary28}>
-  //                 <p className={styles.dictionary29}>관용구</p>
-  //               </div>
-  //               <div className={styles.dictionary30}>
-  //                 <div className={styles.dictionary31}>
-  //                   <p className={styles.dictionary32}>a stroke of serendipity</p>
-  //                 </div>
-  //                 <div className={styles.dictionary33}>
-  //                   <p className={styles.dictionary34}>뜻밖의 행운 같은 순간</p>
-  //                 </div>
-  //               </div>
-
-
-  //               <div className={styles.dictionary35}>
-  //                 <div className={styles.dictionary36}>
-  //                   <p className={styles.dictionary37}>유의어</p>
-  //                 </div>
-  //                 <div className={styles.dictionary38}>
-  //                   <div className={styles.dictionary39}>
-  //                     <p className={styles.dictionary40}>chance</p>
-  //                   </div>
-  //                   <div className={styles.dictionary39}>
-  //                     <p className={styles.dictionary40}>accidental</p>
-  //                   </div>
-  //                   <div className={styles.dictionary39}>
-  //                     <p className={styles.dictionary40}>lucky</p>
-  //                   </div>
-  //                 </div>
-  //               </div>
-  //             </div>
-  //           </div>
-  //         </div>
-  //       </div>
-  //     </div>
-  //   )
-  // }
-
-
+// 단어 사전
   const testDictionary= () => {
     return (
-      <div className={styles.popup}>
-        <div className={styles.wrapper}>
-          <svg className={styles.bg} xmlns="http://www.w3.org/2000/svg" width="247" height="176" viewBox="0 0 247 176" fill="none">
-            <g filter="url(#filter0_d_1_1822)">
-              <mask id="path-1-inside-1_1_1822" fill="white">
-                <path fill-rule="evenodd" clip-rule="evenodd" d="M218.374 0C232.181 0 243.374 11.1939 243.374 25.001V131.043C243.374 144.85 232.181 156.043 218.374 156.043H129.492L122.896 167.917C121.372 170.66 117.426 170.66 115.902 167.917L109.306 156.043H27.749C13.9423 156.043 2.74943 144.85 2.74902 131.043V25.001C2.74905 11.194 13.9421 0.000231167 27.749 0H218.374ZM218.375 155.042H130.048V155.043H218.374C218.452 155.043 218.53 155.04 218.608 155.039C218.531 155.04 218.453 155.042 218.375 155.042ZM27.749 155.043H108.75L108.749 155.042H27.749C27.6702 155.042 27.5914 155.04 27.5127 155.039C27.5914 155.04 27.6702 155.043 27.749 155.043ZM27.1299 155.035C27.1644 155.036 27.1989 155.035 27.2334 155.036C27.13 155.034 27.0269 155.03 26.9238 155.026C26.9925 155.029 27.0611 155.033 27.1299 155.035ZM218.89 155.036C218.924 155.035 218.959 155.036 218.994 155.035C219.063 155.033 219.131 155.029 219.199 155.026C219.096 155.03 218.993 155.034 218.89 155.036Z"/>
-              </mask>
-              <path fill-rule="evenodd" clip-rule="evenodd" d="M218.374 0C232.181 0 243.374 11.1939 243.374 25.001V131.043C243.374 144.85 232.181 156.043 218.374 156.043H129.492L122.896 167.917C121.372 170.66 117.426 170.66 115.902 167.917L109.306 156.043H27.749C13.9423 156.043 2.74943 144.85 2.74902 131.043V25.001C2.74905 11.194 13.9421 0.000231167 27.749 0H218.374ZM218.375 155.042H130.048V155.043H218.374C218.452 155.043 218.53 155.04 218.608 155.039C218.531 155.04 218.453 155.042 218.375 155.042ZM27.749 155.043H108.75L108.749 155.042H27.749C27.6702 155.042 27.5914 155.04 27.5127 155.039C27.5914 155.04 27.6702 155.043 27.749 155.043ZM27.1299 155.035C27.1644 155.036 27.1989 155.035 27.2334 155.036C27.13 155.034 27.0269 155.03 26.9238 155.026C26.9925 155.029 27.0611 155.033 27.1299 155.035ZM218.89 155.036C218.924 155.035 218.959 155.036 218.994 155.035C219.063 155.033 219.131 155.029 219.199 155.026C219.096 155.03 218.993 155.034 218.89 155.036Z" fill="#FBF8F1"/>
-              <path d="M243.374 131.043L244.374 131.043V131.043H243.374ZM129.492 156.043V155.043H128.904L128.618 155.557L129.492 156.043ZM122.896 167.917L123.77 168.403L123.77 168.403L122.896 167.917ZM115.902 167.917L115.028 168.403L115.028 168.403L115.902 167.917ZM109.306 156.043L110.18 155.557L109.894 155.043H109.306V156.043ZM27.749 156.043L27.749 157.043H27.749V156.043ZM2.74902 131.043H1.74902V131.043L2.74902 131.043ZM2.74902 25.001L1.74902 25.001V25.001H2.74902ZM27.749 0V-1H27.749L27.749 0ZM218.375 155.042V156.042V156.042V155.042ZM130.048 155.042V154.042H129.048V155.042H130.048ZM130.048 155.043H129.048V156.043H130.048V155.043ZM218.608 155.039L218.618 156.039L218.599 154.039L218.608 155.039ZM27.749 155.043L27.749 156.043H27.749V155.043ZM108.75 155.043V156.043H111.164L109.457 154.336L108.75 155.043ZM108.749 155.042L109.456 154.335L109.163 154.042H108.749V155.042ZM27.749 155.042L27.749 156.042H27.749V155.042ZM27.5127 155.039L27.5222 154.039L27.5031 156.039L27.5127 155.039ZM27.1299 155.035L27.1046 156.035L27.1299 155.035ZM27.2334 155.036L27.2126 156.036L27.2544 154.036L27.2334 155.036ZM26.9238 155.026L26.9573 154.027L26.8896 156.026L26.9238 155.026ZM218.89 155.036L218.869 154.036L218.91 156.036L218.89 155.036ZM218.994 155.035L219.019 156.035H219.019L218.994 155.035ZM219.199 155.026L219.233 156.026L219.166 154.027L219.199 155.026ZM218.374 0V1C231.629 1 242.374 11.7461 242.374 25.001H243.374H244.374C244.374 10.6416 232.733 -1 218.374 -1V0ZM243.374 25.001H242.374V131.043H243.374H244.374V25.001H243.374ZM243.374 131.043L242.374 131.043C242.374 144.297 231.629 155.043 218.374 155.043V156.043V157.043C232.733 157.043 244.374 145.402 244.374 131.043L243.374 131.043ZM218.374 156.043V155.043H129.492V156.043V157.043H218.374V156.043ZM129.492 156.043L128.618 155.557L122.021 167.431L122.896 167.917L123.77 168.403L130.366 156.529L129.492 156.043ZM122.896 167.917L122.021 167.431C120.878 169.489 117.92 169.489 116.776 167.431L115.902 167.917L115.028 168.403C116.933 171.831 121.865 171.832 123.77 168.403L122.896 167.917ZM115.902 167.917L116.777 167.431L110.18 155.557L109.306 156.043L108.432 156.529L115.028 168.403L115.902 167.917ZM109.306 156.043V155.043H27.749V156.043V157.043H109.306V156.043ZM27.749 156.043L27.749 155.043C14.4947 155.043 3.74941 144.297 3.74902 131.043L2.74902 131.043L1.74902 131.043C1.74944 145.402 13.39 157.043 27.749 157.043L27.749 156.043ZM2.74902 131.043H3.74902V25.001H2.74902H1.74902V131.043H2.74902ZM2.74902 25.001L3.74902 25.001C3.74904 11.7463 14.4944 1.00022 27.749 1L27.749 0L27.749 -1C13.3898 -0.99976 1.74905 10.6418 1.74902 25.001L2.74902 25.001ZM27.749 0V1H218.374V0V-1H27.749V0ZM218.375 155.042V154.042H130.048V155.042V156.042H218.375V155.042ZM130.048 155.042H129.048V155.043H130.048H131.048V155.042H130.048ZM130.048 155.043V156.043H218.374V155.043V154.043H130.048V155.043ZM218.374 155.043V156.043C218.434 156.043 218.605 156.039 218.618 156.039L218.608 155.039L218.599 154.039C218.455 154.04 218.47 154.043 218.374 154.043V155.043ZM218.608 155.039L218.599 154.039C218.489 154.04 218.454 154.042 218.375 154.042V155.042V156.042C218.452 156.042 218.572 156.039 218.618 156.039L218.608 155.039ZM27.749 155.043V156.043H108.75V155.043V154.043H27.749V155.043ZM108.75 155.043L109.457 154.336L109.456 154.335L108.749 155.042L108.042 155.749L108.043 155.75L108.75 155.043ZM108.749 155.042V154.042H27.749V155.042V156.042H108.749V155.042ZM27.749 155.042L27.749 154.042C27.6702 154.042 27.6314 154.04 27.5222 154.039L27.5127 155.039L27.5032 156.039C27.5514 156.039 27.6701 156.042 27.749 156.042L27.749 155.042ZM27.5127 155.039L27.5031 156.039C27.5185 156.039 27.6865 156.043 27.749 156.043L27.749 155.043L27.749 154.043C27.6538 154.043 27.6642 154.04 27.5223 154.039L27.5127 155.039ZM27.1299 155.035L27.1046 156.035C27.1347 156.036 27.1627 156.036 27.1791 156.036C27.199 156.036 27.2062 156.036 27.2123 156.036L27.2334 155.036L27.2544 154.036C27.2261 154.036 27.1988 154.036 27.1842 154.036C27.1661 154.036 27.1595 154.036 27.1552 154.035L27.1299 155.035ZM27.2334 155.036L27.2542 154.036C27.1593 154.034 27.0695 154.031 26.9573 154.027L26.9238 155.026L26.8904 156.026C26.9843 156.029 27.1008 156.034 27.2126 156.036L27.2334 155.036ZM26.9238 155.026L26.8896 156.026C26.9147 156.027 26.9398 156.028 26.9778 156.03C27.0123 156.031 27.0571 156.034 27.1046 156.035L27.1299 155.035L27.1552 154.035C27.0593 154.033 27.1052 154.032 26.958 154.027L26.9238 155.026ZM218.89 155.036L218.911 156.036C218.917 156.036 218.924 156.036 218.944 156.036C218.961 156.036 218.989 156.036 219.019 156.035L218.994 155.035L218.969 154.035C218.964 154.036 218.958 154.036 218.939 154.036C218.925 154.036 218.897 154.036 218.869 154.036L218.89 155.036ZM218.994 155.035L219.019 156.035C219.067 156.034 219.112 156.031 219.146 156.03C219.184 156.028 219.209 156.027 219.233 156.026L219.199 155.026L219.165 154.027C219.016 154.032 219.066 154.033 218.969 154.035L218.994 155.035ZM219.199 155.026L219.166 154.027C219.053 154.031 218.964 154.034 218.869 154.036L218.89 155.036L218.91 156.036C219.022 156.034 219.139 156.029 219.233 156.026L219.199 155.026Z" fill="#BDB4AB" mask="url(#path-1-inside-1_1_1822)"/>
-            </g>
-            <defs>
-              <filter id="filter0_d_1_1822" x="-0.000134706" y="0" width="246.123" height="175.473" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
-                <feFlood flood-opacity="0" result="BackgroundImageFix"/>
-                <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
-                <feOffset dy="2.74916"/>
-                <feGaussianBlur stdDeviation="1.37458"/>
-                <feComposite in2="hardAlpha" operator="out"/>
-                <feColorMatrix type="matrix" values="0 0 0 0 0.807596 0 0 0 0 0.822707 0 0 0 0 0.873077 0 0 0 0.16 0"/>
-                <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1_1822"/>
-                <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1_1822" result="shape"/>
-              </filter>
-            </defs>
-          </svg>
-
-
+      <div 
+      // ref 속성으로 popupRef와 이 DOM을 연결
+      // 렌더링 후 popupRef.current에 이 <div> 요소가 자동으로 들어감
+      ref={popupRef}
+      className={styles.popup}
+      style={{
+        position: 'fixed',
+        top: popupPosition.top,
+        left: popupPosition.left,
+        // 위치 계산 전엔 숨기기
+        // 측정 끝나면 visibility: visible로 자연스럽게 보임
+        visibility: isPositioned ? 'visible' : 'hidden',
+      }}
+      >
+        <div 
+        className={styles.wrapper}
+        style={{ 
+          // 말풍선 꼬리 동적 위치로 이동
+          // ::after 위치에만 적용되게 '--arrow-left' 사용
+          '--arrow-left': `${popupPosition.arrowLeft}px`,
+        }}
+        >
           <div className={styles.popup6}>
             <div className={styles.popup7}>
               <div className={styles.popup8}>
-                <div className={styles.popup9}>
+                <button 
+                onClick={() => collectWord()}
+                className={styles.popup9}>
                   <div className={styles.popup10}>
                     <div className={styles.popup11}>
                       <div className={styles.popup12}>
-                        <svg className={styles.popup13} xmlns="http://www.w3.org/2000/svg" width="9" height="12" viewBox="0 0 9 12" fill="none">
-                          <path d="M7.3 0.5H1.7C1.03726 0.5 0.5 1.03726 0.5 1.7V10.5686C0.5 11.2814 1.36171 11.6383 1.86568 11.1343L3.93431 9.06569C4.24673 8.75327 4.75327 8.75327 5.06569 9.06569L7.13431 11.1343C7.63829 11.6383 8.5 11.2814 8.5 10.5686V1.7C8.5 1.03726 7.96274 0.5 7.3 0.5Z" stroke="#BDB4AB"/>
-                        </svg>
+                        {isCollected ? (
+                          // 선택함
+                          <svg className={styles.popup13} xmlns="http://www.w3.org/2000/svg" width="9" height="12" viewBox="0 0 9 12" fill="none">
+                            <path d="M7.3 0.5H1.7C1.03726 0.5 0.5 1.03726 0.5 1.7V10.5686C0.5 11.2814 1.36171 11.6383 1.86568 11.1343L3.93431 9.06569C4.24673 8.75327 4.75327 8.75327 5.06569 9.06569L7.13431 11.1343C7.63829 11.6383 8.5 11.2814 8.5 10.5686V1.7C8.5 1.03726 7.96274 0.5 7.3 0.5Z" stroke="#BDB4AB"
+                            fill="#7C3AED"/>
+                          </svg>
+                        ) : (
+                          // 미선택함
+                          <svg className={styles.popup13} xmlns="http://www.w3.org/2000/svg" width="9" height="12" viewBox="0 0 9 12" fill="none">
+                            <path d="M7.3 0.5H1.7C1.03726 0.5 0.5 1.03726 0.5 1.7V10.5686C0.5 11.2814 1.36171 11.6383 1.86568 11.1343L3.93431 9.06569C4.24673 8.75327 4.75327 8.75327 5.06569 9.06569L7.13431 11.1343C7.63829 11.6383 8.5 11.2814 8.5 10.5686V1.7C8.5 1.03726 7.96274 0.5 7.3 0.5Z" stroke="#BDB4AB"
+                            fill="black"/>
+                          </svg>
+                        )}
                       </div>
                     </div>
                     <div className={styles.popup14}>
                       <p className={styles.popup15}>단어 수집</p>
                     </div>
                   </div>
-                </div>
+                </button>
 
 
-                <div className={styles.popup16}>
+                <button 
+                onClick= {() => closePopup()}
+                className={styles.popup16}>
                   <div className={styles.popup17}>
                     <svg className={styles.popup18} xmlns="http://www.w3.org/2000/svg" width="9" height="9" viewBox="0 0 9 9" fill="none">
                       <path fill-rule="evenodd" clip-rule="evenodd" d="M6.62682 0.234233C6.93926 -0.0780235 7.44629 -0.078132 7.75866 0.234233C8.0708 0.546675 8.07001 1.05374 7.75768 1.36607L5.17565 3.94712L7.88561 6.65708C8.1979 6.96951 8.19799 7.47654 7.88561 7.78892C7.57316 8.10098 7.06608 8.10024 6.75378 7.78794L4.04479 5.07896L1.3651 7.75865C1.05277 8.07084 0.546641 8.07074 0.234245 7.75865C-0.0781279 7.44627 -0.0780358 6.94022 0.234245 6.62779L2.91296 3.94712L0.361199 1.39537C0.0490364 1.08305 0.0491826 0.576909 0.361199 0.264507C0.673572 -0.0478668 1.17963 -0.0477746 1.49206 0.264507L4.04382 2.81626L6.62682 0.234233Z" fill="#454440"/>
                     </svg>
                   </div>
-                </div>
+                </button>
               </div>
 
 
               <div className={styles.popup19}>
                 <div className={styles.popup20}>
                   <div className={styles.popup21}>
-                    <p className={styles.popup22}>young</p>
+                    <p className={styles.popup22}>{dictionaryData.word}</p>
                   </div>
 
                   <div className={styles.popup23}>
                     <div className={styles.popup24}>
-                      <div className={styles.popup25}>
-                        <p className={styles.popup26}>1.</p>
-                      </div>
-                      <div className={styles.popup27}>
-                        <p className={styles.popup28}>어린</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className={styles.popup23}>
-                    <div className={styles.popup24}>
-                      <div className={styles.popup25}>
-                        <p className={styles.popup26}>2.</p>
-                      </div>
-                      <div className={styles.popup27}>
-                        <p className={styles.popup28}>젊은이들</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className={styles.popup23}>
-                    <div className={styles.popup24}>
-                      <div className={styles.popup25}>
-                        <p className={styles.popup26}>3.</p>
-                      </div>
-                      <div className={styles.popup27}>
-                        <p className={styles.popup28}>새끼</p>
-                      </div>
+                      {/* ?. 옵셔널 체이닝으로 meaningTranslations가 없으면 에러없이 넘어가기  */}
+                      {dictionaryData.meanings?.map((meaning, index) => (
+                        <div key={index} className={styles.popup25}>
+                          <p className={styles.popup26}>{index + 1}. </p>
+                          <span className={styles.popup28}>{meaning}</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
@@ -2047,36 +1965,14 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage,
 
 
                       <div className={styles.popup38}>
-                        <p className={styles.popup39}>[ jʌŋ ]</p>
-                      </div>
-                    </div>
-
-                    <div className={styles.popup31}>
-                      <div className={styles.popup32}>
-                        <div className={styles.popup33}>
-                          <p className={styles.popup34}>US</p>
-                        </div>
-                        <div className={styles.popup35}>
-                          <div className={styles.popup36}>
-                            <svg className={styles.popup37} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                              <path d="M7.3335 4.18521C7.3335 3.54151 6.61195 3.1614 6.08107 3.52543L4.1024 4.88223C4.03581 4.9279 3.95694 4.95234 3.87619 4.95234H2.1335C1.69167 4.95234 1.3335 5.31051 1.3335 5.75234V10.2476C1.3335 10.6894 1.69167 11.0476 2.1335 11.0476H3.87619C3.95694 11.0476 4.03581 11.072 4.1024 11.1177L6.08107 12.4745C6.61195 12.8385 7.3335 12.4584 7.3335 11.8147V4.18521Z" fill="#CCC3B4"/>
-                              <path d="M9.69336 5.64001C10.3183 6.26511 10.6693 7.1128 10.6693 7.99668C10.6693 8.88056 10.3183 9.72826 9.69336 10.3533" stroke="#CCC3B4" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
-                              <path d="M11.4878 3.9967C12.7684 5.05768 13.4878 6.49648 13.4878 7.9967C13.4878 9.49693 12.7684 10.9357 11.4878 11.9967" stroke="#CCC3B4" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                          </div>
-                        </div>
-                      </div>
-
-
-                      <div className={styles.popup38}>
-                        <p className={styles.popup39}>[ jʌŋ ]</p>
+                        <p className={styles.popup39}>{dictionaryData.phonetic}</p>
                       </div>
                     </div>
                   </div>
 
 
                   <div className={styles.popup40}>
-                    <p className={styles.popup41}>명사, 형용사</p>
+                    <p className={styles.popup41}>{dictionaryData.partOfSpeech || ''}</p>
                   </div>
                 </div>
               </div>
@@ -2087,1335 +1983,39 @@ function QuizPage({ videoId, videoTitle, duration, onExitPage, onSettlementPage,
     )
   }
 
-      // {testQuiz()}
+const navigate = useNavigate();
 
-      // {/* 이탈 모달 */}
-      // {exitModal && (
-      //   testExit()
-      // )}
 
-      // {/* 사전 팝업 */}
-      // {/* dictionaryData 로 렌더링 기다리기 */}
-      // {dictionaryData && (
-      //   testDictionary()
-      // )}
 
-      // {testDictionary()}
 
-      log.debug(testQuiz, testExit, testDictionary);
+
 
   return (
     // 사이드패널 고정
-    <div>
-
-
-      {/* 최상위 박스 */}
-      <div style={{
-        display: 'flex',
-        width: '402px',
-        flexDirection: 'column',
-        alignItems: 'flex-start',
-        gap: '32px'
-      }}>
-
-        {/* 상단 박스 퀴즈 ~ 지나간 자막 어휘 */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          alignSelf: 'stretch'
-        }}>
-
-          {/* 비슷한 박스 */}
-          <div style={{
-            display: 'flex',
-            width: '402px',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}>
-
-            {/* 비슷한 박스2 */}
-            <div style={{
-              display: 'flex',
-              width: '402px',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '36px',
-              flexShrink: '0'
-            }}>
-
-              {/* 상단 중간 박스 (퀴즈 ~ 빈칸 채우기) */}
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '28px',
-                alignSelf: 'stretch',
-              }}>
-
-                {/* 상단 퀴즈 전체 박스 */}
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '29px',
-                  alignSelf: 'stretch',
-                }}>
-
-
-                  <div style={{
-                    display: 'flex',
-                    height: '54px',
-                    padding: '8px 177px 8px 16px',
-                    flexDirection: 'column',
-                    alignItems: 'flex-start',
-                    gap: '10px',
-                    alignSelf: 'stretch',
-                    background: '#C084FC'
-                  }}>
-
-
-                    <div style={{
-                      display: 'flex',
-                      width: '209px',
-                      justifyContent: 'space-between',
-                      alignItems: 'center'
-                    }}>
-
-
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                      }}>
-
-                        {/* 이전 페이지로 돌아가기 */}
-                        <button
-                        onClick={() => {
-                          if (currentQuiz) {
-                            // 퀴즈 중이면 확인 팝업
-                            setExitModal(true);
-                          } else {
-                            // 퀴즈 없으면 바로 디폴트로 (나중에 기능 추가하기)
-                            onExitPage(); 
-                          }
-                        }}
-                        style={{
-                        display: 'flex',
-                        width: '24px',
-                        height: '24px',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        background: 'transparent',
-                        border: 'none', 
-                        }}>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
-                              <path d="M7.84 13.75L9.17 12.26L6.64 10.01H15.01C17.22 10.01 19.01 11.8 19.01 14.01C19.01 16.22 17.22 18.01 15.01 18.01H12.01V20.01H15.01C18.32 20.01 21.01 17.32 21.01 14.01C21.01 10.7 18.32 8.01 15.01 8.01H6.63L9.16 5.76L7.83 4.27L2.49 9.02L7.83 13.77L7.84 13.75Z" fill="black"/>
-                            </svg>
-                        </button>
-
-                        {/* 디폴트 페이지로 이동 */}
-                        <button
-                        onClick={() => {
-                          if (currentQuiz) {
-                            // 퀴즈 중이면 확인 팝업
-                            setExitModal(true);
-                          } else {
-                            // 퀴즈 없으면 바로 디폴트로
-                            onExitPage(); 
-                          }
-                        }}
-                        style={{
-                          display: 'flex',
-                          width: '24px',
-                          height: '24px',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        background: 'transparent',
-                        border: 'none',
-                        }}>
-                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
-                            <path d="M12.71 2.29C12.6175 2.1973 12.5076 2.12375 12.3866 2.07357C12.2657 2.02339 12.136 1.99756 12.005 1.99756C11.874 1.99756 11.7444 2.02339 11.6234 2.07357C11.5024 2.12375 11.3925 2.1973 11.3 2.29L3.29 10.29C3.19732 10.3834 3.12399 10.4943 3.07423 10.6161C3.02447 10.7379 2.99924 10.8684 3 11V20C3 21.1 3.9 22 5 22H9C9.55 22 10 21.55 10 21V15H14V21C14 21.55 14.45 22 15 22H19C20.1 22 21 21.1 21 20V11C21 10.73 20.89 10.48 20.71 10.29L12.71 2.29ZM16 20V15C16 13.9 15.1 13 14 13H10C8.9 13 8 13.9 8 15V20H5V11.41L12 4.41L19 11.41V20H16Z" fill="black"/>
-                          </svg>
-                        </button>
-                      </div>
-
-                      <div style={{
-                        display: 'flex',
-                        height: '38px',
-                        padding: '10px',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        gap: '10px'
-                      }}>
-
-                        <p style={{
-                          color: '#FFF',
-                          textAlign: 'center',
-                          fontFamily: 'Pretendard',
-                          fontSize: '16px',
-                          fontStyle: 'normal',
-                          fontWeight: '700',
-                          lineHeight: 'normal',
-                          letterSpacing: '-0.032px'
-                        }}>
-                          퀴즈
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 진행바 전체 박스 */}
-                  {currentQuiz && (
-                  <div style={{
-                    display: 'flex',
-                    padding: '4px 0',
-                    alignItems: 'center',
-                    gap: '12px'
-                  }}>
-
-                    <div style={{
-                      width: '36px',
-                      height: '14px'
-                    }}>
-
-                      {/* 왼쪽 현재 퀴즈 번호 / 전체 퀴즈 개수 */}
-                      <div style={{
-                        display: 'flex',
-                        width: '36px',
-                        height: '14px',
-                        flexDirection: 'row',  // 가로 배치로 변경
-                        alignItems: 'center',  // 세로 가운데 정렬로 변경
-                      }}>
-
-
-                        <p style={{
-                          color: '#0D0C34',
-                          textAlign: 'center',
-                          fontFamily: 'Pretendard',
-                          fontSize: '16px',
-                          fontStyle: 'normal',
-                          fontWeight: '700',
-                          lineHeight: 'normal',
-                          letterSpacing: '-0.032px'
-                        }}>
-                          {currentQuiz?.quizType === 'MATCHING' ? matchingMatchedPairs.length : currentIndex + 1}
-                        </p>
-
-
-                        <p style={{
-                          color: '#9F9EB0',
-                          fontFamily: 'Pretendard',
-                          fontSize: '16px',
-                          fontStyle: 'normal',
-                          fontWeight: '500',
-                          lineHeight: 'normal',
-                          letterSpacing: '-0.032px'
-                        }}>
-                          /{quizzes?.length}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div style={{
-                      display: 'flex',
-                      width: '274px',
-                      flexDirection: 'column',  // 가로 배치로 변경
-                      alignItems: 'center',  // 세로 가운데 정렬로 변경
-                      position: 'relative',
-                    }}>
-
-                      <div style={{
-                        display: 'flex',
-                        width: '274px',
-                        flexDirection: 'column',
-                        alignItems: 'flex-start',
-                        alignSelf: 'stretch',
-                        position: 'relative',
-                      }}>
-
-                        {/* 전체 회색 진행바 */}
-                        <div style={{
-                          display: 'flex',
-                          width: '274px',
-                          height: '14px',
-                          flexDirection: 'column',
-                          alignItems: 'flex-start',
-                          position: 'absolute',
-                          borderRadius: '999px',
-                          backgroundColor: '#D8D8E2',
-                        }}>
-                        </div>
-
-                        {/* 채워지는 보라색 바 */}
-                        <div style={{ 
-                          display: 'flex',
-                          width: currentQuiz?.quizType === 'MATCHING' ? `${274 * (matchingMatchedPairs.length / quizzes.length)}px` : `${274 * ((currentIndex + 1) / quizzes.length)}px`,
-                          height: '14px',
-                          flexDirection: 'column',
-                          alignItems: 'flex-start',
-                          borderRadius: '999px',
-                          background: '#9B87E8', 
-                          position: 'relative',
-                          zIndex: 1,
-                        }}>
-
-                          {/* 개구리 이미지 넣기? */}
-                          <div style={{
-                            width: '36px',
-                            height: '36px',
-                            aspectRatio: '1/1',
-                            position: 'absolute',
-                            right: '-18px',
-                            top: '-11px',
-                            background: `url(${frog2}) center / contain no-repeat`,
-                            }}>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                  {/* 완주 표시 아이콘 */}
-                  <div
-                  style={{
-                    display: 'flex',
-                    width: '36px',
-                    height: '36px',
-                    alignItems: 'center',
-                        background: 'transparent',
-                        border: 'none',
-                  }}>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
-                      <path d="M8.00415 2.05813C9.47139 2.09829 10.9059 2.50116 12.1799 3.23C14.0199 4.28 16.2099 4.43991 18.1799 3.64993L19.6301 3.06985C19.7819 3.00944 19.9463 2.98768 20.1086 3.00539C20.271 3.02314 20.4267 3.07971 20.5618 3.17141C20.6969 3.26317 20.8076 3.38736 20.884 3.53176C20.9602 3.67592 21.0003 3.83648 21.0002 3.99953V14.9995C21.0004 15.1998 20.9407 15.3962 20.8284 15.562C20.7161 15.7278 20.5563 15.8561 20.3704 15.9302L18.9202 16.5103C17.8402 16.9403 16.7199 17.1499 15.5999 17.1499C14.0699 17.1499 12.5499 16.7502 11.1799 15.9702C9.28314 14.8821 7.00757 14.7701 5.01001 15.6353V21.9898H3.01001V3.98977C3.01061 3.80518 3.06238 3.62434 3.15942 3.46731C3.25646 3.31031 3.39501 3.18321 3.55981 3.10012L3.76978 2.99953C5.08184 2.34136 6.53681 2.018 8.00415 2.05813ZM11.1799 4.97024C9.27995 3.88025 7.00023 3.76042 5.00024 4.63039H5.01001V13.4995C5.89997 13.2096 6.83006 13.0601 7.76001 13.0601C9.31063 13.0639 10.8337 13.4702 12.1799 14.2398C13.0821 14.7616 14.0915 15.0712 15.1311 15.1441C16.1709 15.2168 17.2138 15.0508 18.1799 14.6597L19.0002 14.3296V5.48L18.9202 5.51028C16.3702 6.52027 13.5499 6.33021 11.1799 4.97024Z" fill="black"/>
-                      <path d="M8.00415 2.05813C9.47139 2.09829 10.9059 2.50116 12.1799 3.23C14.0199 4.28 16.2099 4.43991 18.1799 3.64993L19.6301 3.06985C19.7819 3.00944 19.9463 2.98768 20.1086 3.00539C20.271 3.02314 20.4267 3.07971 20.5618 3.17141C20.6969 3.26317 20.8076 3.38736 20.884 3.53176C20.9602 3.67592 21.0003 3.83648 21.0002 3.99953V14.9995C21.0004 15.1998 20.9407 15.3962 20.8284 15.562C20.7161 15.7278 20.5563 15.8561 20.3704 15.9302L18.9202 16.5103C17.8402 16.9403 16.7199 17.1499 15.5999 17.1499C14.0699 17.1499 12.5499 16.7502 11.1799 15.9702C9.28314 14.8821 7.00757 14.7701 5.01001 15.6353V21.9898H3.01001V3.98977C3.01061 3.80518 3.06238 3.62434 3.15942 3.46731C3.25646 3.31031 3.39501 3.18321 3.55981 3.10012L3.76978 2.99953C5.08184 2.34136 6.53681 2.018 8.00415 2.05813ZM11.1799 4.97024C9.27995 3.88025 7.00023 3.76042 5.00024 4.63039H5.01001V13.4995C5.89997 13.2096 6.83006 13.0601 7.76001 13.0601C9.31063 13.0639 10.8337 13.4702 12.1799 14.2398C13.0821 14.7616 14.0915 15.0712 15.1311 15.1441C16.1709 15.2168 17.2138 15.0508 18.1799 14.6597L19.0002 14.3296V5.48L18.9202 5.51028C16.3702 6.52027 13.5499 6.33021 11.1799 4.97024Z" stroke="black"/>
-                    </svg>
-                  </div>
-                </div>
-                  )}
-              </div>
-
-
-              <div style={{
-                display: 'flex',
-                width: '370px',
-                height: '291px',
-                padding: '5px 14px',
-                flexDirection: 'column',
-                alignItems: 'flex-start',
-                gap: '10px',
-                position: 'relative'  // 추가함
-              }}>
-
-
-                <div style={{
-                  display: 'flex',
-                  width: '100%',
-                  flexDirection: 'column',
-                  alignItems: 'flex-start',
-                }}>
-
-                  {/* 개구리 마스코트1 */}
-                  <div style={{ 
-                    width: '152px',
-                    height: '103px',
-                    aspectRatio: '152/103',
-                    // lightgray 대신 transparent 사용해서 투명처리
-                    background: `url(${frog}) transparent -226.694px -200.414px / 255.502% 375.791% no-repeat`,
-                    // 비율 유지 + 전체 보이기
-                    backgroundSize: 'contain',
-                    // 가운데 정렬
-                    backgroundPosition: 'center',
-                  }}>
-                  </div>
-
-                  {/* 자막 박스 감싸는 div */}
-                  <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'flex-start',
-                    alignSelf: 'stretch',
-                  }}>
-
-                    {/* 전체 문제 박스 */}
-                    <div style={{
-                      display: 'flex',
-                      padding: '24px 20px 20px 20px',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '24px',
-                      alignSelf: 'stretch',
-                      borderRadius: '24px',
-                      background: '#FFF',
-                    }}>
-
-
-                      <div style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'flex-start',
-                        gap: '16px',
-                        alignSelf: 'stretch'
-                      }}>
-
-
-                        {/* 방금 자막 */}
-                        <div style={{
-                          display: 'flex',
-                          padding: '6px 12px',
-                          justifyContent: 'center',
-                          alignItems: 'center',
-                          borderRadius: '999px',
-                          background: '#F5F3FF',
-                        }}>
-
-
-                          <p style={{
-                            color: '#01030D',
-                            fontFamily: 'Pretendard',
-                            fontSize: '12px',
-                            fontStyle: 'normal',
-                            fontWeight: '400',
-                            lineHeight: 'normal'
-                          }}>
-                            방금 자막
-                          </p>
-                        </div>
-
-
-                        {/* 중간 중간 패딩박스 */}
-                        <div style={{
-                          display: 'flex',
-                          width: '330px',
-                          flexDirection: 'column',
-                          alignItems: 'flex-start',
-                          gap: '8px',
-                        }}>
-
-                          {/* 영어 자막 박스 */}
-                          <div style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            alignSelf: 'stretch'
-                          }}>
-
-                            {/* 영어 자막 - 단어별 호버 */}
-                            <p style={{
-                              color: '#01030D',
-                              fontFamily: 'Pretendard',
-                              fontSize: '16px',
-                              fontStyle: 'normal',
-                              fontWeight: '700',
-                              lineHeight: 'normal',
-                              letterSpacing: '-0.32px'
-                            }}>
-                              {/* 자막 문장을 공백으로 나눠서 단어별로 처리 */}
-                              {currentSubtitle.text.split(' ').map((word, index) => {
-                                // 해당 종류를 일반 따옴표로 변환(백틱, 오른쪽 작은따옴표, 왼쪽 작은따옴표, 수정 문자 아포스트로피)
-                                const normalized = word.replace(/[`''ʼ]/g, "'");
-                                // 특수문자만 제거
-                                const cleaned = normalized.replace(/[^a-zA-Z']/g, '');
-                                // 단어의 품사 구분 및 일부 단어 필터링
-                                const wordFilter = getWordFilter(currentSubtitle.text, cleaned);
-
-                                // 구동사는 있으면 클릭 시 구동사로 보이기
-                                const searchWord = wordFilter?.type === 'phrasal' ? wordFilter.phrase : cleaned;
-
-                                return (
-                                  <span
-                                    key={index}
-                                    // 클릭 시 필터링이 아니면 팝업 고정
-                                    onClick={(e) => wordFilter && togglePin(e, searchWord, wordFilter)}>
-                                    {/* 원본 단어 그대로 표시 + 공백 추가 */}
-                                    {word}{' '}
-                                  </span>
-                                );
-                              })}
-                            </p>
-                          </div>
-
-                          {/* 한글 번역 */}
-                          <p style={{
-                            alignSelf: 'stretch',
-                            color: '#9198A3',
-                            fontFamily: 'Pretendard',
-                            fontSize: '16px',
-                            fontStyle: 'normal',
-                            fontWeight: '700',
-                            lineHeight: 'normal'
-                          }}>
-                            {currentSubtitle.translation}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* 버튼 박스 */}
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '30px',
-                      }}>
-
-                        {/* 전 스크립트 보기 */}
-                        <button
-                        onClick= {() => goPrev()}
-                        style={{
-                          display: 'flex',
-                          width: '32px',
-                          height: '32px',
-                          justifyContent: 'center',
-                          alignItems: 'center',
-                          borderRadius: '999px',
-                          background: 'transparent',
-                          border: 'none',
-                        }}>
-                          <svg xmlns="http://www.w3.org/2000/svg" width="35" height="35" viewBox="0 0 35 35" fill="none">
-                            <path d="M25.4625 8.91042C24.9812 8.6625 24.3979 8.70625 23.9458 9.02708L13.7375 16.3187C13.3583 16.5958 13.125 17.0333 13.125 17.5C13.125 17.9667 13.3583 18.4188 13.7375 18.6813L23.9458 25.9729C24.1938 26.1479 24.5 26.25 24.7917 26.25C25.025 26.25 25.2437 26.1917 25.4625 26.0896C25.9437 25.8417 26.25 25.3458 26.25 24.7917V10.2083C26.25 9.66875 25.9437 9.15833 25.4625 8.91042ZM23.3333 21.9625L17.0917 17.5L23.3333 13.0375V21.9479V21.9625ZM8.75 8.75H11.6667V26.25H8.75V8.75Z" fill="black"/>
-                          </svg>
-                        </button>
-
-                        {/* 현재 스크립트 구간 반복 */}
-                        <button 
-                        onClick={() => toggleLoop()}
-                        style={{
-                          display: 'flex',
-                          width: '32px',
-                          height: '32px',
-                          justifyContent: 'center',
-                          alignItems: 'center',
-                        background: 'transparent',
-                        border: 'none',
-                        }}>
-                          <svg xmlns="http://www.w3.org/2000/svg" width="35" height="35" viewBox="0 0 35 35" fill="none">
-                            <path d="M8.75001 26.25H14.5833C15.3854 26.25 16.0417 25.5938 16.0417 24.7917V10.2083C16.0417 9.40625 15.3854 8.75 14.5833 8.75H8.75001C7.94792 8.75 7.29167 9.40625 7.29167 10.2083V24.7917C7.29167 25.5938 7.94792 26.25 8.75001 26.25ZM10.2083 11.6667H13.125V23.3333H10.2083V11.6667ZM20.4167 8.75C19.6146 8.75 18.9583 9.40625 18.9583 10.2083V24.7917C18.9583 25.5938 19.6146 26.25 20.4167 26.25H26.25C27.0521 26.25 27.7083 25.5938 27.7083 24.7917V10.2083C27.7083 9.40625 27.0521 8.75 26.25 8.75H20.4167ZM24.7917 23.3333H21.875V11.6667H24.7917V23.3333Z" fill="black"/>
-                          </svg>
-                        </button>
-
-                        {/* 다음 스크립트 보기 */}
-                        <button
-                        onClick={() => goNext()}
-                        style={{
-                          display: 'flex',
-                          width: '32px',
-                          height: '32px',
-                          justifyContent: 'center',
-                          alignItems: 'center',
-                          borderRadius: '999px',
-                        background: 'transparent',
-                        border: 'none',
-                        }}>
-                          <svg xmlns="http://www.w3.org/2000/svg" width="35" height="35" viewBox="0 0 35 35" fill="none">
-                            <path d="M21.2625 16.3187L11.0542 9.02708C10.6021 8.70625 10.0187 8.6625 9.5375 8.91042C9.05625 9.15833 8.75 9.65417 8.75 10.2083V24.7917C8.75 25.3313 9.05625 25.8417 9.5375 26.0896C9.74167 26.1917 9.975 26.25 10.2083 26.25C10.5 26.25 10.8062 26.1625 11.0542 25.9729L21.2625 18.6813C21.6417 18.4042 21.875 17.9667 21.875 17.5C21.875 17.0333 21.6417 16.5812 21.2625 16.3187ZM11.6667 21.9625V13.0521L17.9083 17.5146L11.6667 21.9771V21.9625ZM23.3333 8.75H26.25V26.25H23.3333V8.75Z" fill="black"/>
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 말풍선 최상위 박스 */}
-                <div style={{
-                  display: 'flex',
-                  width: '204px',
-                  flexDirection: 'column',
-                  alignItems: 'flex-start',
-                  gap: '10px',
-                  position: 'absolute',
-                  right: '14px',
-                  top: '5px'
-                }}>
-
-                  {/* 말풍선 */}
-                  <svg
-                  style={{
-                    width: '204px',
-                    height: '68px',
-                    position: 'absolute'
-                  }}
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="204"
-                  height="68"
-                  viewBox="0 0 204 68"
-                  fill="none">
-                    <path d="M188 0C196.837 3.2327e-05 204 7.16346 204 16V52C204 60.8365 196.837 68 188 68H4.12501C0.904653 68 -1.03004 64.1901 0.576182 60.8711L0.743174 60.5537C3.27772 57.3476 4.54459 55.7434 5.57911 53.9951C7.88039 50.106 9.39333 45.6025 10 40.8564V16C10 7.16344 17.1635 0 26 0H188Z" fill="white"/>
-                  </svg>
-
-
-                  <p style={{
-                    position: 'absolute', // 추가
-                    top: '16px',  // 추가
-                    left: '26px', // 추가
-                    width: '168px',
-                    color: '#01030D',
-                    fontFamily: 'Pretendard',
-                    fontSize: '12px',
-                    fontStyle: 'normal',
-                    fontWeight: '500',
-                    lineHeight: '18px',
-                    textTransform: 'uppercase'
-                  }}>
-                    {currentQuiz?.quizType === 'BLANK' && (!isConfirmed ? <div>이 문장의 빈칸, 알 것 같지 않아?<br/> 한 번 맞춰봐!</div>  : feedback?.feedback)}
-                    {currentQuiz?.quizType === 'OX' && (!isConfirmed ? "문장에 들어간 단어로 저게 맞을까?" : feedback?.feedback)}
-                    {currentQuiz?.quizType === 'MATCHING' && (!isConfirmed ? "문장에 들어간 단어로 저게 맞을까?" : matchingMatchedPairs.length === quizzes.length ? "수고했어! 이제 결과를 볼까?" : "문장에 들어간 단어로 저게 맞을까?")}
-                  </p>
-                </div>
-              </div>
-
-
-
-              {/* 힌트 박스 */}
-              {/* 선택했을 때 */}
-              {currentQuiz?.quizType !== 'MATCHING' && isConfirmed && (
-                // 정답인 경우
-                isCorrect ? (
-                  <div style={{
-                    display: 'flex',
-                    width: '370px',
-                    minHeight: '68px',
-                    padding: '16px 24px 16px 16px',
-                    flexDirection: 'column',
-                    alignItems: 'flex-start',
-                    gap: '10px',
-                    flexShrink: '0',
-                    borderRadius: '12px',
-                    background: '#CCC',
-                  }}>
-
-                    {/* 힌트 박스 gap */}
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                    }}>
-
-                      {/* 힌트 전구 */}
-                      <div style={{
-                        width: '32px',
-                        height: '32px',
-                        aspectRatio: '1/1',
-                        // lightgray 대신 transparent 사용해서 투명처리
-                        background: `url(${bulb}) transparent 50% / cover no-repeat`,
-                        // 비율 유지 + 전체 보이기
-                        backgroundSize: 'contain',
-                        // 가운데 정렬
-                        backgroundPosition: 'center',
-                      }}>
-                      </div>
-
-                      {/* 힌트 박스 글 */}
-                      <div style={{
-                        width: '290px',
-                        color: '#FFF',
-                        fontFamily: 'Pretendard',
-                        fontSize: '12px',
-                        fontStyle: 'normal',
-                        fontWeight: '700',
-                        lineHeight: '18px', /* 150% */
-                      }}>
-                        {feedback?.explanation}
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  // 오답인 경우
-                  <div style={{
-                    display: 'flex',
-                    width: '370px',
-                    minHeight: '68px',
-                    padding: '16px 24px 16px 16px',
-                    flexDirection: 'column',
-                    alignItems: 'flex-start',
-                    gap: '10px',
-                    flexShrink: '0',
-                    borderRadius: '12px',
-                    background: '#CCC',
-                  }}>
-
-                    {/* 힌트 박스 gap */}
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                    }}>
-
-                      {/* 힌트 전구 */}
-                      <div style={{
-                        width: '32px',
-                        height: '32px',
-                        aspectRatio: '1/1',
-                        // lightgray 대신 transparent 사용해서 투명처리
-                        background: `url(${bulb}) transparent 50% / cover no-repeat`,
-                        // 비율 유지 + 전체 보이기
-                        backgroundSize: 'contain',
-                        // 가운데 정렬
-                        backgroundPosition: 'center',
-                      }}>
-                      </div>
-
-                      <div style={{
-                        width: '290px',
-                        color: '#FFF',
-                        fontFamily: 'Pretendard',
-                        fontSize: '12px',
-                        fontStyle: 'normal',
-                        fontWeight: '700',
-                        lineHeight: '18px', /* 150% */
-                      }}>
-                        {feedback?.explanation}
-                      </div>
-                    </div>
-                  </div>
-                )
-              )}
-
-              {currentQuiz?.quizType === 'BLANK' && blankQuiz()}
-              {currentQuiz?.quizType === 'OX' && oxQuiz()}
-              {currentQuiz?.quizType === 'MATCHING' &&  matchingShuffledMeanings?.length > 0 &&  matchingQuiz()}
-
-              {/* 럭키 미스테이크 전체 배경 박스 */}
-              {currentQuiz?.quizType === 'BLANK' && isConfirmed && !feedback?.correct && (
-                <div style={{ 
-                  display: 'flex',
-                  width: '370px',
-                  height: '220px',
-                  padding: '24px',
-                  flexDirection: 'column',
-                  alignItems: 'flex-start',
-                  gap: '10px',
-                  borderRadius: '24px',
-                  background: '#CCC',
-                }}>
-
-                  {/* 럭키 미스테이크 전체 내용 박스 */}
-                  <div style={{ 
-                    display: 'flex',
-                    width: '322px',
-                    flexDirection: 'column',
-                    alignItems: 'flex-start',
-                    gap: '16px',
-                  }}>
-
-                    {/* 럭키 미스테이크 안내글 박스 */}
-                    <div style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'flex-start',
-                      gap: '8px',
-                      alignSelf: 'stretch',
-                    }}>
-
-                      {/* 럭키 미스테이크 */}
-                      <p style={{
-                        alignSelf: 'stretch',
-                        color: '#FFF',
-                        fontFamily: 'Pretendard',
-                        fontSize: '14px',
-                        fontStyle: 'normal',
-                        fontWeight: '500',
-                        lineHeight: '15px', /* 107.143% */
-                      }}>
-                        럭키 미스테이크
-                      </p>
-
-                      {/* 틀린 단어 보상 안내 */}
-                      <p style={{
-                        alignSelf: 'stretch',
-                        color: '#FFF',
-                        fontFamily: 'Pretendard',
-                        fontSize: '18px',
-                        fontStyle: 'normal',
-                        fontWeight: '700',
-                        lineHeight: '28px', /* 155.556% */
-                      }}>
-                        틀린 단어는 다음에 다시 나와요!<br></br>그때 맞히면 보상이 더 커요
-                      </p>
-                    </div>
-
-                    {/* 계속하기 버튼 + 경험치 안내 박스 */}
-                    <div style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '16px',
-                      alignSelf: 'stretch',
-                    }}>
-
-                      {/* 계속하기 버튼 */}
-                      <button
-                      onClick={handleNext}
-                      style={{
-                        display: 'flex',
-                        height: '44px',
-                        padding: '14px 123px 13px 117px',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        gap: '10px',
-                        alignSelf: 'stretch',
-                        borderRadius: '14.133px',
-                        background: '#ABABAB',
-                      }}>
-
-                        {/* 퀴즈 계속하기 */}
-                        <p style={{
-                          color: '#FFF',
-                          textAlign: 'center',
-                          fontFamily: 'Pretendard',
-                          fontSize: '14.133px',
-                          fontStyle: 'normal',
-                          fontWeight: '700',
-                          lineHeight: 'normal',
-                          letterSpacing: '-0.028px'
-                        }}>
-                          퀴즈 계속 하기
-                        </p>
-                      </button>
-
-                      {/* 경험치 안내 박스 */}
-                      <div style={{ 
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                      }}>
-
-                        {/* 경험치 안내 글 */}
-                        <div style={{
-                          color: '#F4F4F4',
-                          fontFamily: 'Pretendard',
-                          fontSize: '14px',
-                          fontStyle: 'normal',
-                          fontWeight: '500',
-                          lineHeight: 'normal'
-                        }}>
-                          다음 {currentQuiz?.word} 퀴즈 정답 시 × 1.5 EXP
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-
-
-      {/* 하단 고정 바 */}
-      {currentQuiz && (
-      <div style={{
-        display: 'flex',
-        padding: '10px 16px',
-        justifyContent: 'center',
-        alignItems: 'center',
-        alignSelf: 'stretch',
-        borderTop: '1px solid #E1E6EE',
-        background: '#FFF'
-      }}>
-
-        {/* 중간 박스 */}
-        <div style={{
-          display: 'flex',
-          width: '370px',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}>
-
-          {/* 건너뛰기 버튼 */}
-          <button
-          onClick={handleNext}
-          style={{
-            display: 'flex',
-            width: '120px',
-            height: '40px',
-            padding: '11px 30px',
-            justifyContent: 'center',
-            alignItems: 'center',
-            gap: '10px',
-            flexShrink: '0',
-            borderRadius: '12px',
-            border: '1px solid #D9D9D9',
-            background: '#FFF'
-          }}>
-
-
-            <p style={{
-              color: '#01030D',
-              fontFamily: 'Pretendard',
-              fontSize: '16px',
-              fontStyle: 'normal',
-              fontWeight: '500',
-              lineHeight: '18px',
-              whiteSpace: 'nowrap'
-            }}>
-              건너 뛰기
-            </p>
-          </button>
-
-          {/* 제출 및 넘어가기 버튼 */}
-          {currentQuiz?.quizType === 'MATCHING' ? (
-            // 매칭 퀴즈는 결과 보기만 나옴
-            <button
-            onClick={handleMatchingComplete}
-            disabled={matchingMatchedPairs.length < quizzes.length}
-            style={{
-              display: 'flex',
-              width: '238px',
-              height: '40px',
-              padding: '11px 90px 11px 89px',
-              justifyContent: 'center',
-              alignItems: 'center',
-              gap: '10px',
-              flexShrink: '0',
-              borderRadius: '12px',
-              background: matchingMatchedPairs.length === quizzes.length ? '#7C3AED' : '#D9D9D9',
-            }}>
-
-              <p style={{
-                color: '#FFF',
-                fontFamily: 'Pretendard',
-                fontSize: '16px',
-                fontStyle: 'normal',
-                fontWeight: '700',
-                lineHeight: '18px',
-                whiteSpace: 'nowrap'
-              }}>
-              결과 보기
-              </p>
-            </button>
-          ) : (
-            // ox, 빈칸 채우기 전용
-            !isConfirmed ? (
-              <button
-              onClick={handleSubmit}
-              style={{
-                display: 'flex',
-                width: '238px',
-                height: '40px',
-                padding: '11px 90px 11px 89px',
-                justifyContent: 'center',
-                alignItems: 'center',
-                gap: '10px',
-                flexShrink: '0',
-                borderRadius: '12px',
-                background: '#D9D9D9'
-              }}>
-
-                <p style={{
-                  color: '#FFF',
-                  fontFamily: 'Pretendard',
-                  fontSize: '16px',
-                  fontStyle: 'normal',
-                  fontWeight: '700',
-                  lineHeight: '18px',
-                  whiteSpace: 'nowrap'
-                }}>
-                  문제 확인
-                </p>
-              </button>
-            ) : (
-              <button
-              onClick={handleNext}
-              style={{
-                display: 'flex',
-                width: '238px',
-                height: '40px',
-                padding: '11px 90px 11px 89px',
-                justifyContent: 'center',
-                alignItems: 'center',
-                gap: '10px',
-                flexShrink: '0',
-                borderRadius: '12px',
-                background: '#D9D9D9'
-              }}>
-
-                <p style={{
-                  color: '#FFF',
-                  fontFamily: 'Pretendard',
-                  fontSize: '16px',
-                  fontStyle: 'normal',
-                  fontWeight: '700',
-                  lineHeight: '18px' /* 112.5% */
-                }}>
-                  계속 하기
-                </p>
-              </button>
-            )
-          )}
-        </div>
-      </div>
+    <>
+      {testQuiz()}
+
+      {/* 이탈 모달 */}
+      {exitModal && (
+        testExit()
       )}
-    </div>
 
-        {/* 사전 팝업 */}
-        {/* dictionaryData 로 렌더링 기다리기 */}
-        {dictionaryData && (
-          <div style={{
-          // absolute 대신 사용
-            position: 'fixed',  
-            top: popupPosition.top,
-            left: popupPosition.left,
-            width: '270px',
-            minHeight: '188px',
-            // height: '188.212px',
-            borderRadius: '15.979px',
-            border: '0.799px solid #E7E6EB',
-            background: '#FFF',
-            boxShadow: '0 3.196px 3.196px 0 rgba(206, 210, 223, 0.16)',
-            zIndex: '999',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '8px',
-            padding: '16px',
-          }}>
-
-            {/* 상단 버튼 영역 - 가로 배치 */}
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              width: '100%',
-            }}>
-
-            {/* 수집 기능 넣기 */}
-            <button 
-            onClick={() => collectWord()}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              justifyContent: 'center',
-              width: '86.289px',
-              height: '31.959px',
-              zIndex: '999',
-              borderRadius: '7.99px',
-              border: '0.799px solid #E7E6EB',
-              background: '#FFF',
-              boxSizing: 'border-box',
-              padding: '0 8px',
-            }}>
-
-              {/* 사전 아이콘 들어갈 자리 */}
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '19.175px',
-                height: '19.175px',
-                background: 'transparent',
-                border: 'none',
-                zIndex: '999',
-                flexShrink: 0,
-              }}>
-                {isCollected ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" width="9" height="11" viewBox="0 0 9 11" fill="none">
-                    <path d="M7.58301 0C8.17884 0 8.66602 0.488151 8.66602 1.08398V10.292C8.66602 10.487 8.56342 10.6662 8.39551 10.7637C8.31439 10.8123 8.22231 10.8339 8.125 10.834C8.0275 10.834 7.93477 10.8124 7.85352 10.7637L4.33301 8.74805L0.8125 10.7637C0.644639 10.8611 0.438394 10.8611 0.270508 10.7637C0.102591 10.6662 0 10.487 0 10.292V1.08398C0 0.488158 0.487184 1.11154e-05 1.08301 0H7.58301Z" fill="#7C3AED"/>
-                  </svg>
-                ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" width="9" height="11" viewBox="0 0 9 11" fill="none">
-                    <path d="M7.58333 0H1.08333C0.4875 0 0 0.4875 0 1.08333V10.2917C0 10.4867 0.102917 10.6654 0.270833 10.7629C0.43875 10.8604 0.644583 10.8604 0.8125 10.7629L4.33333 8.74792L7.85417 10.7629C7.93542 10.8117 8.0275 10.8333 8.125 10.8333C8.2225 10.8333 8.31458 10.8117 8.39583 10.7629C8.56375 10.6654 8.66667 10.4867 8.66667 10.2917V1.08333C8.66667 0.4875 8.17917 0 7.58333 0ZM7.58333 4.33333V9.36L4.60417 7.65917C4.52283 7.61156 4.43028 7.58647 4.33604 7.58647C4.2418 7.58647 4.14925 7.61156 4.06792 7.65917L1.08875 9.36V1.08333H7.58875V4.33333H7.58333Z" fill="black"/>
-                  </svg>
-                )}
-              </div>
-
-              <span style={{
-                color: '#01030D',
-                fontFamily: 'Pretendard',
-                fontSize: '11.186px',
-                fontStyle: 'normal',
-                fontWeight: '400',
-                zIndex: '999',
-                lineHeight: 'normal',
-                whiteSpace: 'nowrap',
-              }}>
-                단어 수집
-              </span>
-            </button>
-
-            {/* 닫기 버튼 */}
-            <button 
-            onClick= {() => closePopup()}
-            style={{
-              width: '28.763px',
-              height: '28.763px',
-              zIndex: '999',
-              background: 'transparent',
-              border: 'none',
-            }}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path d="M14.83 7.76001L12 10.59L9.17001 7.76001L7.76001 9.17001L10.59 12L7.76001 14.83L9.17001 16.24L12 13.41L14.83 16.24L16.24 14.83L13.41 12L16.24 9.17001L14.83 7.76001Z" fill="black"/>
-                <path d="M12 2.00001C9.33 2.00001 6.82 3.04001 4.93 4.93001C3.04 6.82001 2 9.33001 2 12C2 14.67 3.04 17.18 4.93 19.07C6.88 21.02 9.44 21.99 12 21.99C14.56 21.99 17.12 21.02 19.07 19.07C21.02 17.12 22 14.67 22 12C22 9.33001 20.96 6.82001 19.07 4.93001C18.1439 3.99824 17.0422 3.25949 15.8286 2.75654C14.615 2.25359 13.3137 1.99645 12 2.00001ZM17.66 17.66C14.54 20.78 9.47 20.78 6.35 17.66C4.84 16.15 4.01 14.14 4.01 12C4.01 9.86001 4.84 7.85001 6.35 6.34001C7.86 4.83001 9.87 4.00001 12.01 4.00001C14.15 4.00001 16.16 4.83001 17.67 6.34001C19.18 7.85001 20.01 9.86001 20.01 12C20.01 14.14 19.18 16.15 17.67 17.66H17.66Z" fill="black"/>
-              </svg>
-            </button>
-          </div>
-
-            {/* 해당하는 품사 반환 */}
-            <p style={{
-              zIndex: '999',
-              color: '#9198A3',
-              fontFamily: 'Pretendard',
-              fontSize: '9.588px',
-              fontStyle: 'normal',
-              fontWeight: '400',
-              lineHeight: 'normal'
-            }}>
-              {partOfSpeechKo[dictionaryData.partOfSpeech] || ''}
-            </p>
-
-            {/* 단어 */}
-            <p style={{
-              zIndex: '999',
-              color: '#7C3AED',
-              fontFamily: 'Pretendard',
-              fontSize: '23.17px',
-              fontStyle: 'normal',
-              fontWeight: '700',
-              lineHeight: 'normal',
-              letterSpacing: '-0.463px'
-            }}>
-              {dictionaryData.word}
-            </p>
-
-            {/* 미국식 발음 */}
-            <p style={{
-              color: '#9198A3',
-              fontFamily: 'Pretendard',
-              fontSize: '11.186px',
-              fontStyle: 'normal',
-              fontWeight: '400',
-              lineHeight: 'normal',
-              zIndex: '999',
-              letterSpacing: '-0.224px'
-            }}>
-              {dictionaryData.phonetic}
-            </p>
-
-            {/* 줄? */}
-            <div style={{
-              width: '238.094px',
-              height: '0.799px',
-              background: '#E7E6EB',
-              zIndex: '999',
-            }}>
-            </div>
-
-            {/* 단어 뜻 번역 */}
-            <p style={{
-              color: '#01030D',
-              fontFamily: 'Pretendard',
-              fontSize: '12.784px',
-              fontStyle: 'normal',
-              fontWeight: '700',
-              lineHeight: 'normal',
-              zIndex: '999',
-              // 자동 줄바꿈 추가
-              wordBreak: 'break-word',
-            }}>
-              {dictionaryData.meaningTranslation}
-            </p>
-
-            {/* 단어 가리키는 화살표 박스 */}
-            <div style={{
-              position: 'absolute',
-              // top: '175.4px',
-              bottom: '-32px',
-              left: `${popupPosition.arrowLeft}px`,   // 동적 위치로 변경
-              transform: 'translateX(-50%)',  // 좌우 중앙 정렬로 변경
-              width: '29.562px',
-              height: '33.504px',
-              fill: '#FFF',
-              strokeWidth: '0.985px',
-              stroke: '#E7E6EB',
-              zIndex: '999',
-              background: 'transparent',
-              border: 'none',
-            }}>
-
-              <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="21"
-              height="21"
-              viewBox="0 0 21 21"
-              fill="none">
-                <path d="M7.24292 18.0095C8.52218 20.5207 12.1101 20.5207 13.3894 18.0095L19.7585 5.50757C20.9275 3.21302 19.2604 0.493045 16.6853 0.49292H3.94702C1.37183 0.49292 -0.295152 3.21297 0.873779 5.50757L7.24292 18.0095Z" fill="white" stroke="#E7E6EB" stroke-width="0.985401"/>
-              </svg>
-            </div>
-          </div>
-        )}
-
-        {/* 이탈 모달 */}
-        {exitModal && (
-          <div  style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            wwidth: '100%', // 너비 고정
-            background: 'rgba(0, 0, 0, 0.70)',
-          }}>
-
-            {/* 팝업 창 */}
-            <div style={{
-              position: 'absolute',
-              top: 214,
-              left: 16,
-              right: 16,
-              width: '370px',
-              background: '#fff',
-              borderRadius: '24px',
-              border: '1px solid #E7E6EB',
-            }}>
-
-              <p style={{
-                position: 'absolute',
-                top: '24px',
-                left: '44px',
-                bottom: '374px',
-                right: '44px',
-                display: 'flex',
-                width: '282px',
-                height: '48px',
-                flexDirection: 'column',
-                justifyContent: 'center',
-                color: '#0D0C34',
-                textAlign: 'center',
-                fontFamily: 'Pretendard',
-                fontSize: '16px',
-                fontStyle: 'normal',
-                fontWeight: '700',
-                lineHeight: '28px'  /* 175% */
-              }}>
-                엇, 그만두시게요?<br />
-                조금만 더 하면<span
-                style={{
-                  color: '#9B87E8',
-                  fontFamily: 'Pretendard',
-                  fontSize: '16px',
-                  fontStyle: 'normal',
-                  fontWeight: '700',
-                  lineHeight: '28px'  /* 175% */
-                }}>
-                  {nextBadge}
-                </span>에 가까워져요!
-              </p>
-
-              {/* 개구리 마스코트 */}
-              <div style={{ 
-                position: 'absolute',
-                top: '80px',
-                bottom: '186px',
-                left: '93px',
-                right: '93px',
-                width: '184px',
-                height: '180px',
-                aspectRatio: '46/45',
-                // lightgray 대신 transparent 사용해서 투명처리
-                background: `url(${frog1}) transparent -3.913px -3.002px / 206.475% 210.332% no-repeat`,
-                // 비율 유지 + 전체 보이기
-                backgroundSize: 'contain',
-                // 가운데 정렬
-                backgroundPosition: 'center',
-              }}>
-              </div>
-
-              <p style={{
-                position: 'absolute',
-                top: '268px',
-                left: '68px',
-                bottom: '154px',
-                right: '68px',
-                display: 'flex',
-                width: '234px',
-                height: '24px',
-                flexDirection: 'column',
-                justifyContent: 'center',
-                color: '#9F9EB0',
-                textAlign: 'center',
-                fontFamily: 'Pretendard',
-                fontSize: '14px',
-                fontStyle: 'normal',
-                fontWeight: '500',
-                lineHeight: '24px'  /* 171.429% */
-              }}>
-                지금 나가도 다음에 다시 이어 할 수 있어요
-              </p>
-
-              <button 
-              onClick={() => setExitModal(false)}
-              style={{
-                position: 'absolute',
-                top: '316px',
-                left: '16px',
-                bottom: '81px',
-                right: '16px',
-                width: '338px',
-                height: '49px',
-                borderRadius: '14.133px',
-              background: '#9B87E8',
-              boxShadow: '0 4px 4px 0 rgba(206, 210, 223, 0.16)',
-              boxSizing: 'border-box'
-            }}>
-              <p style={{
-                position: 'absolute',
-                top: '16px',
-                left: '129px',
-                bottom: '16px',
-                right: '129px',
-                width: '80px',
-                color: '#FFF',
-                fontFamily: 'Pretendard',
-                fontSize: '14.133px',
-                fontStyle: 'normal',
-                fontWeight: '700',
-                lineHeight: 'normal',
-                letterSpacing: '-0.028px'
-              }}>
-                퀴즈 계속하기
-              </p>
-            </button>
-
-            {/* 디폴트 페이지로 이동 */}
-            <button
-            onClick={handleExit}
-            style={{
-              position: 'absolute',
-              top: '377px',
-              left: '16px',
-              bottom: '20px',
-              right: '16px',
-              width: '338px',
-              height: '49px',
-              borderRadius: '14.133px',
-              border: '0.883px solid #E7E6EB',
-              boxShadow: '0 3.533px 3.533px 0 rgba(206, 210, 223, 0.16)',
-            }}>
-
-              <p style={{
-                position: 'absolute',
-                top: '16px',
-                left: '96px',
-                bottom: '16.34px',
-                right: '96px',
-                display: 'flex',
-                width: '146px',
-                height: '16.66px',
-                flexDirection: 'column',
-                justifyContent: 'center',
-                color: '#ED5050',
-                textAlign: 'center',
-                fontFamily: 'Pretendard',
-                fontSize: '14.133px',
-                fontStyle: 'normal',
-                fontWeight: '700',
-                lineHeight: 'normal',
-                letterSpacing: '-0.028px'
-              }}>
-                여기까지 저장하고 나가기
-              </p>
-            </button>
-          </div>
-        </div>
+      {/* 단어 사전 팝업 */}
+      {/* dictionaryData 로 렌더링 기다리기 */}
+      {dictionaryData && (
+        testDictionary()
       )}
-    </div>
+
+      {/* 최종정산 */}
+      {/* <SettlementPage 
+        data={settlementData}
+        videoId={videoId}
+        videoTitle={videoTitle}
+        channelName={channelName}
+        duration={duration}
+        thumbnailUrl={thumbnailUrl}
+      /> */}
+    </>
   );  // return 끝
 }  // 함수 끝
 export default QuizPage;

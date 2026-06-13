@@ -1,6 +1,7 @@
 package com.clip.server.chat.controller;
 
 import com.clip.server.chat.dto.request.ChatMessageSendRequest;
+import com.clip.server.chat.dto.request.ChatStartRequest;
 import com.clip.server.chat.service.ChatMessageOrchestrator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -57,5 +58,23 @@ public class ChatWebSocketController {
 
         // Orchestrator로 위임 (비동기 처리)
         chatMessageOrchestrator.processMessage(userId, request);
+    }
+
+    /**
+     * 채팅 시작 (AI 인트로 요청)
+     * Destination: /app/chat/start
+     * - 새 방 진입 시 클라이언트가 1회 호출
+     * - 메시지가 0개일 때만 동작 (중복 방지)
+     */
+    @MessageMapping("/chat/start")
+    public void startChat(
+            @Payload ChatStartRequest request,
+            Principal principal
+    ) {
+        Long userId = Long.parseLong(principal.getName());
+        log.info("채팅 시작 요청. userId={}, chatRoomId={}", userId, request.getChatRoomId());
+
+        // Orchestrator로 위임 (비동기 처리)
+        chatMessageOrchestrator.startChat(userId, request.getChatRoomId());
     }
 }
