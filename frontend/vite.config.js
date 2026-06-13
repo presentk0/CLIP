@@ -21,7 +21,9 @@ export default defineConfig(({ mode }) => ({
     sourcemap: mode !== 'production',
     rollupOptions: {
       input: {
-        sidepanel: 'sidepanel.html'
+        sidepanel: 'sidepanel.html',
+        // permission: 'permission.html',
+        recorder: 'recorder.html',
       }
     }
   }

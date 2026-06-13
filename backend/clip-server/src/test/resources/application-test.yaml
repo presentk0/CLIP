@@ -39,14 +39,7 @@ openai:
   api:
     key: test-key
     url: https://api.openai.com/v1/chat/completions
-  model: gpt-5.4-mini
-
-aws:
-  access-key: mock
-  secret-key: mock
-  region: ap-northeast-2
-  s3:
-    bucket: test-bucket
+    model: gpt-5.4-mini
 
 deepl:
   api:
@@ -66,3 +59,19 @@ youtube:
 
 admin:
   api-key: test-key
+
+azure:
+  speech:
+    key: test-key
+    region: koreacentral
+    language: en-US
+    voice-name-female: en-US-JennyNeural
+    voice-name-male: en-US-GuyNeural
+
+aws:
+  region: ap-northeast-2
+  profile: clipzy-sso
+  s3:
+    bucket: test-bucket
+    audio-prefix: chat/
+    presigned-url-expiration: 300  # 5분

@@ -24,6 +24,8 @@ public enum ErrorCode {
 
     // 403 Forbidden
     FORBIDDEN(HttpStatus.FORBIDDEN, "FORBIDDEN", "권한이 없습니다."),
+    CHAT_ROOM_NOT_OWNED(HttpStatus.FORBIDDEN, "CHAT_ROOM_NOT_OWNED","본인의 채팅방이 아닙니다."),
+    WORD_NOT_OWNED(HttpStatus.FORBIDDEN, "WORD_NOT_OWNED", "본인의 단어가 아닙니다."),
 
     // 404 Not Found
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "사용자를 찾을 수 없습니다."),
@@ -35,15 +37,19 @@ public enum ErrorCode {
     SUBTITLE_NOT_FOUND(HttpStatus.NOT_FOUND, "SUBTITLE_NOT_FOUND", "해당 영상의 자막을 찾을 수 없습니다."),
     LEARNING_HISTORY_NOT_FOUND(HttpStatus.NOT_FOUND, "LEARNING_HISTORY_NOT_FOUND", "해당 학습 이력을 찾을 수 없습니다."),
     REFRESH_TOKEN_NOT_FOUND(HttpStatus.NOT_FOUND, "REFRESH_TOKEN_NOT_FOUND", "Refresh 토큰을 찾을 수 없습니다."),
+    NO_RESUMABLE_CHAT_ROOM(HttpStatus.NOT_FOUND, "NO_RESUMABLE_CHAT_ROOM","이어할 수 있는 채팅방이 없습니다."),
+    CHAT_ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "CHAT_ROOM_NOT_FOUND","채팅방을 찾을 수 없습니다."),
 
     // 409 Conflict
     WORD_ALREADY_COLLECTED(HttpStatus.CONFLICT, "WORD_ALREADY_COLLECTED", "이미 수집한 단어입니다."),
     PREFERENCE_ALREADY_EXISTS(HttpStatus.CONFLICT, "PREFERENCE_ALREADY_EXISTS", "이미 온보딩을 완료했습니다."),
     VIDEO_ALREADY_EXISTS(HttpStatus.CONFLICT, "VIDEO_ALREADY_EXISTS", "이미 등록된 영상입니다."),
+    CHAT_ROOM_COMPLETED(HttpStatus.CONFLICT, "CHAT_ROOM_COMPLETED", "이미 종료된 채팅방입니다."),
 
     // 500 Internal Server Error
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR", "서버 오류가 발생했습니다."),
-    AI_SERVICE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "AI_SERVICE_ERROR", "AI 서비스 오류가 발생했습니다.");
+    AI_SERVICE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "AI_SERVICE_ERROR", "AI 서비스 오류가 발생했습니다."),
+    TRANSLATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "TRANSLATION_FAILED", "번역 서비스 오류가 발생했습니다.");
 
     private final HttpStatus status;
     private final String code;

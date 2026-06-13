@@ -49,7 +49,7 @@ public class AdminVideoService {
                 .channelName(metadata.getChannelName())
                 .channelProfileImageUrl(metadata.getChannelProfileImageUrl())
                 .learningGoal(request.getLearningGoal())
-                .estimatedDifficulty(request.getDifficulty())
+                .difficultyLevel(request.getDifficulty())
                 .difficultySource(DifficultySource.MANUAL)  // 수동 라벨링
                 .build();
 

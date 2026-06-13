@@ -1,12 +1,16 @@
 package com.clip.server.word.dto.request;
 
 import com.clip.server.word.entity.WordType;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
+import java.util.List;
+
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor
 @AllArgsConstructor
 public class CollectedWordRequest {
 
@@ -19,8 +23,9 @@ public class CollectedWordRequest {
     @NotBlank(message = "단어는 필수입니다.")
     private String word; // 수집하려는 단어
 
-    @NotBlank(message = "단어 뜻은 필수입니다.")
-    private String meaning;
+    @NotEmpty(message = "단어 뜻은 필수입니다.")
+    @Valid
+    private List<MeaningByPos> meaningsByPos;
 
     @NotBlank(message = "문장은 필수입니다.")
     private String sentence; // 수집하려는 단어가 포함된 문장
@@ -33,4 +38,15 @@ public class CollectedWordRequest {
     @NotNull(message = "수집 타입은 필수입니다.")
     private WordType wordType; // COLLECT 또는 POPUP
 
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class MeaningByPos {
+
+        @NotBlank(message = "품사는 필수입니다.")
+        private String partOfSpeech;
+
+        @NotEmpty(message = "의미는 필수입니다.")
+        private List<String> meanings;
+    }
 }

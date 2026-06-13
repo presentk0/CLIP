@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { handleApiError } from '../../utils/errorHandler';
-import buttonStyles from '../LoginPage/LoginPage.module.css'
+import styles from '../LoginPage/LoginPage.module.css'
 import { Spinner } from '../../components/Spinner/Spinner';
 
 
@@ -23,10 +23,10 @@ function Button({
 }) {
   // true가 되는 값인 클래스 이름을 합치고 빈 문자열 ''같은 값 제거
   const classNames = [
-    buttonStyles.button,
-    buttonStyles[variant],
-    buttonStyles[size],
-    fullWidth ? buttonStyles.fullWidth : '',
+    styles.button,
+    styles[variant],
+    styles[size],
+    fullWidth ? styles.fullWidth : '',
     className,
   ].filter(Boolean).join(' ');
 
@@ -76,7 +76,7 @@ export default function LoginPage() {
     'USER_NOT_FOUND': '사용자 정보를 찾을 수 없습니다',
   };
 
-  // navigate로 전달한 데이터의 
+  // 사용자가 원래 가려던 페이지(from)로 돌아갈 경로를 가져오기. 없으면 홈(/)으로
   const from = location.state?.from?.pathname || '/';
 
 
@@ -174,9 +174,9 @@ export default function LoginPage() {
 
 
     if (user.needsOnboarding) {
-      // 신규 유저는 마이페이지로
+      // 신규 유저는 약관 동의부터
       // replace: true 는 뒤로가기 해도 이 페이지에 못 오게 막기
-      navigate('/mypage', { replace: true });
+      navigate('/onboarding/terms', { replace: true });
     } else {
       // 기존 유저는 원래 가려던 곳 또는 디폴트
       navigate(from, { replace: true });
@@ -197,9 +197,9 @@ function decodeJwtPayload(token) {
   
   // Base64URL → Base64 변환
   const base64 = base64Url
-    // - → +
+    // - -> +
     .replace(/-/g, '+')
-    // _ → /
+    // _ -> /
     .replace(/_/g, '/');
 
   // 패딩 추가 (4의 배수로 맞추기)
@@ -214,55 +214,109 @@ function decodeJwtPayload(token) {
 
 
   return (
-    <div style={{
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      minHeight: 'calc(100vh - 300px)',
-      padding: '2rem 1rem',
-    }}>
+    // <div style={{
+    //   display: 'flex',
+    //   justifyContent: 'center',
+    //   alignItems: 'center',
+    //   minHeight: 'calc(100vh - 300px)',
+    //   padding: '2rem 1rem',
+    // }}>
 
-      <div style={{
-        width: '100%',
-        maxWidth: '400px',
-        backgroundColor: 'white',
-        borderRadius: '12px',
-        padding: '2rem',
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-      }}>
+    <div className={styles.login}>
+      <div className={styles.login2}>
+        <div className={styles.login3}>
+          <div className={styles.login4}>
+            <svg 
+            className={styles.login5}
+            xmlns="http://www.w3.org/2000/svg" width="41" height="24" viewBox="0 0 41 24" fill="none">
+              <path d="M28.194 0C30.9105 0 33.2725 1.88063 33.9643 4.42123C37.963 5.13258 40.9999 8.65481 41 12.8551V15.4305C40.9997 20.1556 37.1703 23.9998 32.4632 24H16.6534C13.5995 24 11.1023 21.4932 11.1023 18.4276C11.1024 15.362 13.5996 12.8551 16.6534 12.8551H23.4024C24.7522 12.8551 26.0177 12.1771 26.777 11.0423C27.3001 10.2469 28.3622 10.0447 29.1381 10.5693C29.9142 11.0943 30.1339 12.1604 29.611 12.9395C28.2275 15.0227 25.8995 16.2773 23.4024 16.2773H16.6534C15.4724 16.2773 14.5099 17.2421 14.5097 18.4276C14.5097 19.6132 15.4723 20.5795 16.6534 20.5795H32.4467C35.2639 20.579 37.5741 18.2754 37.5744 15.4305V12.8551C37.5743 10.027 35.2809 7.70657 32.4467 7.70613C31.5019 7.70613 30.7414 6.94433 30.7414 5.99587C30.7414 4.57324 29.5947 3.42072 28.1775 3.42054C26.7602 3.42054 25.612 4.57313 25.612 5.99587C25.612 6.94433 24.8531 7.70613 23.9083 7.70613H17.0752C16.1304 7.70613 15.3715 6.94433 15.3715 5.99587C15.3715 4.57313 14.2233 3.42054 12.806 3.42054C11.3888 3.42068 10.2422 4.57322 10.2422 5.99587C10.2421 6.94433 9.48164 7.70613 8.53679 7.70613C5.7195 7.70653 3.40762 10.01 3.40747 12.8551V15.4305C3.40779 18.2585 5.70274 20.5791 8.53679 20.5795C9.48166 20.5795 10.2422 21.3412 10.2422 22.2897C10.242 23.2381 9.48157 24 8.53679 24C3.82988 23.9996 0.000321159 20.1554 0 15.4305V12.8551C0.000137234 8.63796 3.054 5.13267 7.03573 4.42123C7.72748 1.88072 10.0559 0.000120259 12.806 0C15.5562 0 17.801 1.81275 18.5433 4.2856H22.4567C23.199 1.81277 25.4775 2.86267e-05 28.194 0Z" fill="#FEFDF9"/>
+            </svg>
+          </div>
 
-        <h1 style={{
-          fontSize: '1.5rem',
-          textAlign: 'center',
-          marginBottom: '2rem',
-        }}>
-          로그인
-        </h1>
-
+          <div className={styles.login6}>
+            <p className={styles.login7}>Welcome to CLIPZY</p>
+          </div>
+        </div>
 
         {error && (
-          <div style={{
-            padding: '0.75rem',
-            backgroundColor: '#fef2f2',
-            border: '1px solid #fecaca',
-            borderRadius: '8px',
-            color: '#dc2626',
-            fontSize: '0.875rem',
-            marginBottom: '1rem',
-          }}>
+          <div className={styles.error}>
             {error}
           </div>
         )}
 
-        <Button 
-          onClick={handleGoogleLogin}
-          fullWidth 
-          isLoading={isLoading}
+        <button 
+        type="button"
+        className={styles.login8}
+        onClick={handleGoogleLogin}
+        disabled={isLoading}
+        aria-busy={isLoading}
         >
-          Google로 로그인
-        </Button>
-
-        </div>
+          {isLoading ? (
+            <Spinner />
+          ) : (
+            <>
+              <div className={styles.login9}>
+                <svg 
+                className={styles.login10}
+                xmlns="http://www.w3.org/2000/svg" width="19" height="20" viewBox="0 0 19 20" fill="none">
+                  <g clip-path="url(#clip0_935_1141)">
+                    <path d="M18.9899 10.1871C18.9899 9.36767 18.9253 8.76973 18.7854 8.14966H9.68921V11.848H15.0285C14.9209 12.7671 14.3396 14.1512 13.0478 15.0813L13.0297 15.2051L15.9057 17.4969L16.105 17.5174C17.935 15.7789 18.9899 13.221 18.9899 10.1871Z" fill="#4285F4"/>
+                    <path d="M9.68923 19.9313C12.305 19.9313 14.501 19.0454 16.105 17.5174L13.0478 15.0813C12.2297 15.6682 11.1317 16.0779 9.68923 16.0779C7.12724 16.0779 4.95278 14.3395 4.17765 11.9366L4.06403 11.9466L1.07347 14.3273L1.03436 14.4391C2.62753 17.6945 5.90001 19.9313 9.68923 19.9313Z" fill="#34A853"/>
+                    <path d="M4.17765 11.9366C3.97312 11.3165 3.85476 10.6521 3.85476 9.96559C3.85476 9.27902 3.97313 8.61467 4.16689 7.9946L4.16147 7.86253L1.13344 5.4436L1.03437 5.49208C0.377746 6.84299 0.000976562 8.36002 0.000976562 9.96559C0.000976562 11.5712 0.377746 13.0881 1.03437 14.439L4.17765 11.9366Z" fill="#FBBC05"/>
+                    <path d="M9.68923 3.85336C11.5084 3.85336 12.7356 4.66168 13.4353 5.33718L16.1696 2.59107C14.4903 0.985496 12.305 0 9.68923 0C5.90001 0 2.62753 2.23672 1.03436 5.49214L4.16689 7.99466C4.95278 5.59183 7.12724 3.85336 9.68923 3.85336Z" fill="#EB4335"/>
+                  </g>
+                  <defs>
+                    <clipPath id="clip0_935_1141">
+                      <rect width="19" height="20" fill="white"/>
+                    </clipPath>
+                  </defs>
+                </svg>
+                <div className={styles.login11}>
+                  <p className={styles.login12}>Google</p>
+                  <span className={styles.login13}>로 계속하기</span>
+                </div>
+              </div>
+            </>
+          )}
+        </button>
       </div>
+    </div>
+
+
+
+
+
+
+
+      // <div style={{
+      //   width: '100%',
+      //   maxWidth: '400px',
+      //   backgroundColor: 'white',
+      //   borderRadius: '12px',
+      //   padding: '2rem',
+      //   boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+      // }}>
+
+      //   <h1 style={{
+      //     fontSize: '1.5rem',
+      //     textAlign: 'center',
+      //     marginBottom: '2rem',
+      //   }}>
+      //     로그인
+      //   </h1>
+
+
+        
+
+      //   <Button 
+      //     onClick={handleGoogleLogin}
+      //     fullWidth 
+      //     isLoading={isLoading}
+      //   >
+      //     Google로 로그인
+      //   </Button>
+
+      //   </div>
+      // </div>
   );
 }

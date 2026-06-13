@@ -26,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.clip.server.video.entity.DifficultySource;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static com.clip.server.common.exception.ErrorCode.USER_NOT_FOUND;
@@ -99,21 +100,45 @@ public class SubtitleProcessor {
                                           List<TranslationRequest.SubtitleDetail> requests,
                                           List<String> translatedTexts) {
 
+        log.info("[Subtitle] 벌크 저장 시작 - videoId: {}, count: {}", videoId, requests.size());
+
         Video video = videoRepository.findById(videoId)
                 .orElseThrow(() -> new BusinessException(VIDEO_NOT_FOUND));
 
-        // 자막 저장 (기존 로직)
+        // 자막 저장 또는 업데이트
+        int savedCount = 0;
+        int updatedCount = 0;
+
         for (int i = 0; i < requests.size(); i++) {
             TranslationRequest.SubtitleDetail req = requests.get(i);
             String translation = translatedTexts.get(i);
             String safeTranslation = (translation != null) ? translation : "";
 
-            if (subtitleRepository.findByVideoAndStartTimeAndText(video, req.getStartTime(), req.getText()).isEmpty()) {
-                saveSubtitleAndKeywords(video, req.getText(), safeTranslation, req.getStartTime(), req.getEndTime());
+            // 기존 자막 조회
+            Optional<Subtitle> existingSubtitle = subtitleRepository
+                    .findByVideoAndStartTimeAndText(video, req.getStartTime(), req.getText());
+
+            if (existingSubtitle.isPresent()) {
+                //  기존 자막 - translation이 비어있으면 업데이트
+                Subtitle existing = existingSubtitle.get();
+                if (existing.getTranslation() == null || existing.getTranslation().trim().isEmpty()) {
+                    if (!safeTranslation.trim().isEmpty()) {
+                        existing.updateTranslation(safeTranslation);
+                        updatedCount++;
+                    }
+                }
+            } else {
+                // 새로운 자막 저장
+                saveSubtitleAndKeywords(video, req.getText(), safeTranslation,
+                        req.getStartTime(), req.getEndTime());
+                savedCount++;
             }
         }
 
-        // 난이도 분석 (수동 라벨 보호 + 이미 분석된 영상 스킵)
+        log.info("[Subtitle] 벌크 저장 완료 - videoId: {}, 신규: {}, 업데이트: {}",
+                videoId, savedCount, updatedCount);
+
+        // 난이도 분석
         analyzeDifficultyIfNeeded(video, requests);
     }
 

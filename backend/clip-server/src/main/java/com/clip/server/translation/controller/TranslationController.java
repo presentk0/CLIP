@@ -1,7 +1,9 @@
 package com.clip.server.translation.controller;
 import com.clip.server.common.response.ApiResponse;
 import com.clip.server.translation.dto.request.TranslationRequest;
+import com.clip.server.translation.dto.request.WordTranslationRequest;
 import com.clip.server.translation.dto.response.TranslationResponse;
+import com.clip.server.translation.dto.response.WordTranslationResponse;
 import com.clip.server.translation.service.TranslationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -34,5 +36,19 @@ public class TranslationController {
                 response,
                 "해당 영상의 전체 자막이 성공적으로 번역되었습니다."
         ));
+    }
+
+    @Operation(summary = "단어 번역")
+    @PostMapping("/word")
+    public ResponseEntity<ApiResponse<WordTranslationResponse>> translateWord(
+            @AuthenticationPrincipal Long userId,
+            @RequestBody WordTranslationRequest request) {
+        WordTranslationResponse response = translationService.translateWord(userId, request);
+
+        return ResponseEntity.ok(ApiResponse.success(
+                response,
+                "단어 뜻 번역이 완료되었습니다."
+        ));
+
     }
 }

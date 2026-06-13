@@ -42,7 +42,7 @@ public class Video {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "difficulty_level", length = 50)
-    private VideoDifficulty estimatedDifficulty;
+    private VideoDifficulty difficultyLevel; // 영상 난이도
 
     @Column(name = "difficulty_score")
     private Double difficultyScore; // 난이도 점수 (디버깅/튜닝용)
@@ -63,7 +63,7 @@ public class Video {
                  String channelName,
                  String channelProfileImageUrl,
                  LearningGoal learningGoal,
-                 VideoDifficulty estimatedDifficulty,
+                 VideoDifficulty difficultyLevel,
                  Double difficultyScore,
                  DifficultySource difficultySource
     ) {
@@ -74,7 +74,7 @@ public class Video {
         this.channelName = channelName;
         this.channelProfileImageUrl = channelProfileImageUrl;
         this.learningGoal = learningGoal;
-        this.estimatedDifficulty = estimatedDifficulty;
+        this.difficultyLevel = difficultyLevel;
         this.difficultyScore = difficultyScore;
         this.difficultySource = difficultySource;
     }
@@ -84,14 +84,14 @@ public class Video {
         if (this.difficultySource == DifficultySource.MANUAL) {
             return;
         }
-        this.estimatedDifficulty = level;
+        this.difficultyLevel = level;
         this.difficultyScore = score;
         this.difficultySource = DifficultySource.AUTO;
     }
 
     public void updateManualLabel(LearningGoal goal, VideoDifficulty difficulty) {
         this.learningGoal = goal;
-        this.estimatedDifficulty = difficulty;
+        this.difficultyLevel = difficulty;
         this.difficultySource = DifficultySource.MANUAL;
         // difficultyScore는 수동 라벨이므로 null 또는 그대로 유지
     }

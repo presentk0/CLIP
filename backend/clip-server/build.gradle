@@ -15,6 +15,11 @@ java {
 
 repositories {
 	mavenCentral()
+
+	maven {
+		url "https://csspeechstorage.blob.core.windows.net/maven/"
+	}
+
 }
 
 
@@ -66,7 +71,27 @@ dependencies {
 
 	// Redis
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+	implementation 'org.springframework.boot:spring-boot-starter-cache'
+
+	// WebSocket
+	implementation 'org.springframework.boot:spring-boot-starter-websocket'
+
+	// Azure Speech SDK
+	implementation 'com.microsoft.cognitiveservices.speech:client-sdk:1.38.0@jar'
+	// implementation files('libs/client-sdk-1.40.0.jar')
+
+	//  AWS S3 SDK v2
+	implementation platform('software.amazon.awssdk:bom:2.25.0')
+	implementation 'software.amazon.awssdk:s3'
+	implementation 'software.amazon.awssdk:auth'
+	implementation 'software.amazon.awssdk:sso'        // SSO 지원
+	implementation 'software.amazon.awssdk:ssooidc'    // SSO 지원
+
+	// Spring Retry (자동 재시도)
+	implementation 'org.springframework.retry:spring-retry'
+	implementation 'org.springframework:spring-aspects'
 }
+
 
 tasks.named('test') {
 	useJUnitPlatform()

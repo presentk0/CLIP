@@ -12,6 +12,7 @@ import com.clip.server.word.dto.response.CollectedWordResponse;
 import com.clip.server.word.dto.response.WordListResponse;
 import com.clip.server.word.dto.response.WordResponse;
 import com.clip.server.word.entity.CollectedWord;
+import com.clip.server.word.entity.WordMeaning;
 import com.clip.server.word.entity.WordType;
 import com.clip.server.word.repository.CollectedWordRepository;
 import org.springframework.transaction.annotation.Transactional;
@@ -74,21 +75,24 @@ public class WordService {
                 .video(video)
                 .wordType(collectedWordRequest.getWordType())
                 .word(collectedWordRequest.getWord())
-                .meaning(collectedWordRequest.getMeaning())
+                .meaningsByPos(convertToWordMeanings(collectedWordRequest.getMeaningsByPos()))
                 .sentence(collectedWordRequest.getSentence())
                 .timestamp(collectedWordRequest.getTimestamp())
                 .translation(collectedWordRequest.getTranslation())
                 .build();
         CollectedWord saved = collectedWordRepository.save(collectedWord);
+
         // 5. 총 저장 단어수 계산
         long totalCount = collectedWordRepository.countByUser(user);
-
 
         return mapToCollectedWordResponse(saved, totalCount);
     }
 
     // 사용자의 전체 수집 단어 조회 메서드
     public WordListResponse getWords(Long userId, int page, int size, String videoId) {
+        // 페이징 파라미터 검증
+        if (page < 0) page = 0;
+        if (size <= 0 || size > 100) size = 20;
 
         PageRequest pageRequest = PageRequest.of(page,size, Sort.by("collectedAt").descending());
         Page<CollectedWord> wordPage;
@@ -120,6 +124,21 @@ public class WordService {
                 .build();
     }
 
+    // Request DTO의 MeaningByPos → Entity의 WordMeaning 변환
+    private List<WordMeaning> convertToWordMeanings(
+            List<CollectedWordRequest.MeaningByPos> dtos
+    ) {
+        if (dtos == null) {
+            return List.of();
+        }
+        return dtos.stream()
+                .map(dto -> new WordMeaning(
+                        dto.getPartOfSpeech(),
+                        dto.getMeanings()
+                ))
+                .toList();
+    }
+
     private CollectedWordResponse mapToCollectedWordResponse(CollectedWord collectedWord, long totalCount) {
         return CollectedWordResponse.builder()
                 .wordId(collectedWord.getId())
@@ -129,12 +148,21 @@ public class WordService {
     }
 
     private WordResponse mapToWordResponse(CollectedWord collectedWord) {
+
+        List<WordResponse.MeaningByPosDto> meaningsByPosDtos =
+                collectedWord.getMeaningsByPos().stream()
+                        .map(wm -> WordResponse.MeaningByPosDto.builder()
+                                .partOfSpeech(wm.getPartOfSpeech())
+                                .meanings(wm.getMeanings())
+                                .build())
+                        .toList();
+
         return WordResponse.builder()
                 .id(collectedWord.getId())
                 .videoId(collectedWord.getVideo().getVideoId())
                 .wordType(collectedWord.getWordType())
                 .word(collectedWord.getWord())
-                .meaning(collectedWord.getMeaning())
+                .meaningsByPos(meaningsByPosDtos)
                 .sentence(collectedWord.getSentence())
                 .translation(collectedWord.getTranslation())
                 .timestamp(collectedWord.getTimestamp())
