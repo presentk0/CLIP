@@ -4,6 +4,49 @@ import { apiFetch } from "../../utils/api";
 import { useState, useEffect } from "react";
 import style from './DefaultPage.module.css';
 import { Spinner } from "../../components/Spinner/Spinner";
+import { openYoutubeVideo } from "../../utils/openInTab";
+import { log } from "../../utils/logger";
+
+import { saveUserData, loadUserData } from "../../utils/userStorage";
+
+
+
+
+function formatDuration (duration) {
+  if (duration == null) return '00:00';
+
+  let totalSeconds;
+
+  if (typeof duration === 'number') {
+    // 863 같은 숫자 (초 단위)
+    totalSeconds = duration;
+  } else if (typeof duration === 'string') {
+    if (duration.includes(':')) {
+      // "07:57" 같이 이미 포맷된 문자열
+      return duration;
+    }
+    // "863" 같은 문자열 숫자
+    totalSeconds = parseInt(duration, 10);
+  }
+
+  if (isNaN(totalSeconds)) return '00:00';
+
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  const pad = (n) => String(n).padStart(2, '0');
+
+  return hours > 0
+    ? `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`
+    : `${pad(minutes)}:${pad(seconds)}`;
+};
+
+
+
+
+
+
 
 function truncateEmail(email, maxLength) {
   if (email.length <= maxLength) return email;
@@ -96,8 +139,16 @@ function UserAvatar({ imageUrl, name }) {
 
 
 
+// function SectionBadgeCard({ currentBadge, videoId, videoTitle, videoDuration, channelName }) {
+function SectionBadgeCard({ videoId, videoTitle, videoDuration, channelName }) {
+  // 썸네일 클릭 시 메인 탭에서 유튜브 영상 열기
+  const handleClick = (e) => {
+    // e.preventDefault() = HTML 요소의 기본 동작(default behavior)을 막는 함수
+    // <a> 태그는 클릭하면 href로 이동하는게 기본 동작
+    e.preventDefault();
+    openYoutubeVideo(videoId);
+  };
 
-function SectionBadgeCard({ currentBadge, videoId, videoTitle, videoDuration, channelName }) {
   return (
     <article className={style.masteryCard}>
 
@@ -105,7 +156,7 @@ function SectionBadgeCard({ currentBadge, videoId, videoTitle, videoDuration, ch
           <a 
           className={style.masteryThumbnail}
           href={`https://youtube.com/watch?v=${videoId}`}
-          target="_blank"
+          onClick={handleClick}
           rel="noopener noreferrer"
           >
             <img
@@ -118,7 +169,7 @@ function SectionBadgeCard({ currentBadge, videoId, videoTitle, videoDuration, ch
 
             <span className={style.masteryDurationWrapper}>
               <div className={style.masteryDuration}>
-                <p className={style.masteryDurationText}>{videoDuration}</p>
+                <p className={style.masteryDurationText}>{formatDuration(videoDuration)}</p>
               </div>
             </span>
           </a>
@@ -133,7 +184,7 @@ function SectionBadgeCard({ currentBadge, videoId, videoTitle, videoDuration, ch
 
         <div className={style.sectionBadge}>
           <span className={style.sectionBadgeIcon}>
-            {currentBadge}
+            {/* {currentBadge} */}
           </span>
 
           <span className={style.sectionBadgeLabel}>
@@ -150,12 +201,20 @@ function SectionBadgeCard({ currentBadge, videoId, videoTitle, videoDuration, ch
 
 
 function BigVideoCard({ videoId, thumbnailUrl, title, duration, channelName }) {
+  // 썸네일 클릭 시 메인 탭에서 유튜브 영상 열기
+  const handleClick = (e) => {
+    // e.preventDefault() = HTML 요소의 기본 동작(default behavior)을 막는 함수
+    // <a> 태그는 클릭하면 href로 이동하는게 기본 동작
+    e.preventDefault();
+    openYoutubeVideo(videoId);
+  };
+
   return (
     <article className={style.recommendedSectionBox3}>
       <a 
       className={style.recommendedSectionLink}
       href={`https://youtube.com/watch?v=${videoId}`}
-      target="_blank"
+      onClick={handleClick}
       rel="noopener noreferrer"
       >
         {/* 썸네일 */}
@@ -170,7 +229,7 @@ function BigVideoCard({ videoId, thumbnailUrl, title, duration, channelName }) {
           />
 
           <div className={style.recommendedSectionDuration}>
-            <p className={style.recommendedSectionDuration3}>{duration}</p>
+            <p className={style.recommendedSectionDuration3}>{formatDuration(duration)}</p>
           </div>
         </div>
 
@@ -195,11 +254,19 @@ function BigVideoCard({ videoId, thumbnailUrl, title, duration, channelName }) {
 
 
 function SmallVideoCard({ videoId, title, duration, channelName }) {
+  // 썸네일 클릭 시 메인 탭에서 유튜브 영상 열기
+  const handleClick = (e) => {
+    // e.preventDefault() = HTML 요소의 기본 동작(default behavior)을 막는 함수
+    // <a> 태그는 클릭하면 href로 이동하는게 기본 동작
+    e.preventDefault();
+    openYoutubeVideo(videoId);
+  };
+
   return (
     <a 
     className={style.smallVideoCard2}
     href={`https://youtube.com/watch?v=${videoId}`}
-    target="_blank"
+    onClick={handleClick}
     rel="noopener noreferrer"
     >
       <div className={style.smallVideoCardThumbnail}>
@@ -213,7 +280,7 @@ function SmallVideoCard({ videoId, title, duration, channelName }) {
         />
         <span className={style.smallVideoCardDuration}>
           <div className={style.smallVideoCardDuration2}>
-            <p className={style.smallVideoCardDuration3}>{duration}</p>
+            <p className={style.smallVideoCardDuration3}>{formatDuration(duration)}</p>
           </div>
         </span>
       </div>
@@ -241,6 +308,8 @@ function DefaultPage({ onMyPage }) {
     // ProtectedRoute가 자동으로 /login 보내지만, 명시적으로 해도 됨
     navigate('/login');
   };
+
+
 
   // // 상태로 대시보드 데이터 관리
   // const [dashboardData, setDashboardData] = useState(null);
@@ -288,7 +357,7 @@ function DefaultPage({ onMyPage }) {
         const result = await apiFetch('/users/me', { method: 'GET' });
         setUsersData(result.data);
       } catch (error) {
-        console.error('데이터 로딩 실패:', error);
+        log.debug('데이터 로딩 실패:', error);
       }
     };
 
@@ -304,11 +373,12 @@ function DefaultPage({ onMyPage }) {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // ? 써서 recommended + limit이라는 옵션값 5 로 인식
-        const result = await apiFetch('/videos/recommended?limit=5', { method: 'GET' });
+        // // ? 써서 recommended + limit이라는 옵션값 5 로 인식
+        // const result = await apiFetch('/videos/recommended?limit=5', { method: 'GET' });
+        const result = await apiFetch('/videos/recommended', { method: 'GET' });
         setRecommendedData(result.data.recommendations);
       } catch (error) {
-        console.error('데이터 로딩 실패:', error);
+        log.debug('데이터 로딩 실패:', error);
       }
     };
 
@@ -337,12 +407,49 @@ function DefaultPage({ onMyPage }) {
   const display = Math.floor(progress * 10) / 10;
 
 
+// 디폴트 페이지의 AI 방 입장 버튼
+const onAiChatPage = async () => {
+  // 유저별 캐시 확인
+  const hasWords = await loadUserData('hasWords');
+  // const { hasWords } = await chrome.storage.local.get('hasWords');
+
+  // true면 바로 진입하기 (API 호출 없음)
+  if (hasWords === true) {
+    navigate('/ai');
+    return;
+  }
+
+  // false면 API 호출 없이 바로 차단 (나중에 단어 삭제 생기면 전부 삭제됐을 때 false로 되돌리는것도 필요함)
+  if (hasWords === false) {
+    alert('수집된 단어가 없습니다! 1');
+    return;
+  }
+
+  // undefined면 API로 확인 최초 1회
+  try {
+    const res = await apiFetch('/chats/words', { method: 'GET' });
+
+    // 결과를 유저별 캐시에 저장
+    // await chrome.storage.local.set({ hasWords: res.data.hasWords });
+    await saveUserData('hasWords', res.data.hasWords);
+    // await setHasWordsCache(res.data.hasWords);
+
+    if (!res.data.hasWords) {
+      alert(res.data.guideMessage || '수집된 단어가 없습니다! 2');
+      return;
+    }
+
+    // 단어 있으면 AI 방으로 이동 (받은 데이터도 같이 전달)
+    navigate('/ai', { state: { wordsData: res.data } });
+    
+  } catch (error) {
+    log.debug('단어 조회 실패', error);
+  }
+};
+
   return (
     // 전체 박스
     <div className={style.main}>
-
-      {/* 테스트 마이페이지 버튼 */}
-
 
 
       {/* 상단 */}
@@ -362,7 +469,9 @@ function DefaultPage({ onMyPage }) {
           </svg>
         </div>
         <div className={style.topButtonBox}>
-          <div className={style.topLeftButton}>AI 채팅 미구현</div>
+          <button className={style.topLeftButton}
+          onClick={onAiChatPage}
+          >AI 채팅</button>
           <button 
           className={style.topRightButton}
           onClick={onMyPage}>

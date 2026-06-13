@@ -1,7 +1,7 @@
 /* global chrome */
 import { apiFetch } from "./utils/api";
 import { log } from "./utils/logger";
-
+import { saveUserData, loadUserData } from "./utils/userStorage";
 
 // ========== 설정값 ==========
 // 대기열이 많이 쌓이면 오래된 순서로 버리기는 기준 (10개 이상이면 버리기)
@@ -368,16 +368,15 @@ function resetSubtitleSystem() {
 
 // 토큰 + 유저 정보 체크 함수
 async function checkAccess() {
-  // log.debug('콘텐츠6', Date.now());
+
   const cached = await chrome.runtime.sendMessage({ type: 'GET_AUTH' });
-  // log.debug('콘텐츠 cached 전체:', JSON.stringify(cached, null, 2), Date.now());
-  // log.debug('user keys:', Object.keys(cached?.user || {}), Date.now());
+
 
   if (!cached?.accessToken || !cached?.user) {
-    // log.debug('콘텐츠7', cached, Date.now());
+
     return false;
   }
-  // log.debug('콘텐츠8',cached.user.needsOnboarding, Date.now());
+
   // 온보딩 완료 시 기능 활성화
   return cached.user.needsOnboarding === false;
 }
@@ -386,29 +385,29 @@ async function checkAccess() {
 
 // 로그인 + 온보딩 설정 완료 시 활성화
 async function activate() {
-  log.debug('콘텐츠9', Date.now());
+
   if (isActive) return;
   isActive = true;
 
   // 현재 페이지 종류에 따라 다른 처리
   handlePageChange();
-  log.debug('콘텐츠22', Date.now());
+
   // YouTube SPA 대응 - 페이지 이동 감지
   setupTitleObserver();
 
-  log.debug('콘텐츠23', Date.now());
+
   // setupTitleObserver 실행 시 URL이 바뀌었을 때만 실행하게 설정
   lastUrl = location.href;
-  log.debug('콘텐츠24', Date.now());
+
 }
 
 
 
 // 비활성화
 function deactivate() {
-  log.debug('콘텐츠12', Date.now());
+
   if (!isActive) return;
-  log.debug('콘텐츠13', Date.now());
+
   isActive = false;
 
   // 패널 열림 처리
@@ -421,18 +420,18 @@ function deactivate() {
 
 // 저장소 변경 감지
 const handleAuthChanged = async (msg) => {
-  log.debug('콘텐츠14', Date.now());
+
   if (msg.type !== 'AUTH_CHANGED') return;
 
-  log.debug('콘텐츠15', Date.now());
+
   // 토큰/유저 정보가 바뀐 뒤 현재 실행 가능한지 다시 검사
   const canRun = await checkAccess();
-  log.debug('콘텐츠',canRun, !isActive, Date.now());
+
   if (canRun && !isActive) {
-    log.debug('콘텐츠16', Date.now());
+
     activate();
   } else if (!canRun && isActive) {
-    log.debug('콘텐츠17', Date.now());
+
     deactivate();
   }
 };
@@ -455,7 +454,7 @@ function listenForChanges() {
 // YouTube SPA 대응 - 페이지 이동 감지 옵저버 설치
 function setupTitleObserver() {
   const title = document.querySelector('title');
-  log.debug('타이틀 이동 감지',title, Date.now());
+
   
   if (!title) {
     setTimeout(setupTitleObserver, 100);
@@ -504,9 +503,9 @@ function setupTitleObserver() {
 
 // 페이지 구분 및 이동
 async function handlePageChange() {
-  log.debug('콘텐츠25', isPanelOpen, Date.now());
+
   if (isPanelOpen) {
-    log.debug('콘텐츠26', location.href, Date.now());
+
     // 영상 페이지면 추천 영상 숨기고 자막 감지
     if (location.href.includes('/watch')) {
       setTimeout(hideRecommendations, 500);
@@ -514,15 +513,16 @@ async function handlePageChange() {
 
       // 퀴즈 진행 복원 (비동기라서 기다리기)
       const videoId = new URL(window.location.href).searchParams.get('v');
-      log.debug('콘텐츠27', videoId, Date.now());
+
 
       if (videoId) {
-        log.debug('콘텐츠28', Date.now());
-        const result = await chrome.storage.local.get(`quizProgress_${videoId}`);
-        const progress = result[`quizProgress_${videoId}`];
+
+        // const result = await chrome.storage.local.get(`quizProgress_${videoId}`);
+        // const progress = result[`quizProgress_${videoId}`];
+        const progress = await loadUserData(`quizProgress_${videoId}`);
 
         if (progress) {
-          log.debug('콘텐츠29', Date.now());
+
           quizSectionCount = progress.sectionCount || 1;
           matchingQuizCount = progress.matchingCount || 0;
         }
@@ -542,19 +542,19 @@ async function handlePageChange() {
 
 // 추천영상 숨기기
 const hideRecommendations = () => {
-  log.debug('영상 숨기기', Date.now());
+
   // 사이드 패널 열려야 실행
   if (!isPanelOpen) return;
-  log.debug('영상 숨기기2', Date.now());
+
   // 기존 스타일 태그 있는지 확인
   let styleTag = document.querySelector('#clip-hide-recommendations');
-  log.debug('영상 숨기기3',styleTag, Date.now());
+
   // 기존 스타일 태그가 없으면 새로 만들기
   // ytd-watch-flexy = 영상 페이지 컨테이너
   // 그 안의 #secondary만 숨김
   // 메인 페이지의 #secondary는 영향 없음
   if (!styleTag) {
-    log.debug('영상 숨기기4', Date.now());
+
     // <style> 태그 생성
     styleTag = document.createElement('style');
     // 나중에 찾기/삭제 위해 ID 부여
@@ -591,7 +591,7 @@ const hideRecommendations = () => {
     // <head>에 추가
     document.head.appendChild(styleTag);
   }
-  log.debug('영상 숨기기5',styleTag, Date.now());
+
 };
 
 
@@ -612,31 +612,31 @@ const showRecommendations = () => {
 
 // 영상 시청 페이지면 자막 감지 함수 실행하고 아니면 자막 감지 중지 함수 실행
 function observeSubtitles() {
-  log.debug('영상 페이지', Date.now());
+
   // ========== 실행 조건 체크 ==========
   // 사이드 패널 열려야 실행
   if (!isPanelOpen) {
-    log.debug('영상 페이지1', Date.now());
+
     showRecommendations();
     return;
   }
   // 쇼츠 차단
   if (window.location.href.includes('/shorts')) {
-    log.debug('영상 페이지2', Date.now());
+
     showRecommendations();
     return;
   }
   // 영상 페이지가 아니면 추천 영상 표시하고 종료
   if (!window.location.href.includes('/watch')) {
-    log.debug('영상 페이지3', Date.now());
+
     showRecommendations();
     return;
   }
 
   // ========== 현재 영상 요소 가져오기 ==========
-  log.debug('영상 페이지4', Date.now());
+
   const video = document.querySelector('video');
-  log.debug('영상 페이지5', video, Date.now());
+
   if (!video) {
     if (videoRetryCount < MAX_RETRY) {
       videoRetryCount++;
@@ -646,7 +646,7 @@ function observeSubtitles() {
     showRecommendations();
     return;
   }
-  log.debug('영상 페이지6', Date.now());
+
   // video 찾으면 재시도 횟수 리셋
   videoRetryCount = 0;
 
@@ -667,12 +667,12 @@ function observeSubtitles() {
 
   // 제목, 채널명, 영상 길이 아직 로딩 안 됐으면 재시도
   if (!videoTitle || !channelName || !duration) {
-    log.debug('영상 페이지7',videoTitle,channelName,duration,  Date.now());
+
     if (infoRetryCount < MAX_RETRY) {
       infoRetryCount++;
       setTimeout(observeSubtitles, 1000);
     } else {
-      console.error('최대 재시도 초과');
+      log.debug('최대 재시도 초과');
     }
     showRecommendations();
     return;
@@ -681,9 +681,9 @@ function observeSubtitles() {
   infoRetryCount = 0;
 
   // ========== 퀴즈 페이지로 이동 (최초 1회) ==========
-  log.debug('영상 페이지8', !isQuiz, videoId, videoTitle, channelName, duration, thumbnailUrl, Date.now());
+
   if (!isQuiz && videoId && videoTitle && channelName && duration && thumbnailUrl) {
-    log.debug('영상 페이지9', Date.now());
+
     chrome.runtime.sendMessage({
       type: 'GO_TO_QUIZ',
       videoId: videoId,
@@ -691,7 +691,7 @@ function observeSubtitles() {
       channelName: channelName || '',
       duration: duration,
       thumbnailUrl: thumbnailUrl,
-    }).catch((error) => log.debug('퀴즈 페이지로 이동 에러', error));
+    }).catch((error) => log.debug('퀴즈 페이지 이동 에러', error));
     isQuiz = true;
   }
 
@@ -744,7 +744,7 @@ const getDuration = () => {
       const data = JSON.parse(jsonLd.textContent);
       const seconds = parseISODuration(data.duration);
       if (seconds) {
-        log.debug('JSON-LD로 측정:', seconds);
+
         return seconds;
       }
     } catch (error) { 
@@ -759,22 +759,34 @@ const getDuration = () => {
   if (match) {
     const sec = parseInt(match[1]);
     if (sec > 0) {
-      log.debug('lengthSeconds로 측정:', sec);
+
       return sec;
     }
   }
 
-  log.debug('duration 측정 실패');
+
   return null;
 }
 
 
 
-
+// ISO 8601 형식의 duration 문자열을 초 단위 숫자로 변환
+// 예: "PT1H23M45S" → 5025초 (1시간 23분 45초)
+// 유튜브의 JSON-LD는 영상 길이를 "PT4M13S" 같은 ISO 8601 duration 형식으로 제공함
 function parseISODuration(iso) {
+  // 입력값이 없으면 null 반환
   if (!iso) return null;
+
+  // 정규식으로 시(H), 분(M), 초(S) 부분을 각각 추출
+  // PT 뒤에 H, M, S 단위가 선택적(?)으로 올 수 있음
+  // 예: "PT1H23M45S" → match[1]="1", match[2]="23", match[3]="45"
+  // 예: "PT4M13S"   → match[1]=undefined, match[2]="4", match[3]="13"
   const match = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+
+  // 형식이 맞지 않으면 null 반환
   if (!match) return null;
+  // 각 단위를 초로 환산하여 합산 (없는 단위는 0으로 처리)
+  // 시 × 3600 + 분 × 60 + 초
   return parseInt(match[1] || 0) * 3600 + parseInt(match[2] || 0) * 60 + parseInt(match[3] || 0);
 }
 
@@ -805,7 +817,7 @@ async function setupSubtitleInterceptor(videoId, videoTitle, duration, channelNa
   
   
   
-  log.debug('영상 페이지 11', Date.now());
+
   // 미리 광고 감지 옵저버 제거
   cleanupAdObserver();
   // ========== 실행 조건 체크 ==========
@@ -817,7 +829,7 @@ async function setupSubtitleInterceptor(videoId, videoTitle, duration, channelNa
 
   // 광고 중이면 종료 대기
   if (document.querySelector('.ad-showing')) {
-    log.debug('광고 재생 중, 종료 대기');
+
     await waitForAdEnd();
 
     // 대기 중 패널 닫혔으면 정리하고 종료
@@ -846,8 +858,9 @@ async function setupSubtitleInterceptor(videoId, videoTitle, duration, channelNa
   apiFetch(`/videos/${videoId}/subtitles`, {
     method: 'GET'
   }).then(response => {
-    // 테스트용으로 넣었던 10개 이하의 자막이 아니면 실행 (오류)
-    if (response?.data?.subtitles?.length >= 10) {
+
+    // 이미 저장된 자막 있는지 확인
+    if (response?.data?.subtitles) {
       // 이미 저장된 자막 있으면 자막 배열 저장
       allSubtitles = response.data.subtitles;
       // 번역된 영상 ID 저장
@@ -871,7 +884,7 @@ async function setupSubtitleInterceptor(videoId, videoTitle, duration, channelNa
       registerSubtitleListener();
     }
   }).catch(error => {
-    log.debug('자막 조회 실패:', error);
+    log.debug('자막 조회 실패', error);
     // 조회 실패해도 유튜브에서 가져오기
     registerSubtitleListener();
   });
@@ -881,35 +894,35 @@ async function setupSubtitleInterceptor(videoId, videoTitle, duration, channelNa
 
 // 광고 끝남 감지 옵저버
 function waitForAdEnd() {
-  log.debug('광고 재생 중, 종료 대기2');
+
   // new Promise((resolve) => {...})로 resolve 라는 종료 함수 생성
   // resolve()를 호출하면 await waitForAdEnd()가 풀리고 다음 코드 실행
   return new Promise((resolve) => {
     // 이미 광고 없으면 즉시 종료
     if (!document.querySelector('.ad-showing')) {
-      log.debug('광고 재생 중, 종료 대기3');
+
       resolve();
       return;
     }
     
     // 이미 감시 중이면 종료 (중복 방지)
     if (adObserver) {
-      log.debug('광고 재생 중, 종료 대기4');
+
       resolve();
       return;
     }
     
     const player = document.querySelector('#movie_player') || document.body;
-    log.debug('광고 재생 중, 종료 대기5');
+
     adObserver = new MutationObserver(() => {
-      log.debug('광고 재생 중, 종료 대기6');
+
       if (!document.querySelector('.ad-showing')) {
-        log.debug('광고 재생 중, 종료 대기7');
+
         cleanupAdObserver();
         resolve();
       }
     });
-    log.debug('광고 재생 중, 종료 대기8');
+
     adObserver.observe(player, {
       // HTML 요소의 속성(attribute)이 바뀌는 걸 감지
       attributes: true,
@@ -1157,43 +1170,43 @@ function registerSubtitleListener() {
 
 // 자막 가져오는 리스너 설정
 async function subtitleDataHandler (event) {
-  log.debug('자막 가져오기', Date.now());
+
   if (translatedVideoId === currentVideoId && allSubtitles.length > 0) {
     return;
   }
-log.debug('자막 가져오기2', Date.now());
+
   if (translatedVideoId === currentVideoId) {
     return;
   }
-log.debug('자막 가져오기3', Date.now());
+
   // 영상 페이지에서만 처리
   if (!location.href.includes('/watch')) {
     return;
   }
-log.debug('자막 가져오기4', Date.now());
+
   // detail.response가 문자열인지 확인 (타입 검증)
   if (typeof event.detail?.response !== 'string') return;
-log.debug('자막 가져오기5', Date.now());
+
   // ========== JSON 파싱 ==========
   let data;
   try {
-    log.debug('자막 가져오기6', Date.now());
+
     // 문자열(자막 데이터가 ""로 담김)을 객체로 변환 (JSON 형식 검증)
     data = JSON.parse(event.detail.response)
   } catch (error) {
-    log.debug('잘못된 데이터1', error);
+    log.debug('잘못된 데이터', error);
     return;
   }
-log.debug('자막 가져오기7', Date.now());
+
   // ========== 데이터 구조 검증 ==========
   // data.events가 (없거나 falsy 또는 배열이 아닌 경우면) 리턴 (데이터 구조 검증)
   if (!data.events || !Array.isArray(data.events)) {
     return;
   }
-log.debug('자막 가져오기8', Date.now());
+
   translatedVideoId = currentVideoId;
   try {
-    log.debug('자막 가져오기9', Date.now());
+
     // ========== 자막 데이터 처리 ==========
     // 자막 데이터의 이벤트 요소(tStartMs,dDurationMs, segs) 저장
     allSubtitles = data.events
@@ -1220,6 +1233,7 @@ log.debug('자막 가져오기8', Date.now());
     }));
 
      // ========== 서버에 전체 자막 및 번역 저장 ==========
+
     chrome.runtime.sendMessage({
       type: 'TRANSLATE',
       endpoint: '/translate/subtitles',
@@ -1239,7 +1253,6 @@ log.debug('자막 가져오기8', Date.now());
         })
       }
     }).then(response => {
-      log.debug('=== 번역 응답 받음 ===', response, Date.now());
       // 나중에 번역 도착하면 업데이트
       if (response?.data?.translatedTexts) {
         allSubtitles = allSubtitles.map((sub, index) => ({
@@ -1253,10 +1266,10 @@ log.debug('자막 가져오기8', Date.now());
           subtitles: allSubtitles
         });
       } else {
-        log.debug('번역 응답 형식 이상', response, Date.now());
+        log.debug('번역 응답 형식 이상', response);
       }
     }).catch(error => {
-      log.debug('번역 실패:', error, Date.now());
+      log.debug('번역 실패:', error);
     });
 
     // ========== 리스너 설정 ==========
@@ -1344,15 +1357,21 @@ async function startQuizSession() {
 
     quizSectionCount++;
 
-    // 섹션 저장
-    chrome.storage.local.set({
-      [`quizProgress_${videoId}`]: {
-        sectionCount: quizSectionCount,
-        matchingCount: matchingQuizCount
-      }
+    // // 섹션 저장
+    // chrome.storage.local.set({
+    //   [`quizProgress_${videoId}`]: {
+    //     sectionCount: quizSectionCount,
+    //     matchingCount: matchingQuizCount
+    //   }
+    // });
+
+    // 영상과 유저에 맞게 섹션 저장
+    await saveUserData(`quizProgress_${videoId}`, {
+      sectionCount: quizSectionCount,
+      matchingCount: matchingQuizCount
     });
 
-    log.debug('일반 퀴즈 받음', sessionResponse, Date.now());
+
     // 사이드 패널로 퀴즈 전송
     chrome.runtime.sendMessage({
       type: 'QUIZ_READY',
@@ -1360,16 +1379,15 @@ async function startQuizSession() {
       sessionId: sessionResponse.data.sessionId,
       quizzes: sessionResponse.data.quizzes,
       totalCount: sessionResponse.data.totalQuizCount || 10
-    }).catch((error) => { log.debug('이거 에러1:', error) });
+    }).catch((error) => { log.debug('퀴즈 전송 에러', error) });
 
-    // Chrome Storage에도 저장 (패널 닫혀있을 때 대비)
-    chrome.storage.local.set({
-      currentSessionId: sessionResponse.data.sessionId,
-      currentQuizzes: sessionResponse.data.quizzes
-    });
-
+    // // Chrome Storage에도 저장 (패널 닫혀있을 때 대비)
+    // chrome.storage.local.set({
+    //   currentSessionId: sessionResponse.data.sessionId,
+    //   currentQuizzes: sessionResponse.data.quizzes
+    // });
   } catch (error) {
-    log.debug('퀴즈 세션 실패1', error);
+    log.debug('퀴즈 세션 실패', error);
   } finally {
     // 실행 후 다시 요청 가능
     quizRequested = false;
@@ -1415,12 +1433,18 @@ async function matchingQuiz() {
     });
     matchingQuizCount++;
 
-    chrome.storage.local.set({
-      [`quizProgress_${videoId}`]: {
-        sectionCount: quizSectionCount,
-        matchingCount: matchingQuizCount
-      }
+    // 영상과 유저에 맞게 진행도 저장
+    await saveUserData(`quizProgress_${videoId}`, {
+      sectionCount: quizSectionCount,
+      matchingCount: matchingQuizCount
     });
+  
+    // chrome.storage.local.set({
+    //   [`quizProgress_${videoId}`]: {
+    //     sectionCount: quizSectionCount,
+    //     matchingCount: matchingQuizCount
+    //   }
+    // });
 
     // 사이드 패널로 퀴즈 전송
     chrome.runtime.sendMessage({
@@ -1429,13 +1453,13 @@ async function matchingQuiz() {
       sessionId: matchingResponse.data.sessionId,
       quizzes: matchingResponse.data.quizzes,
       totalCount: matchingResponse.data.totalQuizCount || 10
-    }).catch((error) => { log.debug('이거 에러2:', error) });
+    }).catch((error) => { log.debug('매칭 퀴즈 전송 실패', error) });
 
-    // Chrome Storage에도 저장 (패널 닫혀있을 때 대비)
-    chrome.storage.local.set({
-      currentSessionId: matchingResponse.data.sessionId,
-      currentQuizzes: matchingResponse.data.quizzes
-    });
+    // // Chrome Storage에도 저장 (패널 닫혀있을 때 대비)
+    // chrome.storage.local.set({
+    //   currentSessionId: matchingResponse.data.sessionId,
+    //   currentQuizzes: matchingResponse.data.quizzes
+    // });
   } catch (error) {
     log.debug('매칭 퀴즈 세션 실패', error);
   } finally {
@@ -1526,7 +1550,7 @@ function init() {
 
 // ========== 즉시 실행 (첫 로드/새로고침/F5) ==========
 (async function start() {
-  log.debug('콘텐츠1', Date.now());
+
 
   // 패널 열림 처리
   chrome.runtime.sendMessage({ type: 'CONTENT_LOADED' });
@@ -1535,13 +1559,13 @@ function init() {
 
   // 토큰과 유저 정보가 있고 온보딩 설정을 했으면 activate 실행
   const canRun = await checkAccess();
-log.debug('콘텐츠3', canRun, Date.now());
+
   if (canRun) {
-    log.debug('콘텐츠4', Date.now());
+
     activate();
   }
 
   // 세션 저장소 변경 감지 리스너 등록
   listenForChanges();
-  log.debug('콘텐츠5', Date.now());
+
 })();

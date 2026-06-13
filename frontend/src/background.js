@@ -45,7 +45,6 @@ chrome.runtime.onConnect.addListener((port) => {
     port.onDisconnect.addListener(() => {
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         if (tabs[0]) {
-          console.log('백그라운드 새로고침', Date.now());
           chrome.tabs.sendMessage(tabs[0].id, { type: 'PANEL_CLOSED' }).catch(() => {});
         }
       });
@@ -156,6 +155,7 @@ function validateUser(user) {
 const ALLOWED_ENDPOINTS = [
   '/translate',
   '/translate/subtitles',
+  '/translate/word',
 ];
 
 
@@ -196,17 +196,21 @@ async function clearAuth() {
 
 
 
+async function getUserId() {
+  const { user } = await chrome.storage.session.get('user');
+  return user?.id ?? null;
+}
+
+
+
 // ============ 메시지 핸들러 ============
 // 번역 요청 처리
 const handleTranslate = (message, sendResponse) => {
-  // log.debug('=== TRANSLATE 받음 ===', Date.now());
-  // log.debug('endpoint:', message.endpoint, Date.now());
-  // log.debug('body 타입:', typeof message.options?.body, Date.now());
-  // log.debug('body 길이:', message.options?.body?.length, Date.now());
+
 
   // endpoint 검증
   if (!validateEndpoint(message.endpoint)) {
-    log.debug('endpoint 검증 실패', Date.now());
+
     sendResponse({ success: false, error: SAFE_ERROR_MESSAGES.INVALID_DATA });
     return;
   }
@@ -215,22 +219,22 @@ const handleTranslate = (message, sendResponse) => {
   const RETRY_DELAY = 2000;
   const fetchTranslate = async (retryCount = 0) => {
     try {
-      log.debug(`apiFetch 시도 ${retryCount + 1}`, Date.now());
+
       const translateData = await apiFetch(message.endpoint, message.options);
-      // log.debug('apiFetch 성공:', translateData, Date.now());
+
       sendResponse(translateData);
     } catch (error) {
-      console.error('번역 apiFetch 실패:', error.message, error.code,Date.now());
+      log.debug('번역 apiFetch 실패:', error.message, error.code,Date.now());
 
 
 
       if (retryCount < MAX_RETRY) {
-        log.debug('재시도 예정', Date.now());
+
         setTimeout(() => {
           fetchTranslate(retryCount + 1);
         }, RETRY_DELAY);
       } else {
-        log.debug('최대 재시도 초과', Date.now());
+
         sendResponse({ success: false, error: sanitizeError(error) });
       }
     }
@@ -238,6 +242,52 @@ const handleTranslate = (message, sendResponse) => {
 
   fetchTranslate();
 };
+
+
+
+
+
+
+
+// 단어 사전 번역 요청 처리
+const handleTranslateWord = (message, sendResponse) => {
+
+  // endpoint 검증
+  if (!validateEndpoint(message.endpoint)) {
+
+    sendResponse({ success: false, error: SAFE_ERROR_MESSAGES.INVALID_DATA });
+    return;
+  }
+
+  const MAX_RETRY = 3;
+  const RETRY_DELAY = 2000;
+  const fetchTranslateWord = async (retryCount = 0) => {
+    try {
+
+      const translateWordData = await apiFetch(message.endpoint, message.options);
+
+      sendResponse(translateWordData);
+    } catch (error) {
+      log.debug('번역 apiFetch 실패', error.message, error.code,Date.now());
+
+
+
+      if (retryCount < MAX_RETRY) {
+
+        setTimeout(() => {
+          fetchTranslateWord(retryCount + 1);
+        }, RETRY_DELAY);
+      } else {
+
+        sendResponse({ success: false, error: sanitizeError(error) });
+      }
+    }
+  };
+
+  fetchTranslateWord();
+};
+
+
 
 
 
@@ -299,20 +349,44 @@ const handleClearAuth = async (sendResponse) => {
 };
 
 
+// 유저 ID 조회
+const handleGetUserId = async (sendResponse) => {
+  try {
+    const userId = await getUserId();
+    sendResponse({ success: true, userId });
+  } catch (error) {
+    log.error('인증 조회 실패', error);
+    sendResponse({ success: false, error: sanitizeError(error) });
+  }
+};
+
 
 
 // ============ 메시지 라우터 ============
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // 메시지 검증
   if (!message?.type) return;
 
+  // 같은 확장에서 온 메시지인지 확인
+  if (sender.id !== chrome.runtime.id) {
+    log.warn('[background] 외부 메시지 무시');
+    return;
+  }
+
   // 내가 처리하는 타입 목록
   const HANDLED_TYPES = [
     'TRANSLATE',
+    'TRANSLATE_WORD',
     'SET_AUTH',
     'GET_AUTH',
     'CLEAR_AUTH',
-    // 'PAGE_RELOADED',
+    'GET_USER_ID',
+
+
+
+
+
   ];
 
   // 백그라운드용 메시지 아니면 리턴
@@ -327,9 +401,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return false;
   }
 
+
+
   switch (message.type) {
     case 'TRANSLATE':
       handleTranslate(message, sendResponse);
+      return true;
+
+    case 'TRANSLATE_WORD':
+      handleTranslateWord(message, sendResponse);
       return true;
 
     case 'SET_AUTH':
@@ -344,9 +424,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       handleClearAuth(sendResponse);
       return true;
 
-    // case 'PAGE_RELOADED':
-    //   handlePageReloaded();
-    //   return false;
+    case 'GET_USER_ID':
+      handleGetUserId(sendResponse);
+      return true;
+
+
+
 
     default:
       return false;

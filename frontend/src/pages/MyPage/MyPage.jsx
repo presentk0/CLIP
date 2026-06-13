@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { apiFetch } from '../../utils/api';
 import { Spinner } from '../../components/Spinner/Spinner';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../hooks/useAuth';
+// import { useAuth } from '../../hooks/useAuth';
 import { log } from '../../utils/logger';
 
   // 오류
@@ -11,9 +11,6 @@ import { log } from '../../utils/logger';
 const GOAL_LABELS = {
   TRAVEL: '여행',
   BUSINESS: '비즈니스',
-  // 명세서엔 TRAVEL, DAILY, BUSINESS만 있음
-  // 디자인엔 자기계발, 영어시험, 일상, 없음 등 추가 항목이 있는데
-  // 백엔드에 추가 요청 필요
   SELF_DEVELOPMENT: '자기계발',
   EXAM: '영어시험',
   DAILY: '일상',
@@ -43,23 +40,23 @@ const DIFFICULTY_LEVEL_MAP = {
 };
 
 
-// 절대 난이도
-const ABSOLUTE_OPTIONS = [
-  { value: 'BEGINNER', label: '초보자' },
-  { value: 'INTERMEDIATE', label: '중급자' },
-  { value: 'ADVANCED', label: '상급자' },
-];
+// // 절대 난이도
+// const ABSOLUTE_OPTIONS = [
+//   { value: 'BEGINNER', label: '초보자' },
+//   { value: 'INTERMEDIATE', label: '중급자' },
+//   { value: 'ADVANCED', label: '상급자' },
+// ];
 
-// 절대 난이도 레벨
-const ABSOLUTE_LEVEL_MAP = {
-  BEGINNER: 1,
-  INTERMEDIATE: 2,
-  ADVANCED: 3,
-};
+// // 절대 난이도 레벨
+// const ABSOLUTE_LEVEL_MAP = {
+//   BEGINNER: 1,
+//   INTERMEDIATE: 2,
+//   ADVANCED: 3,
+// };
 
 
-const MIN_LEVEL = 1;
-const MAX_LEVEL = 3;
+// const MIN_LEVEL = 1;
+// const MAX_LEVEL = 3;
 
 
 
@@ -202,7 +199,7 @@ export function MyPage ({ onExitPage }) {
 
   const [selectedGoal, setSelectedGoal] = useState(null);
   const [selectedDifficulty, setSelectedDifficulty] = useState(null);
-  const [selectedAbsolute, setSelectedAbsolute] = useState(null);
+  // const [selectedAbsolute, setSelectedAbsolute] = useState(null);
 
 
 
@@ -210,10 +207,10 @@ export function MyPage ({ onExitPage }) {
   const [isGrowth, setIsGrowth] = useState(true);
   const [isObjectives, setIsObjectives] = useState(true);
   const [isDifficulty, setIsDifficulty] = useState(true);
-  const [isAbsoluteLevel, setIsAbsoluteLevel] = useState(true);
+  // const [isAbsoluteLevel, setIsAbsoluteLevel] = useState(true);
 
 
-  const { needsOnboarding, completeOnboarding } = useAuth();
+  // const { needsOnboarding, completeOnboarding } = useAuth();
 
   const navigate = useNavigate();
 
@@ -232,9 +229,6 @@ export function MyPage ({ onExitPage }) {
 
           apiFetch('/users/me/preferences', { method: 'GET' }),
         ]);
-        log.debug('대시보드', dashboard);
-        log.debug('성장지표', growth);
-        log.debug('학습목표', preferences);
 
 
         // 대시보드, 성장 데이터
@@ -255,12 +249,12 @@ export function MyPage ({ onExitPage }) {
           setSelectedDifficulty(preferences.data.difficultyLevel);
         }
 
-        // 절대 난이도 설정값 업데이트
-        if (preferences.data?.difficultyLevel) {
-          setIsAbsoluteLevel(preferences.data.isAbsoluteLevel);
-        }
+        // // 절대 난이도 설정값 업데이트
+        // if (preferences.data?.difficultyLevel) {
+        //   setIsAbsoluteLevel(preferences.data.isAbsoluteLevel);
+        // }
       } catch (error) {
-        console.error('데이터 로딩 실패:', error);
+        log.debug('데이터 로딩 실패', error);
       }
     };
 
@@ -286,8 +280,8 @@ export function MyPage ({ onExitPage }) {
 
 const isDirty = 
   selectedGoal !== preferencesData?.learningGoal ||
-  selectedDifficulty !== preferencesData?.difficultyLevel ||
-  selectedAbsolute !== preferencesData?.absoluteLevel;
+  selectedDifficulty !== preferencesData?.difficultyLevel;
+  // selectedAbsolute !== preferencesData?.absoluteLevel;
 
 
 
@@ -295,57 +289,57 @@ const isDirty =
 
 
 const handleSave = async () => {
-  log.debug('여기실행');
+
   // 둘 다 선택했는지 검증
-  if (!selectedGoal || !selectedDifficulty || !selectedAbsolute) {
-    alert('학습 목표와 상대 난이도, 절대 난이도를 모두 선택해주세요');
+  if (!selectedGoal || !selectedDifficulty) {
+    alert('학습 목표와 상대 난이도를 모두 선택해주세요');
     return;
   }
-log.debug('여기실행1');
+
   try {
-    log.debug('여기실행2');
-    if (needsOnboarding) {
-      log.debug('여기실행33', selectedGoal, selectedDifficulty, selectedAbsolute);
-      // 신규 유저 POST onboarding
-      await apiFetch('/preferences/onboarding', {
-        method: 'POST',
-        body: JSON.stringify({ 
-          learningGoal: selectedGoal, 
-          difficultyLevel: selectedDifficulty,
-          absoluteLevel: selectedAbsolute,
-        }),
-      });
-      log.debug('여기실행4');
-      completeOnboarding();
-      log.debug('여기실행5');
-      alert('온보딩 저장 (임시):', { selectedGoal, selectedDifficulty, selectedAbsolute });
-      // 디폴트 페이지로
-      navigate('/');
-      log.debug('여기실행6');
-    } else {
-      log.debug('여기실행7');
+
+    // if (needsOnboarding) {
+
+    //   // 신규 유저 POST onboarding
+    //   await apiFetch('/preferences/onboarding', {
+    //     method: 'POST',
+    //     body: JSON.stringify({ 
+    //       learningGoal: selectedGoal, 
+    //       difficultyLevel: selectedDifficulty,
+    //       absoluteLevel: selectedAbsolute,
+    //     }),
+    //   });
+
+    //   completeOnboarding();
+
+    //   alert('온보딩 저장 (임시):', { selectedGoal, selectedDifficulty, selectedAbsolute });
+    //   // 디폴트 페이지로
+    //   navigate('/');
+
+    // } else {
+
       if (!isDirty) {
-        log.debug('여기실행8');
+
         alert('변경된 내용이 없습니다');
         return;
       }
-log.debug('여기실행9');
+
       const res = await apiFetch('/users/me/preferences', {
         method: 'PATCH',
         body: JSON.stringify({  
           learningGoal: selectedGoal, 
           difficultyLevel: selectedDifficulty,
-          absoluteLevel: selectedAbsolute,
+          // absoluteLevel: selectedAbsolute,
+          // 서버값 쓰기 (기본 초보자)
+          absoluteLevel: preferencesData.absoluteLevel ?? 'BEGINNER',
         }),
       });
-      log.debug('여기실행10');
       // 새 원본으로 갱신
       setPreferencesData(res.data);  
       alert('저장되었습니다!');
-    }
+    // }
   } catch (error) {
-    log.debug('여기실행11');
-    console.error('저장 실패:', error);
+    log.debug('저장 실패:', error);
   }
 };
 
@@ -359,15 +353,7 @@ const handleGoalChange = async (goal) => {
   // const prevGoal = selectedGoal;
   setSelectedGoal(goal);
 
-  // try {
-    // await apiFetch('/users/me/preferences', {
-    //   method: 'PATCH',
-    //   body: { learningGoal: goal },
-    // });
-  // } catch (error) {
-  //   console.error('학습 목표 변경 실패:', error);
-  //   setSelectedGoal(prevGoal);  // 실패 시 롤백
-  // }
+
 };
 
 
@@ -378,49 +364,38 @@ const handleGoalChange = async (goal) => {
 const handleDifficultyChange = async (level) => {
   if (level === selectedDifficulty) return;
 
-  // const prev = selectedDifficulty;
+
   setSelectedDifficulty(level);
 
-  // try {
-    // await apiFetch('/users/me/preferences', {
-    //   method: 'PATCH',
-    //   body: { difficultyLevel: level },
-    // });
-  // } catch (error) {
-  //   console.error('난이도 변경 실패:', error);
-  //   setSelectedDifficulty(prev);
-  //   alert('난이도 변경에 실패했습니다.');
-  // }
 };
 
 
 
-// 절대 난이도 변경
-const handleAbsoluteChange = async (level) => {
-  if (level === selectedAbsolute) return;
+// // 절대 난이도 변경
+// const handleAbsoluteChange = async (level) => {
+//   if (level === selectedAbsolute) return;
 
-  setSelectedAbsolute(level);
+//   setSelectedAbsolute(level);
+// };
+
+
+  // // 비활성화 체크 함수
+  // const isOptionDisabled = (optionValue) => {
+  //   if (!selectedAbsolute) return false;  // 절대 난이도 선택 전엔 다 활성화
+    
+  //   const currentLevel = ABSOLUTE_LEVEL_MAP[selectedAbsolute];
+  //   const offset = DIFFICULTY_LEVEL_MAP[optionValue];
+  //   const targetLevel = currentLevel + offset;
+    
+  //   return targetLevel < MIN_LEVEL || targetLevel > MAX_LEVEL;
+  // };
+
+
+const handleBack = () => {
+  navigate(-1);
 };
-
-
-  // 비활성화 체크 함수
-  const isOptionDisabled = (optionValue) => {
-    if (!selectedAbsolute) return false;  // 절대 난이도 선택 전엔 다 활성화
-    
-    const currentLevel = ABSOLUTE_LEVEL_MAP[selectedAbsolute];
-    const offset = DIFFICULTY_LEVEL_MAP[optionValue];
-    const targetLevel = currentLevel + offset;
-    
-    return targetLevel < MIN_LEVEL || targetLevel > MAX_LEVEL;
-  };
-
-
 
 const handleHomeClick = () => {
-  if (needsOnboarding) {
-    alert('학습 목표와 상대 난이도, 절대 난이도를 모두 선택하고 저장해주세요');
-    return;
-  }
   onExitPage();
 };
 
@@ -431,7 +406,11 @@ const handleHomeClick = () => {
         <div className={styles.top}>
           <div className={styles.top2}>
             <div className={styles.top3}>
-              <div className={styles['top4-l']}>뒤로가기 미구현</div>
+              <button 
+              onClick={handleBack}
+              className={styles['top4-l']}>
+                뒤로가기
+              </button>
               <button 
               className={styles['top5-r']}
               onClick={handleHomeClick}>
@@ -847,7 +826,7 @@ const handleHomeClick = () => {
   <div className={styles['growth-card2-f']}>
           <div className={styles['growth-card3']}>
             <div className={styles['growth-card4']}>
-              <p className={styles['growth-card5']}>성장 기록</p>
+              <p className={styles['growth-card5']}>성장 지표</p>
             </div>
 
             <button 
@@ -986,18 +965,15 @@ const handleHomeClick = () => {
           </div>
 
           <div className={styles['difficulty-card8']}>
-            {/* 오류 절대 난이도가 상대 난이도보다 먼저 설정하게 바꾸기, 절대 난이도 변경 시 상대난이도 조건에 따라 상대난이도 초기화 여부 결정하기  */}
+
 {DIFFICULTY_OPTIONS.map(({ value, label }) => {
     const isSelected = selectedDifficulty === value;
-    // 절대 난이도 기준 활성화 조건 설정
-    const isDisabled = isOptionDisabled(value);
+
 
     return (
       <button
         key={value}
         type="button"
-        // 절대 난이도 기준 +2, -2 단계 범위 제한
-        disabled={isDisabled}
         onClick={() => handleDifficultyChange(value)}
         className={isSelected 
           ? styles['difficulty-card9']     // 선택
@@ -1055,10 +1031,11 @@ const handleHomeClick = () => {
 
 
 
+{/* 
+절대 난이도
 
-{/* 절대 난이도 */}
-{isAbsoluteLevel ? (
-      // {/* 난이도 카드 */}
+isAbsoluteLevel ? (
+
       <div className={styles['difficulty-card']}>
         <div className={styles['difficulty-card2']}>
           <div className={styles['difficulty-card3']}>
@@ -1082,7 +1059,7 @@ const handleHomeClick = () => {
           </div>
 
           <div className={styles['difficulty-card8']}>
-{ABSOLUTE_OPTIONS.map(({ value, label }) => {
+ABSOLUTE_OPTIONS.map(({ value, label }) => {
     const isSelected = selectedAbsolute === value;
     
     return (
@@ -1109,7 +1086,7 @@ const handleHomeClick = () => {
         )}
       </button>
     );
-  })}
+  })
           </div>
         </div>
       </div>
@@ -1135,8 +1112,7 @@ const handleHomeClick = () => {
           </button>
         </div>
       </div>
-)}
-
+) */}
 
 
 
