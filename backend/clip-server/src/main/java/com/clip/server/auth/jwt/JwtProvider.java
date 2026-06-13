@@ -41,6 +41,7 @@ public class JwtProvider {
     private static final String CLAIM_TYPE = "type";
     private static final String TYPE_ACCESS = "access";
     private static final String TYPE_REFRESH = "refresh";
+    private static final String TYPE_ADMIN = "admin";
 
     @PostConstruct
     public void init() {
@@ -169,5 +170,32 @@ public class JwtProvider {
             return true;
         }
         // 다른 예외(서명 오류 등)는 그대로 throw → 호출자가 처리
+    }
+
+    /**
+     * 관리자용 토큰 발급
+     * - 기존 buildToken 메서드 재사용
+     */
+    public String createAdminToken(Long adminId, String username) {
+        Date now = new Date();
+        long adminExpirationTime = 1000L * 60 * 60 * 24;  // 24시간
+        Date expiryDate = new Date(now.getTime() + adminExpirationTime);
+
+        return Jwts.builder()
+                .subject(String.valueOf(adminId))
+                .claim(CLAIM_TYPE, TYPE_ADMIN)
+                .claim("role", "ADMIN")
+                .claim("username", username)
+                .issuedAt(now)
+                .expiration(expiryDate)
+                .signWith(key)
+                .compact();
+    }
+
+    /**
+     * Admin Token 검증
+     */
+    public boolean validateAdminToken(String token) {
+        return validateToken(token, TYPE_ADMIN);
     }
 }

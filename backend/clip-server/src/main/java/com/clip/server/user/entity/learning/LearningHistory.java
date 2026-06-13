@@ -23,11 +23,11 @@ public class LearningHistory {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "video_id")
+    @JoinColumn(name = "video_id", nullable = false)
     private Video video;
 
     @Column(name = "total_watch_time")
