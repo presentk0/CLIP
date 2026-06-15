@@ -251,14 +251,5 @@ export const apiFetch = async (endpoint, options = {}) => {
     );
   }
 
-  // // result = JSON으로 파싱된 데이터
-  // const result = await response.json();
-  // if (!result.success) {
-  //   throw new ApiError(
-  //     result.error?.message || 'API Error',
-  //     result.error?.code || 'UNKNOWN'
-  //   );
-  // }
-
   return result;
 };
