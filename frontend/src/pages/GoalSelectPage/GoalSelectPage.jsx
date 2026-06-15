@@ -4,6 +4,9 @@ import { useAuth } from '../../hooks/useAuth';
 import { useOnboarding } from '../../hooks/useOnboarding';
 
 import styles from './GoalSelectPage.module.css';
+import frog from '../../imgs/frog.png';
+import frog2 from '../../imgs/frog2.png';
+
 
 const GOAL_OPTIONS = [
   { value: 'TRAVEL',           label: '여행',     enabled: false },
@@ -100,7 +103,16 @@ const handleBack = () => navigate('/onboarding/level', { replace: true });
                   }
                 >
                   <div className={styles['objectives-card9']}>
-                    <div className={styles['objectives-card10']}></div>  {/* 아이콘 */}
+                    <div className={styles['objectives-card10']}
+                    style={{
+              backgroundImage: 
+                value === 'DAILY' ? `url(${frog2})` :
+                value === 'SELF_DEVELOPMENT' ? `url(${frog})` :
+                'none',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+            }}
+                    ></div>
                     <div className={styles['objectives-card11']}>
                       <p 
                         className={styles['objectives-card12']}
