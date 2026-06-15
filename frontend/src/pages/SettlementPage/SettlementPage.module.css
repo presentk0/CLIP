@@ -1,9 +1,56 @@
+
+.main {
+  /* width: 402px; */
+/* height: 1200px; */
+  background: #88DDC1;
+}
+
+
+
+
+.messageWrapper {
+  position: relative;     /* 기준점 */
+  display: inline-block;  /* SVG 크기에 맞게 */
+  width: 402px;
+  height: 108px;
+
+  margin-top: 24px;
+}
+
+
+.messageContent {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  
+  display: flex;
+  flex-direction: row;     /* 가로 배치 */
+  align-items: center;     /* 세로 가운데 */
+  gap: 12px;
+  padding: 0 24px;
+}
+
+
+
+
 .message {
-  width: 460px;
-height: 84px;
+  /* width: 460px;
+height: 84px; */
 /* fill: #70C1EE; */
 filter: drop-shadow(0 4px 12px rgba(158, 155, 137, 0.20));
+
+display: block;
 }
+
+
+.messageText {
+  display: flex;
+  flex-direction: column;  /* 텍스트는 세로 */
+  text-align: left;        /* 왼쪽 정렬 */
+}
+
 
 
 .message2 {
@@ -35,3 +82,633 @@ line-height: normal;
 }
 
 
+.main-box {
+width: 402px;
+height: 923px;
+border-radius: 36px 36px 0 0;
+background: #FEFDF9;
+box-shadow: 0 4px 12px 0 rgba(158, 155, 137, 0.20);
+
+
+display: flex;
+  flex-direction: column;
+  align-items: center;   /* 자식들 가로 중앙 정렬 */
+margin-top: 36px;
+}
+
+
+.mastery {
+color: #5E5A4E;
+font-family: Pretendard;
+font-size: 18px;
+font-style: normal;
+font-weight: 700;
+line-height: 20px; /* 111.111% */
+
+align-self: flex-start;
+margin: 0 0 0 20px;
+margin-top: 24px;
+}
+
+
+.quiz-result-card {
+display: flex;
+width: 370px;
+height: 302px;
+padding: 20px 16px;
+flex-direction: column;
+justify-content: center;
+align-items: center;
+gap: 16px;
+border-radius: 24px;
+border: 1px solid #BDB4AB;
+background: #FBF8F1;
+box-shadow: 0 4px 12px 0 rgba(158, 155, 137, 0.20);
+
+margin-top: 16px;
+}
+
+
+.quiz-result-card2 {
+display: flex;
+align-items: flex-start;
+gap: 10px;
+align-self: stretch;
+}
+
+
+
+.quiz-result-card3 {
+  position: relative;
+/* display: flex; */
+width: 153px;
+height: 86px;
+/* padding: 66px 4px 4px 111px; */
+/* flex-direction: column;
+align-items: flex-start; */
+gap: 10px;
+border-radius: 8px;
+/* background: url(<path-to-image>) lightgray 50% / cover no-repeat; */
+
+overflow: hidden;
+flex-shrink: 0;
+}
+
+
+/* 이미지 컨테이너 채우기 */
+.quiz-result-thumbnail {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.quiz-result-card4 {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+
+display: flex;
+width: 38px;
+height: 16px;
+padding: 3px 4px 3px 5px;
+justify-content: center;
+align-items: center;
+gap: 10px;
+flex-shrink: 0;
+border-radius: 999px;
+background: rgba(15, 15, 15, 0.50);
+}
+
+
+
+.quiz-result-card5 {
+display: flex;
+justify-content: center;
+align-items: center;
+}
+
+
+
+.quiz-result-card6 {
+color: #FFF;
+font-family: Pretendard;
+font-size: 11px;
+font-style: normal;
+font-weight: 500;
+line-height: normal;
+letter-spacing: -0.1px;
+text-transform: uppercase;
+}
+
+
+
+.quiz-result-card7 {
+display: flex;
+
+
+width: 168px;
+flex-direction: column;
+align-items: flex-start;
+
+
+  flex: 1;              /* 남은 공간 다 차지 */
+  min-width: 0;         /* flex 안에서 텍스트 줄임 가능하게 설정 */
+}
+
+
+
+.quiz-result-card8 {
+display: flex;
+height: 40.042px;
+flex-direction: column;
+justify-content: center;
+align-self: stretch;
+color: #01030D;
+font-family: Roboto;
+font-size: 14px;
+font-style: normal;
+font-weight: 700;
+line-height: 20px; /* 142.857% */
+letter-spacing: -0.5px;
+
+  /* 2줄 말줄임 */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;  /* 표준 속성 추가 */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+
+
+.quiz-result-card9 {
+display: flex;
+height: 20.021px;
+flex-direction: column;
+justify-content: center;
+align-self: stretch;
+color: #01030D;
+font-family: Roboto;
+font-size: 12px;
+font-style: normal;
+font-weight: 400;
+line-height: 20px; /* 166.667% */
+letter-spacing: -0.5px;
+}
+
+
+
+.quiz-result-card10 {
+width: 24px;
+height: 24px;
+/* aspect-ratio: 1/1; */
+position: absolute;
+left: 4px;
+top: 4px;
+fill: #D9D9D9;
+
+
+
+
+  flex-shrink: 0;
+  /* align-self: flex-start;  세로 위 */
+}
+
+
+
+.quiz-result-card11 {
+display: flex;
+flex-direction: column;
+align-items: flex-start;
+gap: 12px;
+align-self: stretch;
+}
+
+
+
+.quiz-result-card12 {
+display: flex;
+height: 88px;
+padding: 16px;
+flex-direction: column;
+align-items: flex-start;
+gap: 8px;
+align-self: stretch;
+border-radius: 16px;
+border: 1px solid #DCD6C6;
+background: #FBF8F1;
+}
+
+
+
+
+
+
+
+.quiz-result-card14 {
+display: flex;
+flex-direction: column;
+align-items: flex-start;
+gap: 8px;
+align-self: stretch;
+}
+
+
+
+.quiz-result-card15 {
+display: flex;
+justify-content: space-between;
+align-items: flex-end;
+align-self: stretch;
+}
+
+
+
+.quiz-result-card16 {
+display: flex;
+height: 18px;
+justify-content: center;
+align-items: center;
+gap: 10px;
+}
+
+
+.quiz-result-card17 {
+color: #5E5A4E;
+font-family: Pretendard;
+font-size: 16px;
+font-style: normal;
+font-weight: 700;
+line-height: normal;
+}
+
+
+
+.quiz-result-card18 {
+display: flex;
+justify-content: center;
+align-items: center;
+gap: 10px;
+}
+
+
+
+.quiz-result-card19 {
+width: 90px;
+color: #79735B;
+text-align: right;
+font-family: Pretendard;
+font-size: 12px;
+font-style: normal;
+font-weight: 500;
+line-height: normal;
+}
+
+
+
+.quiz-result-card20 {
+  position: relative;
+  
+display: flex;
+height: 8px;
+align-items: flex-start;
+align-self: stretch;
+}
+
+
+
+.quiz-result-card21 {
+width: 306px;
+height: 8px;
+position: absolute;
+border-radius: 999px;
+background: #CDF4E7;
+}
+
+
+
+.quiz-result-card22 {
+  position: absolute;
+/* width: 138px; */
+height: 8px;
+border-radius: 999px;
+background: #01CF8A;
+}
+
+
+
+.quiz-result-card23 {
+display: flex;
+justify-content: center;
+align-items: center;
+}
+
+
+
+.quiz-result-card24 {
+color: #ABAB90;
+font-family: Pretendard;
+font-size: 12px;
+font-style: normal;
+font-weight: 500;
+line-height: normal;
+}
+
+
+
+.quiz-result-card25 {
+display: flex;
+align-items: center;
+gap: 12px;
+align-self: stretch;
+}
+
+
+
+.quiz-result-card26 {
+display: flex;
+width: 163px;
+height: 60px;
+padding: 12px 52px 11px 12px;
+flex-direction: column;
+align-items: flex-start;
+gap: 10px;
+border-radius: 16px;
+background: #F7F3E7;
+}
+
+
+
+.quiz-result-card27 {
+display: flex;
+align-items: flex-start;
+gap: 8px;
+}
+
+
+
+.quiz-result-card28 {
+display: flex;
+width: 36px;
+height: 36px;
+align-items: center;
+gap: 10px;
+background: #D9D9D9;
+}
+
+
+
+.quiz-result-card29 {
+display: flex;
+width: 55px;
+flex-direction: column;
+align-items: flex-start;
+gap: 4px;
+}
+
+
+
+.quiz-result-card30 {
+align-self: stretch;
+color: #7F7569;
+font-family: Pretendard;
+font-size: 12px;
+font-style: normal;
+font-weight: 500;
+line-height: normal;
+}
+
+
+
+.quiz-result-card31 {
+align-self: stretch;
+color: #454440;
+font-family: Pretendard;
+font-size: 16px;
+font-style: normal;
+font-weight: 700;
+line-height: normal;
+}
+
+
+
+
+
+
+
+
+.recommendation-card {
+display: flex;
+width: 368px;
+padding: 20px 16px;
+flex-direction: column;
+align-items: flex-start;
+gap: 24px;
+border-radius: 24px;
+border: 1px solid #BDB4AB;
+background: #FBF8F1;
+box-shadow: 0 4px 12px 0 rgba(158, 155, 137, 0.20);
+
+margin-top: 24px;
+}
+
+
+
+
+.recommendation-card2 {
+display: flex;
+width: 251px;
+flex-direction: column;
+align-items: flex-start;
+gap: 8px;
+}
+
+
+
+.recommendation-card3 {
+display: flex;
+align-items: center;
+gap: 8px;
+}
+
+
+
+.recommendation-card4 {
+width: 24px;
+height: 24px;
+aspect-ratio: 1/1;
+background: #D9D9D9;
+}
+
+
+
+.recommendation-card5 {
+display: flex;
+justify-content: center;
+align-items: center;
+}
+
+
+
+.recommendation-card6 {
+color: #5E5A4E;
+font-family: Pretendard;
+font-size: 18px;
+font-style: normal;
+font-weight: 700;
+line-height: 20px;
+}
+
+
+
+.recommendation-card7 {
+display: flex;
+justify-content: center;
+align-items: center;
+align-self: stretch;
+}
+
+
+
+.recommendation-card8 {
+color: #79735B;
+font-family: Pretendard;
+font-size: 14px;
+font-style: normal;
+font-weight: 500;
+line-height: 20px;
+}
+
+
+
+.recommendation-card9 {
+display: flex;
+flex-direction: column;
+align-items: flex-start;
+gap: 32px;
+align-self: stretch;
+}
+
+
+
+.recommendation-card10 {
+display: flex;
+flex-direction: column;
+align-items: flex-start;
+gap: 14px;
+align-self: stretch;
+}
+
+
+
+.recommendation-card11 {
+  position: relative;
+/* display: flex; */
+height: 190px;
+/* padding: 8px; */
+/* padding: 166px 8px 8px 292px; */
+/* flex-direction: column;
+align-items: flex-end; */
+/* align-items: flex-start; */
+/* justify-content: flex-end; */
+gap: 10px;
+align-self: stretch;
+border-radius: 12px;
+
+
+
+overflow: hidden;
+  flex-shrink: 0;
+/* background: #D9D9D9; */
+}
+
+
+
+.recommendation-card12 {
+display: flex;
+width: 38px;
+height: 16px;
+padding: 3px 4px 3px 5px;
+justify-content: center;
+align-items: center;
+gap: 10px;
+flex-shrink: 0;
+border-radius: 999px;
+background: rgba(15, 15, 15, 0.50);
+}
+
+
+
+.recommendation-card13 {
+display: flex;
+justify-content: center;
+align-items: center;
+}
+
+
+
+.recommendation-card14 {
+color: #FFF;
+font-family: Pretendard;
+font-size: 11px;
+font-style: normal;
+font-weight: 500;
+line-height: normal;
+letter-spacing: -0.1px;
+text-transform: uppercase;
+}
+
+
+
+.recommendation-card15 {
+display: flex;
+align-items: flex-start;
+gap: 12px;
+}
+
+
+
+.recommendation-card16 {
+width: 33px;
+height: 33px;
+aspect-ratio: 1/1;
+border-radius: 16px;
+background: #D9D9D9;
+}
+
+
+
+.recommendation-card17 {
+display: flex;
+width: 275px;
+flex-direction: column;
+align-items: flex-start;
+gap: 4px;
+}
+
+
+
+.recommendation-card18 {
+align-self: stretch;
+color: #5E5A4E;
+font-family: Roboto;
+font-size: 14px;
+font-style: normal;
+font-weight: 700;
+line-height: 16px;
+letter-spacing: -0.5px;
+}
+
+
+
+.recommendation-card19 {
+align-self: stretch;
+color: #5E5A4E;
+font-family: Roboto;
+font-size: 12px;
+font-style: normal;
+font-weight: 400;
+line-height: 20px;
+letter-spacing: -0.5px;
+}
