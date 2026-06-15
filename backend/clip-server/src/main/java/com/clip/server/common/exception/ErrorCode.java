@@ -49,8 +49,26 @@ public enum ErrorCode {
     // 500 Internal Server Error
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR", "서버 오류가 발생했습니다."),
     AI_SERVICE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "AI_SERVICE_ERROR", "AI 서비스 오류가 발생했습니다."),
-    TRANSLATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "TRANSLATION_FAILED", "번역 서비스 오류가 발생했습니다.");
+    TRANSLATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "TRANSLATION_FAILED", "번역 서비스 오류가 발생했습니다."),
 
+    // ===========================================
+    // 관리자(Admin) 전용 에러 코드
+    // ===========================================
+
+    // 401 Unauthorized
+    ADMIN_INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "ADMIN_INVALID_CREDENTIALS", "아이디 또는 비밀번호가 일치하지 않습니다."),
+
+    // 403 Forbidden
+    ADMIN_ACCESS_DENIED(HttpStatus.FORBIDDEN, "ADMIN_ACCESS_DENIED", "관리자 권한이 필요합니다."),
+    ADMIN_ACCOUNT_DISABLED(HttpStatus.FORBIDDEN, "ADMIN_ACCOUNT_DISABLED", "비활성화된 관리자 계정입니다."),
+
+    // 404 Not Found
+    ADMIN_NOT_FOUND(HttpStatus.NOT_FOUND, "ADMIN_NOT_FOUND", "관리자를 찾을 수 없습니다."),
+    REPORT_NOT_FOUND(HttpStatus.NOT_FOUND, "REPORT_NOT_FOUND", "신고 내역을 찾을 수 없습니다."),
+    FEEDBACK_NOT_FOUND(HttpStatus.NOT_FOUND, "FEEDBACK_NOT_FOUND", "피드백을 찾을 수 없습니다."),
+
+    // 409 Conflict
+    ADMIN_USERNAME_DUPLICATED(HttpStatus.CONFLICT, "ADMIN_USERNAME_DUPLICATED", "이미 사용 중인 관리자 아이디입니다.");
     private final HttpStatus status;
     private final String code;
     private final String message;
