@@ -1,5 +1,6 @@
 package com.clip.server.word.controller;
 
+import com.clip.server.auth.jwt.JwtProvider;
 import com.clip.server.common.response.PaginationResponse;
 import com.clip.server.common.security.JwtAuthenticationFilter;
 import com.clip.server.word.contorller.WordController;
@@ -32,7 +33,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(WordController.class)
+@WebMvcTest(
+        controllers = WordController.class)
 @AutoConfigureMockMvc(addFilters = false)
 @ActiveProfiles("test")
 public class WordControllerTest {
@@ -42,6 +44,8 @@ public class WordControllerTest {
 
     @MockitoBean
     private WordService wordService;
+    @MockitoBean
+    private JwtProvider jwtProvider;
 
     @MockitoBean
     private JwtAuthenticationFilter jwtAuthenticationFilter;

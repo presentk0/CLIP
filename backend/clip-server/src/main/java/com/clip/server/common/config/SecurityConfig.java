@@ -1,6 +1,5 @@
 package com.clip.server.common.config;
 
-import com.clip.server.common.security.AdminApiKeyFilter;
 import com.clip.server.common.security.AdminAuthenticationFilter;  // 🆕
 import com.clip.server.common.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +27,6 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    private final AdminApiKeyFilter adminApiKeyFilter;
     private final AdminAuthenticationFilter adminAuthenticationFilter;
     private final CorsProperties corsProperties;
 
@@ -69,7 +67,6 @@ public class SecurityConfig {
                     auth.requestMatchers("/api/admin/**").hasRole("ADMIN")
                             .anyRequest().authenticated();
                 })
-                .addFilterBefore(adminApiKeyFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(adminAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 

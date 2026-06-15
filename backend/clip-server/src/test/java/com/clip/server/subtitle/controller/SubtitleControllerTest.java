@@ -1,5 +1,6 @@
 package com.clip.server.subtitle.controller;
 
+import com.clip.server.auth.jwt.JwtProvider;
 import com.clip.server.common.exception.BusinessException;
 import com.clip.server.common.exception.ErrorCode;
 import com.clip.server.common.security.JwtAuthenticationFilter;
@@ -12,6 +13,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
+import org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
@@ -29,13 +32,22 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(SubtitleController.class)
+@WebMvcTest(
+        controllers = SubtitleController.class,
+        excludeAutoConfiguration = {
+                SecurityAutoConfiguration.class,
+                UserDetailsServiceAutoConfiguration.class
+        }
+)
 @AutoConfigureMockMvc(addFilters = false)
 @ActiveProfiles("test")
 public class SubtitleControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @MockitoBean
+    private JwtProvider jwtProvider;
 
     @MockitoBean
     private JwtAuthenticationFilter jwtAuthenticationFilter;
