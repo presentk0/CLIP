@@ -15,6 +15,7 @@ import com.clip.server.word.entity.CollectedWord;
 import com.clip.server.word.entity.WordMeaning;
 import com.clip.server.word.entity.WordType;
 import com.clip.server.word.repository.CollectedWordRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -27,6 +28,7 @@ import java.util.Optional;
 
 import static com.clip.server.common.exception.ErrorCode.USER_NOT_FOUND;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
