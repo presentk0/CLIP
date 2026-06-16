@@ -1,5 +1,6 @@
 package com.clip.server.quiz.service;
 
+import com.clip.server.quiz.ai.QuizFallbackService;
 import com.clip.server.quiz.dto.request.QuizWordRequest;
 import com.clip.server.quiz.dto.response.QuizDetailResponse;
 import com.clip.server.quiz.entity.QuizSession;

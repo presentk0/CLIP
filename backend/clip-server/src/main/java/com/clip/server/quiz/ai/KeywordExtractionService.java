@@ -1,4 +1,4 @@
-package com.clip.server.quiz.service;
+package com.clip.server.quiz.ai;
 
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
@@ -24,7 +24,7 @@ public class KeywordExtractionService {
 
     /**
      * 서버 기동 시 OpenNLP 모델을 로드합니다.
-     * 모델 파일은 src/main/resources/models/ 폴더에 위치해야 합니다.
+     * 모델 파일은 src/main/resources/models/ 폴더에 위치
      */
     @PostConstruct
     public void init() {
