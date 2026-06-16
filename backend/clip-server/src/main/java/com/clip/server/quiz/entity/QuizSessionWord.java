@@ -20,13 +20,13 @@ public class QuizSessionWord {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "session_id")
+    @JoinColumn(name = "session_id", nullable = false)
     private QuizSession quizSession;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 255)
     private String word;
 
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String sentence;
 
     @Column(nullable = false, length = 200)

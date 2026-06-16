@@ -44,6 +44,9 @@ cors:
     - "chrome-extension://hldepbmgooakmbnbobafccbngfflhilj"
     - "chrome-extension://fiikffmgckeladckjjoalgbeljanpbal"
     - "chrome-extension://mcgnjdjgakffdoagkocfgemnmlndplai"
+    - "chrome-extension://ejaaecfpfllochiioaahccleenblfcol"
+    - "chrome-extension://hpflpahcmpbakbeblddipadmifhfehfa"
+    - "chrome-extension://mgphcoglgpmnmcojmjppoaolehipgbdp"
     - "https://*.youtube.com"
     - "https://dev.clip-server.com"
 

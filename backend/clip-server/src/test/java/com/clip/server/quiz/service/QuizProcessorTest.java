@@ -2,6 +2,8 @@ package com.clip.server.quiz.service;
 
 import com.clip.server.common.exception.BusinessException;
 import com.clip.server.common.exception.ErrorCode;
+import com.clip.server.quiz.ai.OpenAIService;
+import com.clip.server.quiz.ai.QuizFallbackService;
 import com.clip.server.quiz.dto.request.QuizGenerateRequest;
 import com.clip.server.quiz.dto.response.QuizCompleteResponse;
 import com.clip.server.quiz.dto.response.QuizDetailResponse;

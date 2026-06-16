@@ -1,6 +1,6 @@
 package com.clip.server.common.config;
 
-import com.clip.server.common.security.AdminApiKeyFilter;
+import com.clip.server.common.security.AdminAuthenticationFilter;  // 🆕
 import com.clip.server.common.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,10 +27,10 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    private final AdminApiKeyFilter adminApiKeyFilter;
+    private final AdminAuthenticationFilter adminAuthenticationFilter;
     private final CorsProperties corsProperties;
 
-    // 🎯 현재 구동 중인 환경(Profile) 정보
+    // 현재 구동 중인 환경(Profile) 정보
     @Value("${spring.profiles.active:local}")
     private String activeProfile;
 
@@ -49,11 +49,12 @@ public class SecurityConfig {
                     auth.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                             .requestMatchers(
                                     "/api/auth/**",
+                                    "/api/admin/auth/login",
                                     "/health",
                                     "/ws-chat/**", "ws-voice-test.html"
                             ).permitAll();
 
-                    // 2.  Swagger 프로필별 조건부 분기
+                    // 2. Swagger 프로필별 조건부 분기
                     if ("prod".equals(activeProfile)) {
                         auth.requestMatchers("/swagger-ui/**", "/v3/api-docs/**").hasRole("ADMIN");
                         log.info("운영 환경(prod): Swagger UI 접근이 ADMIN으로 제한됩니다.");
@@ -66,8 +67,8 @@ public class SecurityConfig {
                     auth.requestMatchers("/api/admin/**").hasRole("ADMIN")
                             .anyRequest().authenticated();
                 })
-                .addFilterBefore(adminApiKeyFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(adminAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

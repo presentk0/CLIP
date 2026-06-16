@@ -6,6 +6,14 @@ import { useNavigate } from 'react-router-dom';
 // import { useAuth } from '../../hooks/useAuth';
 import { log } from '../../utils/logger';
 
+
+
+import frog from '../../imgs/frog.png';
+import frog2 from '../../imgs/frog2.png';
+
+
+
+
   // 오류
   // 영문 → 한글 매핑
 const GOAL_LABELS = {
@@ -408,13 +416,19 @@ const handleHomeClick = () => {
             <div className={styles.top3}>
               <button 
               onClick={handleBack}
-              className={styles['top4-l']}>
-                뒤로가기
+              className={styles['top4-l']}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="17" viewBox="0 0 10 17" fill="none">
+  <path d="M9.35862 0.35565C9.83282 0.82987 9.83282 1.59871 9.35862 2.07292L2.93152 8.5L9.35862 14.9271C9.83282 15.4013 9.83282 16.1702 9.35862 16.6444C8.88442 17.1185 8.11562 17.1185 7.64142 16.6444L0.355657 9.3586C-0.118553 8.8845 -0.118553 8.1156 0.355657 7.6414L7.64142 0.35565C8.11562 -0.11855 8.88442 -0.11855 9.35862 0.35565Z" fill="#454440"/>
+</svg>
               </button>
               <button 
               className={styles['top5-r']}
-              onClick={handleHomeClick}>
-                홈
+              onClick={handleHomeClick}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+  <path d="M10.125 16.8572V20.0001C10.125 20.5524 9.67728 21.0001 9.125 21.0001H5.5C4.94772 21.0001 4.5 20.5524 4.5 20.0001V10.3485C4.5 9.76471 4.75512 9.21001 5.19842 8.83005L10.6984 4.11576C11.4474 3.47378 12.5526 3.47378 13.3016 4.11576L18.8016 8.83005C19.2449 9.21001 19.5 9.76471 19.5 10.3485V20.0001C19.5 20.5524 19.0523 21.0001 18.5 21.0001H14.875C14.3227 21.0001 13.875 20.5524 13.875 20.0001V16.8572C13.875 16.305 13.4273 15.8572 12.875 15.8572H11.125C10.5727 15.8572 10.125 16.305 10.125 16.8572Z" fill="#454440"/>
+</svg>
               </button>
             </div>
 
@@ -892,7 +906,18 @@ const handleHomeClick = () => {
         }
       >
         <div className={styles['objectives-card9']}>
-          <div className={styles['objectives-card10']}></div>  {/* 아이콘 */}
+          <div className={styles['objectives-card10']}
+          style={{
+          backgroundImage: 
+            goal === 'DAILY' ? `url(${frog2})` :
+            goal === 'SELF_DEVELOPMENT' ? `url(${frog})` :
+            'none',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+          >
+
+          </div>
           <div className={styles['objectives-card11']}>
             <p 
               className={styles['objectives-card12']}
@@ -905,7 +930,6 @@ const handleHomeClick = () => {
       </button>
     );
   })}
-
         </div>
       </div>
 ) : (

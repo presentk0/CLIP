@@ -13,6 +13,94 @@ import SockJS from 'sockjs-client';
 import union from '../../imgs/Union.svg';
 import { useCallback } from 'react';
 import { Fragment } from 'react';
+import React from 'react';
+import { Spinner } from '../../components/Spinner/Spinner';
+import frog from '../../imgs/ChatGPT_Image_2026_4_29_11_38_54.png';
+
+
+
+
+// JWT 토큰 만료 체크
+const isTokenExpired = (token) => {
+  if (!token) return true;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    // 만료 30초 전부터 만료로 간주 (네트워크 지연 대비)
+    return payload.exp * 1000 < Date.now() + 30 * 1000;
+  } catch {
+    return true;
+  }
+};
+
+// WebSocket은 apiFetch를 안 써서 전용 토큰 갱신이 필요
+// apiFetch는 HTTP 요청 (REST API) 전용
+// WebSocket 연결은 다른 메커니즘 (HTTP 핸드셰이크 후 영속 연결)
+// WebSocket이 만료된 토큰으로 연결 시도하면 apiFetch의 자동 갱신 로직이 안 돌아가서 WebSocket 전용으로 따로 처리
+// 토큰 갱신
+const refreshAccessToken = async () => {
+  try {
+    const res = await apiFetch('/auth/refresh', { method: 'POST' });
+    
+    if (res.success) {
+      const newToken = res.data.accessToken;
+      
+      // apiFetch 안에서 이미 saveAccessToken을 호출하므로, 별도 저장 로직 불필요
+      return newToken;
+    }
+    return null;
+  } catch (err) {
+    log.debug('토큰 갱신 실패', err);
+    return null;
+  }
+};
+
+
+
+
+
+
+function ContinuePopup({ info, onContinue, onNewStart }) {
+  return (
+    <div className={styles.popupOverlay}>
+      <div className={styles.popupBox}>
+        <h2 className={styles.popupTitle}>진행 중인 대화가 있어요</h2>
+        
+        <div className={styles.popupInfo}>
+          <p>단어: <strong>{info.targetWord || info.scenarioTitle}</strong></p>
+          <p>시나리오: {info.scenarioTitle}</p>
+        </div>
+        
+        <p className={styles.popupQuestion}>이어서 하시겠어요?</p>
+        
+        <div className={styles.popupButtons}>
+          <button 
+            className={styles.popupBtnSecondary}
+            onClick={onNewStart}
+          >
+            새로 시작
+          </button>
+          <button 
+            className={styles.popupBtnPrimary}
+            onClick={onContinue}
+          >
+            이어하기
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -65,11 +153,19 @@ function Header ({ currentStep, onBack, onMyPage }) {
           <div className={styles.head3}>
             <button 
             onClick={onBack}
-            className={styles.head4}>뒤로가기</button>
+            className={styles.head4}
+            >
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+  <path d="M16.5014 4.35565C16.9756 4.82987 16.9756 5.59871 16.5014 6.07292L10.0743 12.5L16.5014 18.9271C16.9756 19.4013 16.9756 20.1702 16.5014 20.6444C16.0272 21.1185 15.2584 21.1185 14.7842 20.6444L7.49848 13.3586C7.02427 12.8845 7.02427 12.1156 7.49848 11.6414L14.7842 4.35565C15.2584 3.88145 16.0272 3.88145 16.5014 4.35565Z" fill="#454440"/>
+</svg>
+            </button>
             <button 
             onClick={onMyPage}
-            className={styles.head4}>
-              my
+            className={styles.head4}
+            >
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+  <path d="M10.125 16.8572V20.0001C10.125 20.5524 9.67728 21.0001 9.125 21.0001H5.5C4.94772 21.0001 4.5 20.5524 4.5 20.0001V10.3485C4.5 9.76471 4.75512 9.21001 5.19842 8.83005L10.6984 4.11576C11.4474 3.47378 12.5526 3.47378 13.3016 4.11576L18.8016 8.83005C19.2449 9.21001 19.5 9.76471 19.5 10.3485V20.0001C19.5 20.5524 19.0523 21.0001 18.5 21.0001H14.875C14.3227 21.0001 13.875 20.5524 13.875 20.0001V16.8572C13.875 16.305 13.4273 15.8572 12.875 15.8572H11.125C10.5727 15.8572 10.125 16.305 10.125 16.8572Z" fill="#454440"/>
+</svg>
             </button>
           </div>
 
@@ -85,13 +181,19 @@ function Header ({ currentStep, onBack, onMyPage }) {
           <div className={styles['chat-head3']}>
             <button 
             onClick={onBack}
-            className={styles['chat-head4']}>
-              뒤로가기
+            className={styles['chat-head4']}
+            >
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+  <path d="M16.5014 4.35565C16.9756 4.82987 16.9756 5.59871 16.5014 6.07292L10.0743 12.5L16.5014 18.9271C16.9756 19.4013 16.9756 20.1702 16.5014 20.6444C16.0272 21.1185 15.2584 21.1185 14.7842 20.6444L7.49848 13.3586C7.02427 12.8845 7.02427 12.1156 7.49848 11.6414L14.7842 4.35565C15.2584 3.88145 16.0272 3.88145 16.5014 4.35565Z" fill="#454440"/>
+</svg>
             </button>
             <button 
             onClick={onMyPage}
-            className={styles['chat-head4']}>
-              my
+            className={styles['chat-head4']}
+            >
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+  <path d="M10.125 16.8572V20.0001C10.125 20.5524 9.67728 21.0001 9.125 21.0001H5.5C4.94772 21.0001 4.5 20.5524 4.5 20.0001V10.3485C4.5 9.76471 4.75512 9.21001 5.19842 8.83005L10.6984 4.11576C11.4474 3.47378 12.5526 3.47378 13.3016 4.11576L18.8016 8.83005C19.2449 9.21001 19.5 9.76471 19.5 10.3485V20.0001C19.5 20.5524 19.0523 21.0001 18.5 21.0001H14.875C14.3227 21.0001 13.875 20.5524 13.875 20.0001V16.8572C13.875 16.305 13.4273 15.8572 12.875 15.8572H11.125C10.5727 15.8572 10.125 16.305 10.125 16.8572Z" fill="#454440"/>
+</svg>
             </button>
           </div>
 
@@ -624,9 +726,137 @@ function MessageContent({ content, highlightWord }) {
 
 
 function ReportBubble({ message }) {
-  if (message.reportType === 'SUGGESTION') {
-    const item = message.improvements[0];
-    
+    // 인트로 (캐릭터 + 한마디)
+  if (message.reportType === 'INTRO') {
+    return (
+      <div className={styles.reportIntro}>
+        <div className={styles.reportFrog}></div>
+        <p className={styles.reportFeedback}>{message.feedback}</p>
+      </div>
+    );
+  }
+  
+  // AI 채팅 진행 결과 (점수)
+  if (message.reportType === 'SCORES') {
+    return (
+      <div className={styles.reportScores}>
+        <p className={styles.reportTitle}>AI 채팅 진행 결과</p>
+        <div className={styles.scoreGrid}>
+          <div className={styles.scoreItem}>
+            <p>종합 점수</p>
+            <p className={styles.scoreNumber}>{message.overallScore}</p>
+          </div>
+          {message.pronunciationAvailable && (
+            <div className={styles.scoreItem}>
+              <p>발음 정확도</p>
+              <p className={styles.scoreNumber}>{message.pronunciationScore}</p>
+            </div>
+          )}
+          <div className={styles.scoreItem}>
+            <p>표현 자연도</p>
+            <p className={styles.scoreNumber}>{message.expressionScore}</p>
+          </div>
+        </div>
+        <div className={styles.wordBadge}>
+          목표 단어 {message.targetWord}를 {message.usageCount}회 사용했어요!
+        </div>
+      </div>
+    );
+  }
+  
+  // 발음이 아쉬웠던 문장
+  if (message.reportType === 'PRONUNCIATION') {
+    return (
+      <div className={styles.reportCard}>
+        <p className={styles.reportTitle}>🎤 발음이 아쉬웠던 문장</p>
+        {message.weakSentences.map((s, i) => (
+          <div key={i} className={styles.reportItem}>
+            <p className={styles.engText}>{s.sentence}</p>
+            <p className={styles.korText}>{s.feedback}</p>
+            <button className={styles.playBtn}>🔊 모범 발음 듣기</button>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  
+  // 기억하면 좋은 표현
+  if (message.reportType === 'NATIVE') {
+    return (
+      <div className={styles.reportCard}>
+        <p className={styles.reportTitle}>기억하면 좋은 표현</p>
+        {message.improvements.map((item, i) => (
+          <div key={i} className={styles.reportItem}>
+            {item.original && <p className={styles.strikethrough}>{item.original}</p>}
+            <p className={styles.engText}>{item.suggested}</p>
+            <p className={styles.korText}>{item.explanation}</p>
+            <button className={styles.playBtn}>🔊 모범 발음 듣기</button>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  
+  // 다음엔 이렇게
+  if (message.reportType === 'NEXT_SCENARIO') {
+    return (
+      <div className={styles.reportCard}>
+        <p className={styles.reportTitle}>✨ 다음엔 이렇게</p>
+        <p>{message.improvePoints}</p>
+      </div>
+    );
+  }
+
+
+    // 종합 점수
+  if (message.reportType === 'OVERALL') {
+    return (
+      <div className={styles.reportCard}>
+        <div className={styles.reportCard2}>
+          <p className={styles.reportCard3}>종합 점수: {message.score}점</p>
+        </div>
+        
+        <div className={styles.reportCard4}>
+          <p className={styles.reportCard6}>잘한 점</p>
+          <p className={styles.reportCard10}>{message.goodPoints}</p>
+        </div>
+        
+        <div className={styles.reportCard4}>
+          <p className={styles.reportCard6}>개선할 점</p>
+          <p className={styles.reportCard10}>{message.improvePoints}</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // 2. 단어 사용
+  if (message.reportType === 'WORD_USAGE') {
+    return (
+      <div className={styles.reportCard}>
+        <div className={styles.reportCard2}>
+          <p className={styles.reportCard3}>
+            "{message.targetWord}" 단어 활용
+          </p>
+        </div>
+        
+        <div className={styles.reportCard4}>
+          <p className={styles.reportCard6}>{message.feedback}</p>
+        </div>
+        
+        {message.usageContext?.map((ctx) => (
+          <div key={ctx.messageId} className={styles.reportCard4}>
+            <p className={styles.reportCard6}>"{ctx.userSentence}"</p>
+            <p className={styles.reportCard10}>
+              {ctx.natural ? '자연스러운 사용' : '어색한 사용'}
+            </p>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  
+
+  if (message.reportType === 'SUGGESTION_INLINE') {
     return (
       <div className={styles.reportCard}>
         <div className={styles.reportCard2}>
@@ -634,24 +864,44 @@ function ReportBubble({ message }) {
             다음엔 이렇게 문장을 사용해보세요
           </p>
         </div>
-
         <div className={styles.reportCard4}>
-          <div className={styles.reportCard5}>
-            <p className={styles.reportCard6}>{item.suggested}</p>
-          </div>
-          <div className={styles.reportCard9}>
-            <p className={styles.reportCard10}>{item.explanation}</p>
-          </div>
+          <p className={styles.reportCard6}>
+            {message.recommendedAlternative}
+          </p>
         </div>
+      </div>
+    );
+  }
 
-        {/* {item.modelAudioUrl && (
-          <button 
-            onClick={() => new Audio(item.modelAudioUrl).play()}
-            className={styles.playBtn}
-          >
-            들어보기
-          </button>
-        )} */}
+// 칭찬 카드 (자연스러울 때)
+  if (message.reportType === 'PRAISE') {
+    return (
+      <div className={styles.praiseCard}>
+        <div className={styles.praiseCard2}>
+          <p className={styles.praiseCard3}>아주 좋아요!</p>
+        </div>
+        <div className={styles.praiseCard4}>
+          <p className={styles.praiseCard5}>상황과 질문을 함께 잘 전달했어요</p>
+        </div>
+      </div>
+    );
+  }
+
+
+
+  // 표현 자연스러움 (개선점 없을 때)
+  if (message.reportType === 'EXPRESSION_FEEDBACK') {
+    return (
+      <div className={styles.reportCard}>
+        <div className={styles.reportCard2}>
+          <p className={styles.reportCard3}>
+            표현 점수: {message.score}점
+          </p>
+        </div>
+        
+        <div className={styles.reportCard4}>
+          <p className={styles.reportCard10}>{message.feedback}</p>
+        </div>
       </div>
     );
   }
@@ -674,15 +924,6 @@ function ReportBubble({ message }) {
             <div className={styles.reportCard9}>
               <p className={styles.reportCard10}>{item.explanation}</p>
             </div>
-            
-            {/* {item.modelAudioUrl && (
-              <button 
-                onClick={() => new Audio(item.modelAudioUrl).play()}
-                className={styles.playBtn}
-              >
-                
-              </button>
-            )} */}
           </div>
         ))}
       </div>
@@ -718,25 +959,130 @@ const formatDate = (isoString) => {
 
 
 
+function ReportPage({ reportData }) {
+  if (!reportData) return null;
 
+  const {
+    overall,
+    pronunciationScore,
+    expressionNaturalness,
+    wordUsage,
+  } = reportData;
+
+  return (
+    <div className={styles.reportPage}>
+      {/* 캐릭터 + 한마디
+      <div>
+        <div className={styles.frog}></div>
+        <p>{expressionNaturalness?.feedback}</p>
+      </div> */}
+
+      <div className={styles.reportPage3}>
+        {/* AI 채팅 진행 결과 카드 */}
+        <div className={styles.reportPage4}>
+          <p>AI 채팅 진행 결과</p>
+
+          <div className={styles.reportPage5}>
+            <div className={styles.reportPage6}>
+              <p className={styles.reportPage7}>종합 점수</p>
+              <p className={styles.reportPage8}>{overall?.score ?? '-'}</p>
+            </div>
+
+            {pronunciationScore?.available && (
+              <>
+                <div className={styles.reportPage9}></div>
+                <div className={styles.reportPage6}>
+                  <p className={styles.reportPage7}>발음 정확도</p>
+                  <p className={styles.reportPage8}>
+                    {pronunciationScore?.overallScore ?? '-'}
+                  </p>
+                </div>
+              </>
+            )}
+
+            <div className={styles.reportPage9}></div>
+
+            <div className={styles.reportPage6}>
+              <p className={styles.reportPage7}>표현 자연도</p>
+              <p className={styles.reportPage8}>
+                {expressionNaturalness?.overallScore ?? '-'}
+              </p>
+            </div>
+          </div>
+
+          <div className={styles.reportPage10}>
+            목표 단어 {wordUsage?.targetWord}를 {wordUsage?.usageCount}회 사용했어요!
+          </div>
+        </div>
+
+        {/* 발음이 아쉬웠던 문장 (있을 때만) */}
+        {pronunciationScore?.available && 
+          pronunciationScore?.weakSentences?.length > 0 && (
+          <div className={styles.reportPage12}>
+            <p className={styles.reportPage13}>🎤 발음이 아쉬웠던 문장</p>
+
+            {pronunciationScore.weakSentences.map((s, i) => (
+              <div key={i} className={styles.reportPage14}>
+                <p className={styles.reportPage15}>{s.sentence}</p>
+                <p className={styles.reportPage16}>{s.feedback}</p>
+
+                <button className={styles.sound}>
+                  <div className={styles.sound2}>🔊</div>
+                  <p className={styles.sound3}>모범 발음 듣기</p>
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* 기억하면 좋은 표현 */}
+        {expressionNaturalness?.improvements?.length > 0 && (
+          <div className={styles.reportPage12}>
+            <p className={styles.reportPage13}>기억하면 좋은 표현</p>
+
+            {expressionNaturalness.improvements.map((item, i) => (
+              <div key={i} className={styles.reportPage14}>
+                <p className={styles.reportPage15}>{item.suggested}</p>
+                <p className={styles.reportPage16}>{item.explanation}</p>
+
+                <button className={styles.sound}>
+                  <div className={styles.sound2}></div>
+                  <p className={styles.sound3}>모범 발음 듣기</p>
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* 다음엔 이렇게 */}
+        {overall?.improvePoints && (
+          <div className={styles.reportPage17}>
+            <p className={styles.reportPage13}>다음엔 이렇게</p>
+            <div className={styles.reportPage18}>
+              <p className={styles.reportPage19}>{overall.improvePoints}</p>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 
 
 
 
 // 채팅방
-function ChatRoom ({ chatData, progress, setProgress, leaveChat }) {
-  const [messages, setMessages] = useState([]);
+function ChatRoom ({ chatData, progress, setProgress, leaveChat, setMessages, messages, onFetchReport }) {
 
   const [voiceModeOn, setVoiceModeOn] = useState(false);
   const voiceModeOnRef = useRef(voiceModeOn);
+  const isToggling = useRef(false);
 
   const [inputText, setInputText] = useState('');
-  // const wsRef = useRef(null);
 
   const [isRecording, setIsRecording] = useState(false);
-  // const mediaRecorderRef = useRef(null);
-  // const chunksRef = useRef([]);
+
 
   const clientRef = useRef(null);
 
@@ -751,7 +1097,39 @@ function ChatRoom ({ chatData, progress, setProgress, leaveChat }) {
 
   const [chatStartDate] = useState(new Date().toISOString());
 
+  const progressRef = useRef(progress);
 
+  const messagesContainerRef = useRef(null);
+
+  const navigate = useNavigate();
+
+const showToast = (message, type = 'info') => {
+  setToast({ message, type });
+  setTimeout(() => setToast(null), 3000);  // 3초 후 사라짐
+};
+
+const toggleVoiceMode = () => {
+  if (isToggling.current) return;  // 광클 차단
+  isToggling.current = true;
+  
+  setVoiceModeOn(prev => !prev);
+  
+  setTimeout(() => {
+    isToggling.current = false;
+  }, 500);  // 0.5초 동안 추가 클릭 무시
+};
+
+
+const scrollToBottom = () => {
+  const container = messagesContainerRef.current;
+  if (!container) return;
+  // 즉시 이동은 smooth 대신 instant 쓰기
+  container.scrollTo({
+    // 컨테이너의 맨 끝까지 강제 스크롤
+    top: container.scrollHeight,
+    behavior: 'smooth',
+  });
+};
 
 
 
@@ -759,6 +1137,23 @@ function ChatRoom ({ chatData, progress, setProgress, leaveChat }) {
   useEffect(() => {
     voiceModeOnRef.current = voiceModeOn;
   }, [voiceModeOn]);
+
+
+  // progress 바뀔 때마다 ref 업데이트
+  useEffect(() => {
+    progressRef.current = progress;
+  }, [progress]);
+
+
+// 메시지 추가될 때마다 자동 스크롤 
+useEffect(() => {
+  // 약간 딜레이 후 (DOM 업데이트 후)
+  const timer = setTimeout(scrollToBottom, 100);
+  return () => clearTimeout(timer);
+}, [messages, isCompleted, suggestion]);
+
+
+
 
   useEffect(() => {
     if (!chatRoomId) return;
@@ -768,10 +1163,7 @@ function ChatRoom ({ chatData, progress, setProgress, leaveChat }) {
     let client;
 
 
-const showToast = (message, type = 'info') => {
-  setToast({ message, type });
-  setTimeout(() => setToast(null), 3000);  // 3초 후 사라짐
-};
+
 
 const subscribeToChat = () => {
   try {
@@ -780,11 +1172,11 @@ const subscribeToChat = () => {
         const data = JSON.parse(message.body);
         handleServerMessage(data);
       } catch (e) {
-        console.error('메시지 파싱 실패:', e);
+        log.debug('메시지 파싱 실패:', e);
       }
     });
   } catch (e) {
-    console.error('구독 실패:', e);
+    log.debug('구독 실패:', e);
   }
 };
 
@@ -797,7 +1189,7 @@ const requestIntro = () => {
       body: JSON.stringify({ chatRoomId }),
     });
   } catch (e) {
-    console.error('인트로 요청 실패:', e);
+    log.debug('인트로 요청 실패:', e);
   }
 };
 
@@ -871,6 +1263,7 @@ const handleError = ({ code, message }) => {
             content: payload.content,
             audioUrl: payload.audioUrl,
             highlightWord: payload.highlightWord,
+            remainingTurnAtTime: progressRef.current.remainingTurn,
           }]);
           break;
     
@@ -891,8 +1284,7 @@ const handleError = ({ code, message }) => {
               : msg
           ));
           break;
-    
-    
+
         // ========== AI 응답 스트리밍 (타이핑 효과) ==========
         case 'AI_TEXT_CHUNK':
           setMessages(prev => {
@@ -922,18 +1314,18 @@ const handleError = ({ code, message }) => {
         // streaming 있으면 업데이트, 없으면 새로 추가하게 설정
         case 'AI_TEXT_DONE':
           setMessages(prev => {
+            // 이미 같은 messageId 있으면 무시 (중복 방지)
+            const exists = prev.some(msg => msg.messageId === payload.messageId);
+            if (exists) return prev;
 
-    // 이미 같은 messageId 있으면 무시 (중복 방지)
-    const exists = prev.some(msg => msg.messageId === payload.messageId);
-    if (exists) return prev;
+            const last = prev[prev.length - 1];
+            let updated;
 
-          const last = prev[prev.length - 1];
-    
-          // 케이스 1: streaming 메시지가 있으면 → 완료 처리 (CHUNK 받았을 때)
-          if (last?.streaming) {
-            return prev.map(msg => 
-              msg.streaming
-                ? {
+            // 케이스 1: streaming 메시지가 있으면 → 완료 처리 (CHUNK 받았을 때)
+            if (last?.streaming) {
+              return prev.map(msg => 
+                msg.streaming
+                  ? {
                     ...msg,
                     messageId: payload.messageId,
                     content: payload.content,
@@ -943,17 +1335,37 @@ const handleError = ({ code, message }) => {
                     pendingAudioUrl: undefined,
                   }
                 : msg
-            );
-          }
-    
-          // 케이스 2: streaming 메시지 없으면 → 새 메시지 추가 (CHUNK 없이 DONE만 왔을 때)
-          return [...prev, {
-            messageId: payload.messageId,
-            senderType: 'AI',
-            content: payload.content,
-            highlightWord: payload.highlightWord,
-            streaming: false,
-          }];
+              );
+            } else {
+              // 케이스 2: streaming 메시지 없으면 새 메시지 추가 (CHUNK 없이 DONE만 왔을 때)
+              updated = [...prev, {
+                messageId: payload.messageId,
+                senderType: 'AI',
+                content: payload.content,
+                highlightWord: payload.highlightWord,
+                streaming: false,
+              }];
+            }
+
+    // recommendedAlternative 있으면 자동으로 SUGGESTION 메시지 추가
+    if (payload.recommendedAlternative) {
+      updated = [...updated, {
+        messageId: `suggestion_${payload.messageId}`,
+        senderType: 'REPORT',
+        reportType: 'SUGGESTION_INLINE',  // ← 정산용 SUGGESTION과 구분
+        recommendedAlternative: payload.recommendedAlternative,
+      }];
+    }
+
+  // 자연스럽고 단어도 잘 사용 → "아주 좋아요!"
+    else if (payload.isNatural === true && payload.wordUsedNaturally === true) {
+      updated = [...updated, {
+        messageId: `praise_${payload.messageId}`,
+        senderType: 'REPORT',
+        reportType: 'PRAISE',
+      }];
+    }
+            return updated;
         });
         setIsWaiting(false);
         break;
@@ -996,8 +1408,7 @@ const handleError = ({ code, message }) => {
             isCompleted: payload.isCompleted,
           });
           break;
-    
-    
+
         // ========== 학습 조건 충족 알림 ==========
         case 'SUGGESTION':
           // 조기 종료 처리
@@ -1011,21 +1422,18 @@ const handleError = ({ code, message }) => {
             message: payload.payload.message,
           });
           break;
-    
-    
+
         // ========== 채팅 종료 (10턴 도달) ==========
         case 'COMPLETION':
           setIsCompleted(true);
           break;
-    
-    
+
         // ========== 에러 처리 ==========
         case 'ERROR':
           handleError(payload);
           setIsWaiting(false);
           break;
-    
-    
+
         default:
           log.debug('알 수 없는 type:', type, payload);
       }
@@ -1067,21 +1475,21 @@ const handleError = ({ code, message }) => {
       if (cancelled) return;
 
       // 토큰 가져오기
-      const token = await getAccessToken();
+      let token = await getAccessToken();
 
-      if (!token) {
-        log.debug('토큰 없음');
-        return;
+      // WebSocket은 처음 연결 시 토큰만 검증하고, 이후 토큰이 만료돼도 연결 자체는 끊기지 않을 수 있음
+      // 가져온게 만료된 토큰일 수 있으니 만료 체크 + 갱신
+      if (isTokenExpired(token)) {
+        log.debug('WebSocket 연결 전 토큰 만료, 갱신 시도');
+        token = await refreshAccessToken();
       }
 
-
-
-
-
-
-
-
-
+      // 자동 토큰 갱신이 실패한 경우
+      if (!token) {
+        log.debug('토큰 없음 - WebSocket 연결 중단');
+        navigate('/login');
+        return;
+      }
 
 
 
@@ -1097,16 +1505,36 @@ const handleError = ({ code, message }) => {
         // 실패하면 5초마다 재시도
         reconnectDelay: 5000,
 
+          // 재연결 시마다 토큰 갱신
+        beforeConnect: async () => {
+          let currentToken = await getAccessToken();
+          if (isTokenExpired(currentToken)) {
+            log.debug('STOMP 재연결 전 토큰 갱신');
+            currentToken = await refreshAccessToken();
+            if (!currentToken) {
+              log.debug('갱신 실패 - 연결 중단');
+              client.deactivate();
+              navigate('/login');
+              return;
+            }
+          }
+          client.connectHeaders = { Authorization: `Bearer ${currentToken}` };
+        },
         onConnect: () => {
-  subscribeToChat();
-  requestIntro();
-},
+          subscribeToChat();
+          requestIntro();
+        },
 
 
 
         onStompError: (frame) => {
-
           log.debug('STOMP 에러:', frame.headers['message']);
+        },
+
+
+        // WebSocket 끊김 감지
+        onWebSocketClose: (event) => {
+          log.debug('WebSocket 닫힘:', event.code);
         },
       });
       
@@ -1122,8 +1550,10 @@ const handleError = ({ code, message }) => {
       clientRef.current?.deactivate();
       clientRef.current = null;
     };
-    // 원시값만 의존성
-  }, [chatRoomId, chatData?.hasPreviousMessages, setProgress]);
+    // useRef는 의존성 배열에 안 넣어도 됨
+    // navigate는 useNavigate()가 반환하는 함수인데, React Router 내부에서 stable reference로 만들어짐
+    // 즉, 매 렌더링마다 새로 만들어지지 않아서 의존성에 추가해도 useEffect가 재실행되지 않음
+  }, [chatRoomId, chatData?.hasPreviousMessages, setProgress, navigate, setMessages]);
 
   // AI 메시지 자동 재생 (음성 모드)
   useEffect(() => {
@@ -1157,12 +1587,33 @@ const handleError = ({ code, message }) => {
     if (!inputText.trim()) return;
     if (isWaiting) return;
     if (!clientRef.current?.connected) return;
-    
+
+    const text = inputText.trim();
+
+    // 한글 차단
+    // 가-힣: 완성형 한글
+    // ㄱ-ㅎ: 자음
+    // ㅏ-ㅣ: 모음
+    if (/[가-힣ㄱ-ㅎㅏ-ㅣ]/.test(text)) {
+      showToast('영어로 입력해주세요');
+      setInputText(''); // input 비우기
+      return;
+    }
+
+    // 영문/숫자 없이 특수문자만 있는 경우 차단
+    // 알파벳 또는 숫자가 하나라도 있는지 확인
+    if (!/[a-zA-Z0-9]/.test(text)) {
+      showToast('의미 있는 내용을 입력해주세요');
+      setInputText(''); // input 비우기
+      return;
+    }
+
     // 클라이언트에서 사용자 메시지 즉시 추가 (낙관적 업데이트)
     setMessages(prev => [...prev, {
       messageId: `temp_user_${Date.now()}`,
       senderType: 'USER',
       content: inputText,
+      remainingTurnAtTime: progress.remainingTurn, 
     }]);
 
     // 서버로 전송
@@ -1289,46 +1740,15 @@ useEffect(() => {
 
 
 
-const hasReport = messages.some(msg => msg.senderType === 'REPORT');
-
-const fetchReport = async () => {
-  // 리포트 있으면 무시
-  if (hasReport) return;
-  try {
-    const response = await apiFetch(`/chats/rooms/${chatRoomId}/report`);
-    
-    if (response.success) {
-      const report = response.data;
-      
-      // 리포트를 메시지로 변환해서 추가
-      setMessages(prev => [
-        ...prev,
-        {
-          messageId: `report_suggestion_${Date.now()}`,
-          senderType: 'REPORT',  // 새 타입
-          reportType: 'SUGGESTION',
-          improvements: report.expressionNaturalness.improvements,
-          completedAt: report.summary.completedAt,
-        },
-        {
-          messageId: `report_native_${Date.now()}`,
-          senderType: 'REPORT',
-          reportType: 'NATIVE',
-          improvements: report.expressionNaturalness.improvements,
-        },
-      ]);
-    }
-  } catch (e) {
-    log.debug('리포트 로딩 실패:', e);
-  }
-};
 
 
 
   // 받은 메시지 화면에 그리기
   return (
     <div className={styles['chat-page']}>
-    <div className={styles['chat-messages']}>
+    <div className={styles['chat-messages']}
+    ref={messagesContainerRef}
+    >
       <div className={styles['chat-scenario']}>
         <div className={styles['chat-scenario2']}>
           <p className={styles['chat-scenario3']}>사용할 단어 : {chatData.word}</p>
@@ -1378,31 +1798,14 @@ const fetchReport = async () => {
           const prevMsg = messages[i - 1];
           const isFirstOfGroup = !prevMsg || prevMsg.senderType !== msg.senderType;
 
-
-
           return (
           msg.senderType === 'REPORT'
         ? <ReportBubble key={msg.messageId} message={msg} />
         : msg.senderType === 'AI'
-          ? <AI key={msg.messageId} msg={msg.content} isFirst={isFirstOfGroup} />
-          : <User key={msg.messageId} msg={msg.content} progress={progress} />
+          ? <AI key={msg.messageId} msg={msg.content} highlightWord={msg.highlightWord} isFirst={isFirstOfGroup} />
+          : <User key={msg.messageId} msg={msg.content} highlightWord={msg.highlightWord} remainingTurn={msg.remainingTurnAtTime} />
           );
         })}
-      </>
-
-      
-
-    {/* 진행 상황 */}
-    {/* <div className={styles.progress}>
-      남은 갯수 : {progress.remainingTurn}
-    </div> */}
-
-    {/* 조기 종료 Suggestion 토스트 */}
-    {suggestion && (
-      <div className={styles.suggestion}>
-        {suggestion.message}
-      </div>
-    )}
 
     {/* 종료 화면 */}
     {isCompleted && (
@@ -1415,8 +1818,7 @@ const fetchReport = async () => {
     <div className={styles.completionBox5}>
       <button 
       className={styles.completionBox6}
-      onClick={fetchReport}
-      disabled={hasReport}>
+      onClick={onFetchReport}>
         <p className={styles.completionBox7}>정산하러 가기</p>
       </button>
       <button 
@@ -1427,6 +1829,14 @@ const fetchReport = async () => {
         </div>
       </div>
     )}
+
+    {/* 조기 종료 Suggestion 토스트 */}
+    {suggestion && (
+      <div className={styles.suggestion}>
+        {suggestion.message}
+      </div>
+    )}
+      </>
 </div>
 
       {/* 메시지 입력 창 */}
@@ -1458,9 +1868,9 @@ const fetchReport = async () => {
         <div className={styles['chat-input4']}>
           <div className={styles['chat-input5']}>
             <button 
-            onClick={() => setVoiceModeOn(prev => !prev)}
+            onClick={toggleVoiceMode}
             className={styles['chat-input6']}>
-              {voiceModeOn ? '음성모드' : '텍스트모드'}
+              {voiceModeOn ? '텍스트모드로 전환' : '음성모드로 전환'}
             </button>
             <div className={styles['chat-input7']}>
               <p className={styles['chat-input8']}>
@@ -1488,11 +1898,14 @@ const fetchReport = async () => {
 
 
 // AI 말풍선
-function AI({ msg, isFirst }) {
+const AI = React.memo(function AI({ msg, highlightWord, isFirst }) {
   return (
     <div className={styles['chat-ai-group']}>
       {/* 첫 메시지일 때만 아이콘 */}
-      {isFirst && <div className={styles['chat-icon']}></div>}
+      {isFirst && <div 
+      className={styles['chat-icon']}
+      style={{ backgroundImage: `url(${frog})` }}
+      ></div>}
 
       <div className={styles['chat-ai']}>
         {/* 첫 메시지에만 svg 꼬리 */}
@@ -1505,25 +1918,27 @@ function AI({ msg, isFirst }) {
         )}
 
         <div className={styles['chat-ai3']}>
-
-          <div className={styles['chat-ai5']}>{msg}</div>
-
+          <div className={styles['chat-ai5']}>
+            <MessageContent content={msg} highlightWord={highlightWord} />
+          </div>
         </div>
       </div>
     </div>
   );
-}
+});
 
 
 // User 말풍선
-function User({ msg, progress }) {
+const User = React.memo(function User({ msg, highlightWord, remainingTurn }) {
   return (
     <div className={styles['chat-box']}>
     <div className={styles['chat-user']}>
 
       <div className={styles['chat-user3']}>
         <div className={styles['chat-user4']}>
-          <div className={styles['chat-user5']}>{msg}</div>
+          <div className={styles['chat-user5']}>
+            <MessageContent content={msg} highlightWord={highlightWord} />
+          </div>
         </div>
       </div>
       <svg 
@@ -1533,15 +1948,16 @@ function User({ msg, progress }) {
       </svg>
     </div>
 
+    {remainingTurn !== undefined && (
       <div className={styles['chat-count']}>
         <div className={styles['chat-count2']}>
-          <p className={styles['chat-count3']}>남은 갯수 : {progress.remainingTurn}</p>
+          <p className={styles['chat-count3']}>남은 개수 : {remainingTurn !== undefined ? remainingTurn - 1 : '-'}</p>
         </div>
       </div>
+    )}
     </div>
-
   );
-}
+});
 
 
 
@@ -1553,7 +1969,7 @@ export function AiChatPage () {
   const [words, setWords] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
 
-
+    const [messages, setMessages] = useState([]);
 
   const [scenarios, setScenarios] = useState([]);
   const [selectedVoice, setSelectedVoice] = useState(null);
@@ -1589,18 +2005,48 @@ export function AiChatPage () {
   });
 
   // 현재 단계 (1, 2, 3)
-  const [step, setStep] = useState('WORD_SELECT');
+  // const [step, setStep] = useState('WORD_SELECT');
+  const [step, setStep] = useState('CHECK');
+  const [previousChatInfo, setPreviousChatInfo] = useState(null);
+  const [reportData, setReportData] = useState(null);
+
+
+
+
+
+
+
+const handleFetchReport = async () => {
+  if (!chatData?.chatRoomId) return;
+  
+  try {
+    const response = await apiFetch(`/chats/rooms/${chatData.chatRoomId}/report`);
+
+    
+    if (response.success) {
+      setReportData(response.data);
+      setStep('REPORT');  // ← 화면 전환
+    }
+  } catch (e) {
+    log.debug('리포트 실패:', e);
+  }
+};
+
 
   // 채팅방 나가기 확인 팝업 표시 여부
   const [exitModal, setExitModal] = useState(null);
   const navigate = useNavigate();
   // 진행 중인지
   const isInProgress = step === 'CHAT' 
-    && progress.currentTurn > 0 
-    && !progress.isCompleted;
+    && progress?.currentTurn > 0 
+    && !progress?.isCompleted;
 
   // 뒤로가기
   const handleBack = () => {
+    if (step === 'REPORT') {
+      leaveChat();
+      return;
+    }
     if (isInProgress) {
       setExitModal('back');
     } else {
@@ -1610,6 +2056,10 @@ export function AiChatPage () {
 
   // 마이페이지
   const handleMyPage = () => {
+    if (step === 'REPORT') {
+      leaveChat();
+      return;
+    }
     if (isInProgress) {
       setExitModal('mypage');
     } else {
@@ -1730,6 +2180,83 @@ const location = useLocation();
 const passedData = location.state?.wordsData;
 
 
+  // 진입 시 확인
+  useEffect(() => {
+    const checkPrevious = async () => {
+      try {
+        const res = await apiFetch('/chats/rooms', {
+          method: 'POST',
+          body: JSON.stringify({
+            isNewStart: false,
+            wordId: null,
+            scenarioTitle: null,
+            scenarioGoal: null,
+            scenarioSituation: null,
+            aiGender: null,
+          }),
+        });
+        
+        if (res.success && res.data.hasPreviousMessages) {
+          setPreviousChatInfo(res.data);
+          setStep('CONTINUE_POPUP');
+        } else {
+          setStep('WORD_SELECT');
+        }
+      } catch {
+        setStep('WORD_SELECT');
+      }
+    };
+    checkPrevious();
+  }, []);
+  
+  // 이어하기
+  const handleContinue = async () => {
+    const chatRoomId = previousChatInfo.chatRoomId;
+    const res = await apiFetch(`/chats/rooms/${chatRoomId}/messages`);
+    
+    if (res.success) {
+      setMessages(res.data.messages);
+    // progress 응답에 없으면 메시지 개수로 계산
+    const messageCount = res.data.messages?.filter(m => m.senderType === 'USER').length || 0;
+    setProgress({
+      currentTurn: messageCount,
+      remainingTurn: 10 - messageCount,
+      maxTurn: 10,
+      isCompleted: false,
+    });
+    
+    // chatData에 이전 정보 모두 포함
+    setChatData({
+      chatRoomId,
+      word: previousChatInfo.targetWord,  // ← 이전 응답에서 받은 값
+      wordId: previousChatInfo.wordId,
+      scenarioTitle: previousChatInfo.scenarioTitle,
+      scenarioGoal: previousChatInfo.scenarioGoal,
+      scenarioSituation: previousChatInfo.scenarioSituation,
+      hasPreviousMessages: true,
+    });
+      setStep('CHAT');
+    }
+  };
+  
+  // 새로 시작 (팝업에서)
+  const handleNewStart = () => {
+    setPreviousChatInfo(null);
+    setStep('WORD_SELECT');
+  };
+
+
+
+
+
+
+
+
+
+
+
+
+
   useEffect(() => {
     const init = async () => {
       let data = passedData;
@@ -1847,6 +2374,16 @@ const passedData = location.state?.wordsData;
     const TextCard = () => {
       return (
         <>
+        {step === 'CHECK' && <Spinner />}
+
+    {step === 'CONTINUE_POPUP' && (
+      <ContinuePopup 
+        info={previousChatInfo}
+        onContinue={handleContinue}
+        onNewStart={handleNewStart}
+      />
+    )}
+
         {step === 'WORD_SELECT' && (
           <>
             <div className={styles.textcard}>
@@ -1985,9 +2522,9 @@ const passedData = location.state?.wordsData;
     <div className={`${styles.main} ${step === 'CHAT' ? styles['main-chat'] : ''}`}>
       {<Header currentStep={step} onBack={handleBack} onMyPage={handleMyPage} />}
 
-      {step !== 'CHAT' && <Stepper currentStep={step} />}
+      {step !== 'CHAT' && step !== 'REPORT' && <Stepper currentStep={step} />}
 
-      {step !== 'CHAT' && TextCard()}
+      {step !== 'CHAT' && step !== 'REPORT' && TextCard()}
 
       {step === 'WORD_SELECT' && <TestDictionary
       wordData={words} 
@@ -2016,9 +2553,19 @@ const passedData = location.state?.wordsData;
       progress={progress}
       setProgress={setProgress}
       leaveChat={leaveChat}
+      messages={messages}
+      setMessages={setMessages}
+      onFetchReport={handleFetchReport}
       />}
 
-      {step !== 'CHAT' && Next()}
+      {step !== 'CHAT' && step !== 'REPORT' && Next()}
+
+      {step === 'REPORT' && (
+      <ReportPage 
+        reportData={reportData}
+        chatData={chatData}
+      />
+    )}
 
       {exitModal && (
         <ExitModal 
