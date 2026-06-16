@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -32,6 +33,7 @@ public class ChatWordService {
     private static final int MAX_USER_WORDS = 5;          // 사용자 단어 최대 5개
     private static final int MAX_TOTAL_CANDIDATES = 10;   // 총 후보 최대 10개
 
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public ChatWordsResponse getCandidateWords(Long userId) {
 
 

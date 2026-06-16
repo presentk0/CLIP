@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.DigestUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -87,7 +88,7 @@ public class TranslationCacheService {
     /**
      * L1 + L2 동시 저장
      */
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void putWordTranslations(String word, List<String> meanings, List<String> translations) {
         String hash = hashMeanings(meanings);
 

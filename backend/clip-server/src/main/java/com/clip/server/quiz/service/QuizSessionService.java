@@ -6,6 +6,7 @@ import com.clip.server.quiz.dto.request.QuizGenerateRequest;
 import com.clip.server.quiz.dto.response.QuizCompleteResponse;
 import com.clip.server.quiz.dto.response.QuizGenerateResponse;
 import com.clip.server.quiz.entity.QuizSession;
+import com.clip.server.quiz.persistence.QuizTxService;
 import com.clip.server.user.entity.User;
 import com.clip.server.user.repository.UserRepository;
 import com.clip.server.video.entity.Video;
@@ -18,7 +19,7 @@ import org.springframework.stereotype.Service;
  * [QuizSessionService]
  * 퀴즈 생성의 전체 흐름을 제어하는 오케스트레이터 서비스입니다.
  *
- * 💡 핵심: 이 클래스에는 @Transactional이 없습니다!
+ * 핵심: 이 클래스에는 @Transactional이 없습니다!
  * - QuizTxService: REQUIRES_NEW로 세션 생성 후 즉시 커밋
  * - QuizProcessor: 별도 Bean이므로 @Transactional 정상 작동
  */
