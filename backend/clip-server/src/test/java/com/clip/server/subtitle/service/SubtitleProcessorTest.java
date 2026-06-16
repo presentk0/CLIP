@@ -3,7 +3,7 @@ package com.clip.server.subtitle.service;
 import com.clip.server.common.exception.BusinessException;
 import com.clip.server.progress.entity.UserVideoProgress;
 import com.clip.server.progress.repository.UserVideoProgressRepository;
-import com.clip.server.quiz.service.KeywordExtractionService;
+import com.clip.server.quiz.ai.KeywordExtractionService;
 import com.clip.server.subtitle.dto.request.SubtitleRequest;
 import com.clip.server.subtitle.dto.response.SubtitleListResponse;
 import com.clip.server.subtitle.dto.response.SubtitleResponse;
@@ -99,7 +99,7 @@ public class SubtitleProcessorTest {
     void saveSubtitleInternal_success() {
         // given
         given(userVideoProgressRepository.findByUserAndVideo(any(), any())).willReturn(Optional.of(progress));
-        given(subtitleRepository.findByVideoAndStartTimeAndText(any(), any(), any())).willReturn(Optional.empty());
+        given(subtitleRepository.findFirstByVideoAndStartTimeAndText(any(), any(), any())).willReturn(Optional.empty());
         lenient().when(extractionService.extractKeywords(anyString())).thenReturn(new ArrayList<>());
 
         // when
@@ -126,7 +126,7 @@ public class SubtitleProcessorTest {
                 .build();
         ReflectionTestUtils.setField(existingSubtitle, "id", 999L);
 
-        given(subtitleRepository.findByVideoAndStartTimeAndText(any(), any(), any()))
+        given(subtitleRepository.findFirstByVideoAndStartTimeAndText(any(), any(), any()))
                 .willReturn(Optional.of(existingSubtitle));
 
         // when
@@ -145,7 +145,7 @@ public class SubtitleProcessorTest {
         SubtitleRequest triggerRequest = new SubtitleRequest("Title", "Hello", "안녕", 0.0, 310.0, 600);
 
         given(userVideoProgressRepository.findByUserAndVideo(any(), any())).willReturn(Optional.of(progress));
-        given(subtitleRepository.findByVideoAndStartTimeAndText(any(), any(), any())).willReturn(Optional.empty());
+        given(subtitleRepository.findFirstByVideoAndStartTimeAndText(any(), any(), any())).willReturn(Optional.empty());
         lenient().when(extractionService.extractKeywords(anyString())).thenReturn(List.of());
 
         // when
@@ -163,7 +163,7 @@ public class SubtitleProcessorTest {
     void saveSubtitleInternal_extractAndSaveKeywords() {
         // given
         given(userVideoProgressRepository.findByUserAndVideo(any(), any())).willReturn(Optional.of(progress));
-        given(subtitleRepository.findByVideoAndStartTimeAndText(any(), any(), any())).willReturn(Optional.empty());
+        given(subtitleRepository.findFirstByVideoAndStartTimeAndText(any(), any(), any())).willReturn(Optional.empty());
 
         List<String> mockKeywords = List.of("quick", "brown", "fox");
         given(extractionService.extractKeywords(anyString())).willReturn(mockKeywords);
@@ -188,7 +188,7 @@ public class SubtitleProcessorTest {
         // given
         given(userVideoProgressRepository.findByUserAndVideo(any(), any())).willReturn(Optional.empty());
         given(userVideoProgressRepository.save(any(UserVideoProgress.class))).willReturn(progress);
-        given(subtitleRepository.findByVideoAndStartTimeAndText(any(), any(), any())).willReturn(Optional.empty());
+        given(subtitleRepository.findFirstByVideoAndStartTimeAndText(any(), any(), any())).willReturn(Optional.empty());
         lenient().when(extractionService.extractKeywords(anyString())).thenReturn(new ArrayList<>());
 
         // when

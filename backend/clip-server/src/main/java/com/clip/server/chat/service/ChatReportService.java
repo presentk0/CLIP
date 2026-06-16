@@ -14,6 +14,7 @@ import com.clip.server.chat.entity.UserWeakness;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -35,6 +36,7 @@ public class ChatReportService {
     /**
      * 대화 리포트 생성
      */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public ChatReportResponse generateReport(Long userId, Long chatRoomId) {
         log.info("리포트 생성 요청. userId={}, chatRoomId={}", userId, chatRoomId);
 

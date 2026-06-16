@@ -1,4 +1,4 @@
-package com.clip.server.quiz.service;
+package com.clip.server.quiz.persistence;
 
 import com.clip.server.common.exception.BusinessException;
 import com.clip.server.common.exception.ErrorCode;

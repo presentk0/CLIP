@@ -1,6 +1,6 @@
 package com.clip.server.video.analyzer;
 
-import com.clip.server.quiz.service.KeywordExtractionService;
+import com.clip.server.quiz.ai.KeywordExtractionService;
 import com.clip.server.translation.dto.request.TranslationRequest;
 import com.clip.server.video.entity.VideoDifficulty;
 import lombok.Builder;
