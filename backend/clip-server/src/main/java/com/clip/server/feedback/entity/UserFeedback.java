@@ -53,4 +53,6 @@ public class UserFeedback {
         this.goodPoint = goodPoint;
         this.improvePoint = improvePoint;
     }
+
+
 }
