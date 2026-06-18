@@ -17,11 +17,15 @@ import java.io.IOException;
 import java.util.List;
 
 @Slf4j
-@Component
+//@Component
 public class AdminApiKeyFilter extends OncePerRequestFilter {
 
     private static final String API_KEY_HEADER = "X-Admin-Api-Key";
     private static final String ADMIN_PATH_PREFIX = "/api/admin";
+
+    private static final List<String> EXCLUDE_PATHS = List.of(
+            "/api/admin/auth/login"
+    );
 
     @Value("${admin.api-key}")
     private String adminApiKey;
@@ -31,8 +35,16 @@ public class AdminApiKeyFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
 
+        String uri = request.getRequestURI();
+
         // /api/admin 경로가 아니면 그냥 통과
-        if (!request.getRequestURI().startsWith(ADMIN_PATH_PREFIX)) {
+        if (!uri.startsWith(ADMIN_PATH_PREFIX)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        // 🆕 제외 경로면 그냥 통과 (로그인은 API Key 불필요)
+        if (EXCLUDE_PATHS.stream().anyMatch(uri::startsWith)) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -41,7 +53,7 @@ public class AdminApiKeyFilter extends OncePerRequestFilter {
 
         if (apiKey == null || !apiKey.equals(adminApiKey)) {
             log.warn("관리자 API 인증 실패: uri={}, ip={}",
-                    request.getRequestURI(), request.getRemoteAddr());
+                    uri, request.getRemoteAddr());
 
             response.setStatus(HttpStatus.UNAUTHORIZED.value());
             response.setContentType("application/json;charset=UTF-8");
@@ -60,7 +72,7 @@ public class AdminApiKeyFilter extends OncePerRequestFilter {
                 );
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        log.info("관리자 API 인증 성공: uri={}", request.getRequestURI());
+        log.info("관리자 API 인증 성공: uri={}", uri);
         filterChain.doFilter(request, response);
     }
 }
