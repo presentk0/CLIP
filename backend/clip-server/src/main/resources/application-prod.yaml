@@ -50,7 +50,7 @@ cors:
     - "chrome-extension://mgphcoglgpmnmcojmjppoaolehipgbdp"
     - "https://*.youtube.com"
     - "https://clip-server.com"
-    - "http://localhost:5173"
+    - "clip-admin-frontend.vercel.app"
 
 openai:
   api:
