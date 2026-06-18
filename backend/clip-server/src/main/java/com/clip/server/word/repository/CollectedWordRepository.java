@@ -1,5 +1,6 @@
 package com.clip.server.word.repository;
 
+import com.clip.server.admin.dashboard.stats.dto.response.UserVideoWordStatResponse;
 import com.clip.server.user.entity.User;
 import com.clip.server.video.entity.Video;
 import com.clip.server.word.entity.CollectedWord;
@@ -70,4 +71,22 @@ public interface CollectedWordRepository extends JpaRepository<CollectedWord, Lo
      * 사용자의 단어 보유 여부 (신규 유저 차단용)
      */
     boolean existsByUserId(Long userId);
+
+
+    // 관리자용
+    @Query("SELECT new com.clip.server.admin.dashboard.stats.dto.response.UserVideoWordStatResponse(" +
+            "u.id, u.name, v.videoId, v.title, COUNT(cw), " +
+            "SUM(CASE WHEN cw.wordType = 'COLLECT' THEN 1 ELSE 0 END), " +
+            "SUM(CASE WHEN cw.wordType = 'POPUP' THEN 1 ELSE 0 END)) " +
+            "FROM CollectedWord cw " +
+            "JOIN cw.user u " +
+            "JOIN cw.video v " +
+            "WHERE cw.collectedAt BETWEEN :startDateTime AND :endDateTime " +
+            "GROUP BY u.id, u.name, v.videoId, v.title " +
+            "ORDER BY COUNT(cw) DESC")
+    List<UserVideoWordStatResponse> findUserVideoWordStatistics(
+            @Param("startDateTime") LocalDateTime startDateTime,
+            @Param("endDateTime") LocalDateTime endDateTime,
+            Pageable pageable
+    );
 }

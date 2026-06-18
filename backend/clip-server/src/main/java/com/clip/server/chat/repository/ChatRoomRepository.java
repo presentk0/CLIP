@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
@@ -45,4 +46,14 @@ public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
             @Param("chatRoomId") Long chatRoomId,
             @Param("userId") Long userId
     );
+
+    // ================= 관리자용 ============================
+
+    // 특정 기간 내 상태별 방 개수 카운트 (인덱스: idx_user_status 활용)
+    @Query("SELECT COUNT(r) FROM ChatRoom r " +
+            "WHERE r.status = :status " +
+            "AND r.createdAt BETWEEN :start AND :end")
+    Long countByStatusAndPeriod(@Param("status") ChatRoomStatus status,
+                                @Param("start") LocalDateTime start,
+                                @Param("end") LocalDateTime end);
 }
