@@ -33,8 +33,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class QuizService {
 
-    private final QuizGenerator quizGenerator;                  // ✅ OX, 빈칸용
-    private final OpenAIService openAIService;                  // ✅ 매칭용 (직접 호출)
+    private final QuizGenerator quizGenerator;                  //  OX, 빈칸용
+    private final OpenAIService openAIService;                  // 매칭용 (직접 호출)
     private final QuizFallbackService quizFallbackService;
     private final QuizPersistenceService quizPersistenceService;
     private final QuizResultRepository quizResultRepository;

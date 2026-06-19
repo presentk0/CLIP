@@ -288,7 +288,7 @@ public class OpenAIService {
                     ## 피드백 다양성 규칙 (매우 중요)
                     - 같은 표현 반복 금지
 
-correctFeedback 스타일:
+                    correctFeedback 스타일:
                     1. "맞았어요."
                     2. "정답이에요."
                     3. "잘 찾으셨어요."
