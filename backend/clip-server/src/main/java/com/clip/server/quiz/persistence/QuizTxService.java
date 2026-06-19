@@ -26,6 +26,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -41,6 +43,11 @@ public class QuizTxService {
     public QuizSession getOrCreateSession(User user, Video video, SessionType type) {
 
         return quizSessionRepository.findByUserAndVideoAndStatus(user, video, SessionStatus.IN_PROGRESS)
+                .map(existingSession -> {
+                    //  기존 세션이 있어도 새로 저장한 단어가 있으면 추가 동기화
+                    syncNewlyCollectedWords(existingSession, user, video);
+                    return existingSession;
+                })
                 .orElseGet(() -> {
                     try {
 
@@ -111,6 +118,39 @@ public class QuizTxService {
         } catch (Exception e) {
             log.error("타임스탬프 변환 실패: {}", timestamp);
             return 0.0;
+        }
+    }
+
+    /**
+     *  기존 세션에 새로 저장된 단어만 추가 동기화
+     */
+    private void syncNewlyCollectedWords(QuizSession quizSession, User user, Video video) {
+        // 1. 현재 세션에 이미 들어있는 단어 목록
+        List<QuizSessionWord> existingWords = quizSessionWordRepository.findAllByQuizSession(quizSession);
+        Set<String> existingWordSet = existingWords.stream()
+                .map(w -> w.getWord().toLowerCase())
+                .collect(Collectors.toSet());
+
+        // 2. 사용자가 수집한 단어 중 세션에 없는 것만 추가
+        List<CollectedWord> collected = collectedWordRepository.findAllByUserAndVideo(user, video);
+        List<QuizSessionWord> newWords = new ArrayList<>();
+
+        for (CollectedWord cw : collected) {
+            if (!existingWordSet.contains(cw.getWord().toLowerCase())) {
+                newWords.add(QuizSessionWord.builder()
+                        .quizSession(quizSession)
+                        .word(cw.getWord())
+                        .sentence(cw.getSentence())
+                        .translation(cw.getTranslation())
+                        .wordType(cw.getWordType())
+                        .timestamp(convertToSeconds(cw.getTimestamp()))
+                        .build());
+            }
+        }
+
+        if (!newWords.isEmpty()) {
+            quizSessionWordRepository.saveAll(newWords);
+            log.info("세션 {}에 새 수집 단어 {}개 추가됨", quizSession.getId(), newWords.size());
         }
     }
 }
