@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Controller;
+import com.clip.server.chat.dto.request.ChatHintRequest;
 
 import java.security.Principal;
 
@@ -76,5 +77,21 @@ public class ChatWebSocketController {
 
         // Orchestrator로 위임 (비동기 처리)
         chatMessageOrchestrator.startChat(userId, request.getChatRoomId());
+    }
+
+    /**
+     * 힌트 카드 요청 (사용자가 "예" 클릭 시)
+     * Destination: /app/chat/hint
+     */
+    @MessageMapping("/chat/hint")
+    public void requestHint(
+            @Payload ChatHintRequest request,
+            Principal principal
+    ) {
+        Long userId = Long.parseLong(principal.getName());
+        log.info("힌트 요청. userId={}, chatRoomId={}", userId, request.getChatRoomId());
+
+        // Orchestrator로 위임 (비동기 처리)
+        chatMessageOrchestrator.provideHintCard(userId, request.getChatRoomId());
     }
 }

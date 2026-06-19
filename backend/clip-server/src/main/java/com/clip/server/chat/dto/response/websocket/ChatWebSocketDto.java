@@ -3,6 +3,8 @@ package com.clip.server.chat.dto.response.websocket;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.util.List;
+
 public class ChatWebSocketDto {
 
     // AI_TEXT_DONE: AI 답변 + 자연스러움 평가 정보
@@ -68,5 +70,27 @@ public class ChatWebSocketDto {
         private Long messageId;
         private Integer pronunciationScore;
         private String feedback;
+    }
+
+    // HINT_OFFER: 힌트 제안 팝업 ("힌트 보기 좋은 타이밍이에요!")
+    @Getter
+    @Builder
+    public static class HintOffer {
+        private String message;        // "지금이 힌트 보기 좋은 타이밍이에요!"
+        private String subMessage;     // "한 번 같이 볼까요?"
+        private boolean hintAvailable; // 항상 true (팝업 표시 신호)
+    }
+
+    // HINT_CARD: 실제 힌트 카드 데이터 (단어 + 예문)
+    @Getter
+    @Builder
+    public static class HintCard {
+        private String word;                 // "perspective"
+        private List<String> meanings;       // ["관점", "시각"]
+        private String contextMessage;       // "친구가 \"다르게 보고 싶다\"라고 했어요"
+        private String guideMessage;         // "perspective를 써서 위로해볼 수 있어요!"
+        private String exampleSentence;      // "Glad you're seeing it from a new perspective."
+        private String exampleTranslation;   // "새로운 시각으로 보게 돼서 다행이야."
+        private String highlightWord;        // "perspective" (강조 표시)
     }
 }

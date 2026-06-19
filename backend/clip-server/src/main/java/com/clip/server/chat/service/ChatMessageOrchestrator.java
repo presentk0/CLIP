@@ -16,13 +16,16 @@ import com.clip.server.chat.dto.response.websocket.ChatWebSocketSender;
 import com.clip.server.common.exception.BusinessException;
 import com.clip.server.common.exception.ErrorCode;
 import com.clip.server.file.service.S3Service;
+import com.clip.server.word.entity.WordMeaning;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.clip.server.chat.service.UserWeaknessService;
+import com.clip.server.chat.dto.ai.HintCardData;
+import com.clip.server.word.entity.CollectedWord;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -32,6 +35,8 @@ public class ChatMessageOrchestrator {
 
     private static final int MAX_TURN = 10;
     private static final int CONTEXT_MESSAGE_LIMIT = 10;  // AI에게 보낼 이전 대화 개수
+    private static final int HINT_CHECK_TURN_THRESHOLD = 3;  // 3턴까지 단어 미사용 시 힌트 제안
+    private static final int HINT_RECENT_MESSAGE_LIMIT = 4;  // 힌트 생성 시 참고할 최근 메시지 수
 
     private final ChatRoomRepository chatRoomRepository;
     private final ChatMessageService chatMessageService;
@@ -42,6 +47,7 @@ public class ChatMessageOrchestrator {
     private final AzureSttClient azureSttClient;
     private final AzureTtsClient azureTtsClient;
     private final S3Service s3Service;
+
 
     /**
      * 사용자 메시지 처리 전체 흐름
@@ -151,6 +157,9 @@ public class ChatMessageOrchestrator {
             // 11. PROGRESS 푸시
             int newTurn = currentTurn + 1;
             sendProgress(userId, newTurn);
+
+            // 11-1. 힌트 제안 조건 체크
+            checkAndOfferHint(userId, chatRoom, aiResult, userContent, newTurn);
 
             // 12. 자동 종료
             if (newTurn >= MAX_TURN) {
@@ -362,5 +371,157 @@ public class ChatMessageOrchestrator {
                 .build();
 
         webSocketSender.send(userId, MessageType.ERROR, payload);
+    }
+
+    /**
+     *  힌트 제안 조건 체크 후 HINT_OFFER 푸시
+     *
+     * C안 = A OR B 조합:
+     * - A안: 사용자가 어색한 표현 사용 (isNatural == false)
+     * - B안: 일정 턴 경과 + 타겟 단어 미사용
+     */
+    private void checkAndOfferHint(
+            Long userId,
+            ChatRoom chatRoom,
+            AiChatResult aiResult,
+            String userContent,
+            int currentTurn
+    ) {
+        try {
+            // 1. 이미 힌트 제안한 방이면 스킵 (중복 방지)
+            if (chatRoom.isHintOffered()) {
+                return;
+            }
+
+            // 2. 마지막 턴이면 굳이 힌트 안 줌
+            if (currentTurn >= MAX_TURN) {
+                return;
+            }
+
+            // 3. 타겟 단어 없으면 힌트 불가
+            if (chatRoom.getWord() == null) {
+                return;
+            }
+
+            // 4. 조건 체크
+            // A안: 어색한 표현 사용
+            boolean conditionA = Boolean.FALSE.equals(aiResult.getIsNatural());
+
+            // B안: 3턴 경과 + 타겟 단어 미사용
+            String targetWord = chatRoom.getWord().getWord();
+            boolean targetWordUsed = userContent.toLowerCase()
+                    .contains(targetWord.toLowerCase());
+            boolean conditionB = currentTurn >= HINT_CHECK_TURN_THRESHOLD
+                    && !targetWordUsed
+                    && Boolean.FALSE.equals(aiResult.getWordUsedNaturally());
+
+            // C안: 둘 중 하나만 충족해도 OK
+            if (!(conditionA || conditionB)) {
+                return;
+            }
+
+            log.info("힌트 제안 트리거. chatRoomId={}, conditionA={}, conditionB={}",
+                    chatRoom.getId(), conditionA, conditionB);
+
+            // 5. HINT_OFFER 푸시
+            ChatWebSocketDto.HintOffer payload = ChatWebSocketDto.HintOffer.builder()
+                    .message("지금이 힌트 보기 좋은 타이밍이에요!")
+                    .subMessage("한 번 같이 볼까요?")
+                    .hintAvailable(true)
+                    .build();
+
+            webSocketSender.send(userId, MessageType.HINT_OFFER, payload);
+
+            // 6. 중복 제안 방지 플래그 설정
+            markHintOffered(chatRoom);
+
+        } catch (Exception e) {
+            log.error("힌트 제안 체크 중 에러. chatRoomId={}", chatRoom.getId(), e);
+            // 힌트 제안 실패는 사용자 경험에 치명적이지 않으므로 에러 푸시하지 않음
+        }
+    }
+
+    /**
+     * 힌트 제안 플래그 저장 (트랜잭션 분리)
+     */
+    @Transactional
+    public void markHintOffered(ChatRoom chatRoom) {
+        chatRoom.markHintOffered();
+        chatRoomRepository.save(chatRoom);
+    }
+
+    /**
+     * 🆕 힌트 카드 제공 (사용자가 "예" 클릭 시)
+     */
+    @Async("chatTaskExecutor")
+    public void provideHintCard(Long userId, Long chatRoomId) {
+        try {
+            // 1. 채팅방 검증
+            ChatRoom chatRoom = validateAndGetChatRoom(userId, chatRoomId);
+
+            // 2. 타겟 단어 체크
+            CollectedWord word = chatRoom.getWord();
+            if (word == null) {
+                sendError(userId, "HINT_NOT_AVAILABLE", "타겟 단어가 없어 힌트를 제공할 수 없습니다.");
+                return;
+            }
+
+            String targetWord = word.getWord();
+            List<String> meanings = extractMeanings(word.getMeaningsByPos());
+            String targetMeaning = String.join(", ", meanings);
+
+            log.info("힌트 카드 생성 시작. chatRoomId={}, word={}", chatRoomId, targetWord);
+
+            // 3. 최근 대화 가져오기
+            List<ChatMessage> recentMessages = chatMessageService
+                    .getRecentMessages(chatRoom.getId(), HINT_RECENT_MESSAGE_LIMIT);
+
+            // 4. AI 힌트 카드 생성
+            HintCardData hintData = chatAiClient.generateHintCard(
+                    chatRoom, recentMessages, targetWord, targetMeaning
+            );
+
+            // 5. HINT_CARD 푸시
+            ChatWebSocketDto.HintCard payload = ChatWebSocketDto.HintCard.builder()
+                    .word(targetWord)
+                    .meanings(meanings)
+                    .contextMessage(hintData.getContextMessage())
+                    .guideMessage(hintData.getGuideMessage())
+                    .exampleSentence(hintData.getExampleSentence())
+                    .exampleTranslation(hintData.getExampleTranslation())
+                    .highlightWord(targetWord)
+                    .build();
+
+            webSocketSender.send(userId, MessageType.HINT_CARD, payload);
+
+            log.info("힌트 카드 푸시 완료. chatRoomId={}", chatRoomId);
+
+        } catch (BusinessException e) {
+            log.warn("힌트 제공 비즈니스 예외. userId={}, message={}", userId, e.getMessage());
+            sendError(userId, e.getErrorCode().name(), e.getMessage());
+        } catch (Exception e) {
+            log.error("힌트 카드 제공 중 예상치 못한 에러. userId={}", userId, e);
+            sendError(userId, "HINT_FAILED", "힌트 생성 중 오류가 발생했습니다.");
+        }
+    }
+
+    /**
+     * WordMeaning 리스트에서 모든 의미를 평탄화하여 추출
+     *
+     * 예) [{"명사", ["관점", "시각"]}, {"동사", ["보다"]}]
+     *  → ["관점", "시각", "보다"]
+     */
+    private List<String> extractMeanings(List<WordMeaning> meaningsByPos) {
+        if (meaningsByPos == null || meaningsByPos.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        List<String> result = new ArrayList<>();
+        for (WordMeaning wm : meaningsByPos) {
+            if (wm.getMeanings() != null) {
+                result.addAll(wm.getMeanings());
+            }
+        }
+        return result;
     }
 }
