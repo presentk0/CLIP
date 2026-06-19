@@ -2,11 +2,13 @@
 import { log } from "./logger";
 // 커스텀 에러 클래스
 class ApiError extends Error {
-  constructor(message, code) {
+  constructor(message, code, status) {
     // 부모(Error)한테 message 전달
     super(message);
     // code도 같이 저장
     this.code = code;
+    // 상태코드 저장
+    this.status = status;
     this.name = 'ApiError';
   }
 }
@@ -94,16 +96,27 @@ export async function getAccessToken() {
 
 // 토큰 저장 헬퍼
 async function saveAccessToken(accessToken) {
+
   const isServiceWorker = typeof window === 'undefined';
+
   
   if (isServiceWorker) {
     await chrome.storage.session.set({ accessToken });
+
   } else {
+
+    // user 정보 가져오기
+    const auth = await chrome.runtime.sendMessage({ type: 'GET_AUTH' });
+
+
     await chrome.runtime.sendMessage({
       type: 'SET_AUTH',
       accessToken,
+      user: auth?.user,
     });
+
   }
+
 }
 
 
@@ -151,6 +164,13 @@ export const apiFetch = async (endpoint, options = {}) => {
 
 
 
+
+
+
+
+
+
+
     // 기본 응답
     return { success: true };
   }
@@ -171,14 +191,19 @@ export const apiFetch = async (endpoint, options = {}) => {
       credentials: 'include',
       headers: headersWithAuth,
     });
-  } catch {
-    throw new ApiError('네트워크 오류', 'NETWORK_ERROR');
+  } catch (error) {
+    log.error('네트워크 요청 실패', endpoint, error);
+    // 이건 response 자체가 없어서 response.status 대신 0 넣기
+    throw new ApiError('네트워크 오류', 'NETWORK_ERROR', 0);
   }
 
 
 
-  // 토큰 만료 = 401 응답
-  if (response.status === 401 && endpoint !== '/auth/refresh') {
+  // 토큰 만료 = 401 응답 또는 403 응답
+  // (오류) 토큰 만료 시 HTTP 에러 /users/me 403 null, HTTP 에러 /videos/recommended 403 null 가 나타남.
+  // 원인 찾는 중 일단 403도 대응하게 변경
+  // endpoint !== '/auth/refresh' 있어서 리프레쉬 무한 루프 방지
+  if ((response.status === 401 || response.status === 403) && endpoint !== '/auth/refresh') {
     try {
       // refresh 토큰으로 새 토큰 발급
       const refreshRes = await fetch(`${BASE_URL}/auth/refresh`, {
@@ -207,9 +232,11 @@ export const apiFetch = async (endpoint, options = {}) => {
           },
         });
       } else {
-        throw new ApiError('인증 만료', 'UNAUTHORIZED');
+        log.warn('토큰 갱신 실패', refreshRes.status);
+        throw new ApiError('인증 만료', 'UNAUTHORIZED', response.status);
       }
     } catch (error) {
+      log.error('refresh 처리 중 오류', error);
       await clearAuthLocal();
       throw error;
     }
@@ -236,9 +263,12 @@ export const apiFetch = async (endpoint, options = {}) => {
 
   // HTTP 에러 처리
   if (!response.ok) {
+    log.warn('HTTP 에러', endpoint, response.status, result);
     throw new ApiError(
       result?.error?.message || `HTTP ${response.status} 에러`,
-      result?.error?.code || `HTTP_${response.status}`
+      result?.error?.code || `HTTP_${response.status}`,
+      // 상태코드 전달
+      response.status
     );
   }
 

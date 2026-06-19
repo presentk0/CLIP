@@ -6,6 +6,36 @@ import { openYoutubeVideo } from '../../utils/openInTab';
 import styles from './SettlementPage.module.css';
 import { log } from '../../utils/logger';
 
+function formatDuration (duration) {
+  if (duration == null) return '00:00';
+
+  let totalSeconds;
+
+  if (typeof duration === 'number') {
+    // 863 같은 숫자 (초 단위)
+    totalSeconds = duration;
+  } else if (typeof duration === 'string') {
+    if (duration.includes(':')) {
+      // "07:57" 같이 이미 포맷된 문자열
+      return duration;
+    }
+    // "863" 같은 문자열 숫자
+    totalSeconds = parseInt(duration, 10);
+  }
+
+  if (isNaN(totalSeconds)) return '00:00';
+
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  const pad = (n) => String(n).padStart(2, '0');
+
+  return hours > 0
+    ? `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`
+    : `${pad(minutes)}:${pad(seconds)}`;
+};
+
 
 function QuizResultCard(data, videoId, videoTitle, channelName, thumbnailUrl, duration) {
   const [wordCount, setWordCount] = useState(0);
@@ -67,7 +97,7 @@ function QuizResultCard(data, videoId, videoTitle, channelName, thumbnailUrl, du
           />
           <div className={styles['quiz-result-card4']}>
             <div className={styles['quiz-result-card5']}>
-              <p className={styles['quiz-result-card6']}>{duration}</p>
+              <p className={styles['quiz-result-card6']}>{formatDuration(duration)}</p>
             </div>
           </div>
 
