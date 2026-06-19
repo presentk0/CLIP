@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import com.clip.server.chat.dto.ai.HintCardData;
 
 import java.util.List;
 
@@ -114,6 +115,72 @@ public class ChatAiClient {
         }
         if (result.getAiResponse() == null || result.getAiResponse().isBlank()) {
             throw new RuntimeException("AI 인트로 내용이 비어있습니다.");
+        }
+    }
+
+    /**
+     * 힌트 카드 데이터 생성
+     */
+    public HintCardData generateHintCard(
+            ChatRoom chatRoom,
+            List<ChatMessage> recentMessages,
+            String targetWord,
+            String targetMeaning
+    ) {
+        try {
+            // 1. 프롬프트 생성
+            String systemPrompt = promptBuilder.buildHintCardSystemPrompt(
+                    chatRoom, targetWord, targetMeaning
+            );
+            String userPrompt = promptBuilder.buildHintCardUserPrompt(recentMessages);
+
+            log.debug("OpenAI 힌트 카드 호출. chatRoomId={}, word={}",
+                    chatRoom.getId(), targetWord);
+
+            // 2. OpenAI 호출
+            String response = openAiClient.chat(systemPrompt, userPrompt);
+            log.debug("OpenAI 힌트 카드 응답: {}", response);
+
+            // 3. JSON 파싱
+            HintCardData result = objectMapper.readValue(response, HintCardData.class);
+
+            // 4. 응답 검증
+            validateHintCard(result, targetWord);
+
+            return result;
+
+        } catch (Exception e) {
+            log.error("AI 힌트 카드 생성 실패. chatRoomId={}", chatRoom.getId(), e);
+            throw new RuntimeException("힌트 카드 생성 중 오류가 발생했습니다.", e);
+        }
+    }
+
+    /**
+     * 힌트 카드 응답 형식 검증
+     */
+    private void validateHintCard(HintCardData result, String targetWord) {
+        if (result == null) {
+            throw new RuntimeException("힌트 카드 응답이 비어있습니다.");
+        }
+        if (result.getExampleSentence() == null || result.getExampleSentence().isBlank()) {
+            throw new RuntimeException("힌트 예문이 비어있습니다.");
+        }
+        if (result.getExampleTranslation() == null || result.getExampleTranslation().isBlank()) {
+            throw new RuntimeException("힌트 예문 해석이 비어있습니다.");
+        }
+
+        // 타겟 단어가 예문에 포함되어 있는지 확인 (대소문자 무시)
+        if (!result.getExampleSentence().toLowerCase().contains(targetWord.toLowerCase())) {
+            log.warn("힌트 예문에 타겟 단어 '{}'가 포함되지 않음: {}",
+                    targetWord, result.getExampleSentence());
+            // 경고만 하고 통과시킴 (AI가 변형형으로 만들었을 가능성도 있음)
+        }
+
+        if (result.getContextMessage() == null) {
+            log.warn("contextMessage 누락");
+        }
+        if (result.getGuideMessage() == null) {
+            log.warn("guideMessage 누락");
         }
     }
 }
