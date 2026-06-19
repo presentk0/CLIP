@@ -141,6 +141,7 @@ function UserAvatar({ imageUrl, name }) {
 
 // function SectionBadgeCard({ currentBadge, videoId, videoTitle, videoDuration, channelName }) {
 function SectionBadgeCard({ videoId, videoTitle, videoDuration, channelName }) {
+
   // 썸네일 클릭 시 메인 탭에서 유튜브 영상 열기
   const handleClick = (e) => {
     // e.preventDefault() = HTML 요소의 기본 동작(default behavior)을 막는 함수
@@ -330,23 +331,10 @@ function DefaultPage({ onMyPage }) {
   // 첫 번째와 나머지 분리, 나중에 다시 넣기
   const [firstVideo, ...restVideos] = recommendedData;
 
+  // ai 채팅방 중복 클릭 막기
+  const [isAiBlocked, setIsAiBlocked] = useState(false);
 
 
-
-
-  // // 컴포넌트 mount 시 대시보드 조회 API 호출
-  // useEffect(() => {
-  //   const fetchData = async () => {
-  //     try {
-  //       const result = await apiFetch('/users/me/dashboard', { method: 'GET' });
-  //       setDashboardData(result.data);
-  //     } catch (error) {
-  //       console.error('데이터 로딩 실패:', error);
-  //     }
-  //   };
-
-  //   fetchData();
-  // }, []);
 
 
 
@@ -409,6 +397,12 @@ function DefaultPage({ onMyPage }) {
 
 // 디폴트 페이지의 AI 방 입장 버튼
 const onAiChatPage = async () => {
+  if (isAiBlocked) return;
+  // 버튼 비활성화
+  setIsAiBlocked(true);
+
+
+try {
   // 유저별 캐시 확인
   const hasWords = await loadUserData('hasWords');
   // const { hasWords } = await chrome.storage.local.get('hasWords');
@@ -445,6 +439,12 @@ const onAiChatPage = async () => {
   } catch (error) {
     log.debug('단어 조회 실패', error);
   }
+} catch (error) {
+  log.debug('ai 방 입장 실패', error)
+} finally {
+  // 버튼 활성화
+  setIsAiBlocked(false);
+}
 };
 
   return (
@@ -470,6 +470,7 @@ const onAiChatPage = async () => {
         </div>
         <div className={style.topButtonBox}>
           <button className={style.topLeftButton}
+          disabled={isAiBlocked}
           onClick={onAiChatPage}
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">

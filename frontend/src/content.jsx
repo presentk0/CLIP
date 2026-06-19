@@ -113,6 +113,9 @@ let isActive = false;
 
 // 사이드 패널 신호 수신
 chrome.runtime.onMessage.addListener((message) => {
+
+
+
   // ========== 패널 열림 ==========
   if (message.type === 'PANEL_OPENED') {
     // 패널 열림 상태 저장
@@ -369,6 +372,7 @@ function resetSubtitleSystem() {
 // 토큰 + 유저 정보 체크 함수
 async function checkAccess() {
 
+  try {
   const cached = await chrome.runtime.sendMessage({ type: 'GET_AUTH' });
 
 
@@ -379,6 +383,10 @@ async function checkAccess() {
 
   // 온보딩 완료 시 기능 활성화
   return cached.user.needsOnboarding === false;
+  } catch (error) {
+    log.debug('에러 발생:', error);
+    return false;
+  }
 }
 
 
@@ -398,7 +406,6 @@ async function activate() {
 
   // setupTitleObserver 실행 시 URL이 바뀌었을 때만 실행하게 설정
   lastUrl = location.href;
-
 }
 
 
@@ -418,22 +425,24 @@ function deactivate() {
 
 
 
-// 저장소 변경 감지
-const handleAuthChanged = async (msg) => {
-
-  if (msg.type !== 'AUTH_CHANGED') return;
-
-
-  // 토큰/유저 정보가 바뀐 뒤 현재 실행 가능한지 다시 검사
+// 저장소 변경 코드의 비동기 처리 함수 분리
+const processAuthChange = async () => {
   const canRun = await checkAccess();
-
+  
   if (canRun && !isActive) {
-
     activate();
   } else if (!canRun && isActive) {
-
     deactivate();
   }
+};
+
+
+
+// 저장소 변경 감지
+const handleAuthChanged = (msg) => {
+  if (msg.type !== 'AUTH_CHANGED') return;
+  // 비동기 호출, 결과 안 기다림
+  processAuthChange();
 };
 
 
@@ -508,6 +517,7 @@ async function handlePageChange() {
 
     // 영상 페이지면 추천 영상 숨기고 자막 감지
     if (location.href.includes('/watch')) {
+
       setTimeout(hideRecommendations, 500);
       setTimeout(observeSubtitles, 2000);
 
@@ -516,9 +526,6 @@ async function handlePageChange() {
 
 
       if (videoId) {
-
-        // const result = await chrome.storage.local.get(`quizProgress_${videoId}`);
-        // const progress = result[`quizProgress_${videoId}`];
         const progress = await loadUserData(`quizProgress_${videoId}`);
 
         if (progress) {
@@ -528,12 +535,12 @@ async function handlePageChange() {
         }
       }
     } else {
+
       // 영상 페이지 아니면 디폴트 페이지로 이동 및 추천 영상 보이고 썸네일 감지
       chrome.runtime.sendMessage({
         type: 'GO_TO_DEFAULT'
       });
       showRecommendations();
-      // setTimeout(observeThumbnails, 3000);
     }
   }
 }
@@ -691,7 +698,7 @@ function observeSubtitles() {
       channelName: channelName || '',
       duration: duration,
       thumbnailUrl: thumbnailUrl,
-    }).catch((error) => log.debug('퀴즈 페이지 이동 에러', error));
+    }).catch((error) => log.error('퀴즈 페이지 이동 에러', error));
     isQuiz = true;
   }
 
@@ -748,7 +755,7 @@ const getDuration = () => {
         return seconds;
       }
     } catch (error) { 
-      log.debug('데스크톱 비디오 전체 가져오기 실패', error);
+      log.error('데스크톱 비디오 전체 가져오기 실패', error);
     }
   }
   
@@ -880,11 +887,18 @@ async function setupSubtitleInterceptor(videoId, videoTitle, duration, channelNa
         subtitles: allSubtitles
       });
     } else {
-      // 서버에 없으면 유튜브에서 가져오기
+      // 응답은 왔는데 자막이 비어 있음
       registerSubtitleListener();
     }
   }).catch(error => {
-    log.debug('자막 조회 실패', error);
+    if (error?.status === 404) {
+      // 이 API에서는 404가 정상 (서버에 자막 없음)
+      registerSubtitleListener();
+      return;
+    }
+
+    // 그 외의 에러는 진짜 실패
+    log.error('자막 조회 실패', error);
     // 조회 실패해도 유튜브에서 가져오기
     registerSubtitleListener();
   });
@@ -1127,7 +1141,7 @@ async function processQueue() {
         endTime: item.endTime
       });
     } catch (error) {
-      log.debug('처리 실패', error);
+      log.error('처리 실패', error);
     }
   }
 
@@ -1193,8 +1207,10 @@ async function subtitleDataHandler (event) {
 
     // 문자열(자막 데이터가 ""로 담김)을 객체로 변환 (JSON 형식 검증)
     data = JSON.parse(event.detail.response)
+
+  
   } catch (error) {
-    log.debug('잘못된 데이터', error);
+    log.error('잘못된 데이터', error);
     return;
   }
 
@@ -1224,6 +1240,7 @@ async function subtitleDataHandler (event) {
     .filter(sub => sub.text)
     // 전체가 [...] 형태일 때만 해당 데이터 제거
     .filter(sub => !/^\[.*\]$/.test(sub.text.trim()));
+
 
     // ========== 텍스트 정리 ==========
     // 자막 데이터에 담긴 텍스트의 줄바꿈을 공백으로 변환
@@ -1269,7 +1286,7 @@ async function subtitleDataHandler (event) {
         log.debug('번역 응답 형식 이상', response);
       }
     }).catch(error => {
-      log.debug('번역 실패:', error);
+      log.error('번역 실패:', error);
     });
 
     // ========== 리스너 설정 ==========
@@ -1279,7 +1296,7 @@ async function subtitleDataHandler (event) {
     // 영상 시청 시간 감지 및 끝 시간 감지 리스너 설정
     setupTimeUpdateListener();
   } catch (error) {
-    log.debug('자막 파싱 실패:', error);
+    log.error('자막 파싱 실패:', error);
     // 다시 요청 가능
     translatedVideoId = null;
   }
@@ -1379,7 +1396,7 @@ async function startQuizSession() {
       sessionId: sessionResponse.data.sessionId,
       quizzes: sessionResponse.data.quizzes,
       totalCount: sessionResponse.data.totalQuizCount || 10
-    }).catch((error) => { log.debug('퀴즈 전송 에러', error) });
+    }).catch((error) => { log.error('퀴즈 전송 에러', error) });
 
     // // Chrome Storage에도 저장 (패널 닫혀있을 때 대비)
     // chrome.storage.local.set({
@@ -1387,7 +1404,7 @@ async function startQuizSession() {
     //   currentQuizzes: sessionResponse.data.quizzes
     // });
   } catch (error) {
-    log.debug('퀴즈 세션 실패', error);
+    log.error('퀴즈 세션 실패', error);
   } finally {
     // 실행 후 다시 요청 가능
     quizRequested = false;
@@ -1453,7 +1470,7 @@ async function matchingQuiz() {
       sessionId: matchingResponse.data.sessionId,
       quizzes: matchingResponse.data.quizzes,
       totalCount: matchingResponse.data.totalQuizCount || 10
-    }).catch((error) => { log.debug('매칭 퀴즈 전송 실패', error) });
+    }).catch((error) => { log.error('매칭 퀴즈 전송 실패', error) });
 
     // // Chrome Storage에도 저장 (패널 닫혀있을 때 대비)
     // chrome.storage.local.set({
@@ -1461,7 +1478,7 @@ async function matchingQuiz() {
     //   currentQuizzes: matchingResponse.data.quizzes
     // });
   } catch (error) {
-    log.debug('매칭 퀴즈 세션 실패', error);
+    log.error('매칭 퀴즈 세션 실패', error);
   } finally {
     // 실행 후 다시 요청 가능
     quizRequested = false;
@@ -1484,6 +1501,7 @@ const handleLoop = (e) => {
 // 페이지 로드 대기 후 실행
 // init()에서 페이지 종류에 따라 분기
 function init() {
+
   videoRetryCount = 0;
   infoRetryCount = 0;
 
@@ -1544,6 +1562,8 @@ function init() {
 
   // // ========== 패널 열려있으면 상태 리셋 + 페이지 구분 및 이동 ==========
   // handlePageChange();
+
+
 }
 
 

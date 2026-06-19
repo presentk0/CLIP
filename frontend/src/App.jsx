@@ -25,7 +25,7 @@ import DifficultySelectPage from './pages/DifficultySelectPage/DifficultySelectP
 
 import { OnboardingProvider } from './contexts/OnboardingProvider';
 import FeedbackPage from './pages/FeedbackPage/FeedbackPage';
-
+import { loadUserData, removeUserData } from './utils/userStorage';
 
 
 
@@ -101,7 +101,7 @@ function AppContent() {
               // 실패하면 1초 후 재시도
               setTimeout(sendPanelOpened, 1000);
             } else {
-              log.debug('연결 실패 - 페이지 새로고침 필요', error.message);
+              log.error('연결 실패 - 페이지 새로고침 필요', error.message);
             }
           });
         }
@@ -110,14 +110,17 @@ function AppContent() {
     sendPanelOpened();
 
     // content.js 새로고침 감지
-    const listener = (message) => {
+    const handleContentMessage = (message) => {
+
+  
+
       if (message.type === 'CONTENT_LOADED') {
     // 성공한 적 있으면 바로 1번만 시도
     if (isSent) {
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         if (tabs[0]) {
           chrome.tabs.sendMessage(tabs[0].id, { type: 'PANEL_OPENED' })
-            .catch((error) => log.debug('재전송 실패', error.message));
+            .catch((error) => log.error('재전송 실패', error.message));
         }
       });
     } else {
@@ -128,35 +131,83 @@ function AppContent() {
       }
     };
 
-    chrome.runtime.onMessage.addListener(listener);
+    chrome.runtime.onMessage.addListener(handleContentMessage);
     return () =>  {
-      chrome.runtime.onMessage.removeListener(listener);
+      chrome.runtime.onMessage.removeListener(handleContentMessage);
     }
   }, []);
 
 
 
   // 퀴즈페이지로 이동 및 영상 아이디와 제목, 전체 길이 저장
+  // 이게 문제 같음 오류
   useEffect(() => {
-    const listener = (message) => {
-      if (message.type === 'GO_TO_QUIZ') {
-        setVideoId(message.videoId);
-        setVideoTitle(message.videoTitle);
-        setChannelName(message.channelName);
-        setThumbnailUrl(message.thumbnailUrl)
-        setDuration(message.duration);
-        navigate('/quiz');
-      }
-      if (message.type === 'GO_TO_DEFAULT') {
+    // const handleMessage = async (message, sender, sendResponse) => {
+      
+
+        const handleGoToQuiz = async (message) => {
+    const saved = await loadUserData('quizState');
+    if (saved?.videoId !== message.videoId) {
+      await removeUserData('quizState');
+    }
+    
+    setVideoId(message.videoId);
+    setVideoTitle(message.videoTitle);
+    setChannelName(message.channelName);
+    setThumbnailUrl(message.thumbnailUrl);
+    setDuration(message.duration);
+    
+    setResetKey(prev => prev + 1);
+    navigate('/quiz');
+  };
+
+    // 동기 리스너
+  const handleMessage = (message) => {
+
+    switch (message.type) {
+      case 'GO_TO_QUIZ':
+        handleGoToQuiz(message);  // 비동기 호출, 결과 안 기다림
+        break;
+      case 'GO_TO_DEFAULT':
         goToDefault();
-      }
-      // 로그인 페이지로 이동 신호
-      if (message.type === 'GO_TO_LOGIN') {
+        break;
+      case 'GO_TO_LOGIN':
         navigate('/login');
-      }
-    };
-    chrome.runtime.onMessage.addListener(listener);
-    return () => chrome.runtime.onMessage.removeListener(listener);
+        break;
+      default:
+        return;  // 다른 메시지는 무시
+    }
+  };
+
+
+      // if (message.type === 'GO_TO_QUIZ') {
+      //   // 새 퀴즈면 이전 진행 상태 삭제
+      //   const saved = await loadUserData('quizState');
+      //   if (saved?.videoId !== message.videoId) {
+      //     // 다른 영상이면 삭제 (오류 나중에 퀴즈여부 묻기)
+      //     await removeUserData('quizState');
+      //   }
+
+
+      //   setVideoId(message.videoId);
+      //   setVideoTitle(message.videoTitle);
+      //   setChannelName(message.channelName);
+      //   setThumbnailUrl(message.thumbnailUrl)
+      //   setDuration(message.duration);
+      //   // 강제 마운트
+      //   setResetKey(prev => prev + 1);
+      //   navigate('/quiz');
+      // }
+      // if (message.type === 'GO_TO_DEFAULT') {
+      //   goToDefault();
+      // }
+      // // 로그인 페이지로 이동 신호
+      // if (message.type === 'GO_TO_LOGIN') {
+      //   navigate('/login');
+      // }
+    // };
+    chrome.runtime.onMessage.addListener(handleMessage);
+    return () => chrome.runtime.onMessage.removeListener(handleMessage);
   }, [navigate, goToDefault]);
 
 
@@ -202,6 +253,8 @@ function AppContent() {
       // height: '100%',
       // 최대 너비
       maxWidth: '402px',
+      // 가로 가운데
+      margin: '0 auto',
     }}>
       <Routes>
         <Route 
@@ -262,9 +315,6 @@ function AppContent() {
                 channelName={channelName}
                 thumbnailUrl={thumbnailUrl}
                 duration={duration}
-                // onSettlementPage={handleSettlement}
-
-
               />
             </ProtectedRoute>
           } 

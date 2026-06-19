@@ -16,8 +16,8 @@ import { Fragment } from 'react';
 import React from 'react';
 import { Spinner } from '../../components/Spinner/Spinner';
 import frog from '../../imgs/ChatGPT_Image_2026_4_29_11_38_54.png';
-
-
+import { loadUserData, saveUserData } from '../../utils/userStorage';
+import frog2 from '../../imgs/image_809.png';
 
 
 // JWT 토큰 만료 체크
@@ -39,15 +39,34 @@ const isTokenExpired = (token) => {
 // 토큰 갱신
 const refreshAccessToken = async () => {
   try {
-    const res = await apiFetch('/auth/refresh', { method: 'POST' });
+    const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/auth/refresh`, {
+      method: 'POST',
+      credentials: 'include',
+    });
     
-    if (res.success) {
-      const newToken = res.data.accessToken;
-      
-      // apiFetch 안에서 이미 saveAccessToken을 호출하므로, 별도 저장 로직 불필요
-      return newToken;
+    if (!res.ok) {
+      log.debug('refresh 응답 실패', res.status);
+      return null;
     }
-    return null;
+
+    const data = await res.json();
+
+    if (!data.success) {
+      log.debug('refresh 데이터 실패', data);
+      return null;
+    }
+
+    const newToken = data.data.accessToken;
+
+    // 백그라운드에 저장
+    const auth = await chrome.runtime.sendMessage({ type: 'GET_AUTH' });
+    await chrome.runtime.sendMessage({
+      type: 'SET_AUTH',
+      accessToken: newToken,
+      user: auth?.user,
+    });
+    
+    return newToken;
   } catch (err) {
     log.debug('토큰 갱신 실패', err);
     return null;
@@ -145,7 +164,18 @@ function ContinuePopup({ info, onContinue, onNewStart }) {
 
 
 // 상단 부분
-function Header ({ currentStep, onBack, onMyPage }) {
+function Header ({ currentStep, onBack, onMyPage, onStartMessageReport, onStartScenarioReport, isMessage, handleCloseReport, showReportModal }) {
+
+  // 더보기 창이 열려있는지 여부 상태
+  const [isMoreOpen, setIsMoreOpen] = useState(false);
+
+  // 더보기 버튼 클릭 시 호출되는 함수 (열림/닫힘 토글만 수행)
+  const handleSeeMore = () => {
+    setIsMoreOpen((prev) => !prev);
+  };
+
+
+
   return (
     currentStep !== 'CHAT' ? (
       <div className={styles.head}>
@@ -155,17 +185,18 @@ function Header ({ currentStep, onBack, onMyPage }) {
             onClick={onBack}
             className={styles.head4}
             >
-<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
-  <path d="M16.5014 4.35565C16.9756 4.82987 16.9756 5.59871 16.5014 6.07292L10.0743 12.5L16.5014 18.9271C16.9756 19.4013 16.9756 20.1702 16.5014 20.6444C16.0272 21.1185 15.2584 21.1185 14.7842 20.6444L7.49848 13.3586C7.02427 12.8845 7.02427 12.1156 7.49848 11.6414L14.7842 4.35565C15.2584 3.88145 16.0272 3.88145 16.5014 4.35565Z" fill="#454440"/>
-</svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M16.5014 4.35565C16.9756 4.82987 16.9756 5.59871 16.5014 6.07292L10.0743 12.5L16.5014 18.9271C16.9756 19.4013 16.9756 20.1702 16.5014 20.6444C16.0272 21.1185 15.2584 21.1185 14.7842 20.6444L7.49848 13.3586C7.02427 12.8845 7.02427 12.1156 7.49848 11.6414L14.7842 4.35565C15.2584 3.88145 16.0272 3.88145 16.5014 4.35565Z" fill="#454440"/>
+              </svg>
             </button>
+
             <button 
             onClick={onMyPage}
             className={styles.head4}
             >
-<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
-  <path d="M10.125 16.8572V20.0001C10.125 20.5524 9.67728 21.0001 9.125 21.0001H5.5C4.94772 21.0001 4.5 20.5524 4.5 20.0001V10.3485C4.5 9.76471 4.75512 9.21001 5.19842 8.83005L10.6984 4.11576C11.4474 3.47378 12.5526 3.47378 13.3016 4.11576L18.8016 8.83005C19.2449 9.21001 19.5 9.76471 19.5 10.3485V20.0001C19.5 20.5524 19.0523 21.0001 18.5 21.0001H14.875C14.3227 21.0001 13.875 20.5524 13.875 20.0001V16.8572C13.875 16.305 13.4273 15.8572 12.875 15.8572H11.125C10.5727 15.8572 10.125 16.305 10.125 16.8572Z" fill="#454440"/>
-</svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M10.125 16.8572V20.0001C10.125 20.5524 9.67728 21.0001 9.125 21.0001H5.5C4.94772 21.0001 4.5 20.5524 4.5 20.0001V10.3485C4.5 9.76471 4.75512 9.21001 5.19842 8.83005L10.6984 4.11576C11.4474 3.47378 12.5526 3.47378 13.3016 4.11576L18.8016 8.83005C19.2449 9.21001 19.5 9.76471 19.5 10.3485V20.0001C19.5 20.5524 19.0523 21.0001 18.5 21.0001H14.875C14.3227 21.0001 13.875 20.5524 13.875 20.0001V16.8572C13.875 16.305 13.4273 15.8572 12.875 15.8572H11.125C10.5727 15.8572 10.125 16.305 10.125 16.8572Z" fill="#454440"/>
+              </svg>
             </button>
           </div>
 
@@ -183,26 +214,59 @@ function Header ({ currentStep, onBack, onMyPage }) {
             onClick={onBack}
             className={styles['chat-head4']}
             >
-<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
-  <path d="M16.5014 4.35565C16.9756 4.82987 16.9756 5.59871 16.5014 6.07292L10.0743 12.5L16.5014 18.9271C16.9756 19.4013 16.9756 20.1702 16.5014 20.6444C16.0272 21.1185 15.2584 21.1185 14.7842 20.6444L7.49848 13.3586C7.02427 12.8845 7.02427 12.1156 7.49848 11.6414L14.7842 4.35565C15.2584 3.88145 16.0272 3.88145 16.5014 4.35565Z" fill="#454440"/>
-</svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M16.5014 4.35565C16.9756 4.82987 16.9756 5.59871 16.5014 6.07292L10.0743 12.5L16.5014 18.9271C16.9756 19.4013 16.9756 20.1702 16.5014 20.6444C16.0272 21.1185 15.2584 21.1185 14.7842 20.6444L7.49848 13.3586C7.02427 12.8845 7.02427 12.1156 7.49848 11.6414L14.7842 4.35565C15.2584 3.88145 16.0272 3.88145 16.5014 4.35565Z" fill="#454440"/>
+              </svg>
             </button>
+
             <button 
             onClick={onMyPage}
             className={styles['chat-head4']}
             >
-<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
-  <path d="M10.125 16.8572V20.0001C10.125 20.5524 9.67728 21.0001 9.125 21.0001H5.5C4.94772 21.0001 4.5 20.5524 4.5 20.0001V10.3485C4.5 9.76471 4.75512 9.21001 5.19842 8.83005L10.6984 4.11576C11.4474 3.47378 12.5526 3.47378 13.3016 4.11576L18.8016 8.83005C19.2449 9.21001 19.5 9.76471 19.5 10.3485V20.0001C19.5 20.5524 19.0523 21.0001 18.5 21.0001H14.875C14.3227 21.0001 13.875 20.5524 13.875 20.0001V16.8572C13.875 16.305 13.4273 15.8572 12.875 15.8572H11.125C10.5727 15.8572 10.125 16.305 10.125 16.8572Z" fill="#454440"/>
-</svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M10.125 16.8572V20.0001C10.125 20.5524 9.67728 21.0001 9.125 21.0001H5.5C4.94772 21.0001 4.5 20.5524 4.5 20.0001V10.3485C4.5 9.76471 4.75512 9.21001 5.19842 8.83005L10.6984 4.11576C11.4474 3.47378 12.5526 3.47378 13.3016 4.11576L18.8016 8.83005C19.2449 9.21001 19.5 9.76471 19.5 10.3485V20.0001C19.5 20.5524 19.0523 21.0001 18.5 21.0001H14.875C14.3227 21.0001 13.875 20.5524 13.875 20.0001V16.8572C13.875 16.305 13.4273 15.8572 12.875 15.8572H11.125C10.5727 15.8572 10.125 16.305 10.125 16.8572Z" fill="#454440"/>
+              </svg>
             </button>
           </div>
 
           <div className={styles['chat-head5']}>
-            <p className={styles['chat-head6']}>AI Talk</p>
+            <p className={styles['chat-head6']}>{showReportModal ? '신고하기' : 'AI Talk'}</p>
           </div>
         </div>
 
-        <div className={styles['chat-head7']}>더보기</div>
+        {/* 더보기 밑에 나오도록 감싸기 */}
+        <div className={styles['more-container']}>
+          {/* 더보기 클릭하고 AI 대화 신고하기 누르면 선택 해제가 나타나게 설정 시나리오 신고하기는 비활성화 */}
+          {isMessage ? (
+            <button onClick={handleCloseReport} className={styles['chat-more2']}>
+              <p className={styles['chat-more3']}>선택 해제</p>
+            </button>
+          ) : (
+            !showReportModal && (
+              <button onClick={handleSeeMore} className={styles['chat-more']}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+  <path d="M12.5 11.25C12.5 11.9404 11.9404 12.5 11.25 12.5C10.5596 12.5 10 11.9404 10 11.25C10 10.5596 10.5596 10 11.25 10C11.9404 10 12.5 10.5596 12.5 11.25Z" fill="#454440"/>
+  <path opacity="0.8" d="M12.5 6.25C12.5 6.94036 11.9404 7.5 11.25 7.5C10.5596 7.5 10 6.94036 10 6.25C10 5.55964 10.5596 5 11.25 5C11.9404 5 12.5 5.55964 12.5 6.25Z" fill="#454440"/>
+  <path opacity="0.8" d="M12.5 16.25C12.5 16.9404 11.9404 17.5 11.25 17.5C10.5596 17.5 10 16.9404 10 16.25C10 15.5596 10.5596 15 11.25 15C11.9404 15 12.5 15.5596 12.5 16.25Z" fill="#454440"/>
+</svg>
+              </button>
+            )
+          )}
+
+          {/* 더보기 창이 열려있을 때만 SeeMore 렌더링 */}
+          {isMoreOpen && (
+            <SeeMore 
+              onStartMessageReport={() => {
+                onStartMessageReport(); // AiChatPage의 선택 모드 활성화
+                setIsMoreOpen(false);   // 더보기 창 닫기
+              }}
+              onStartScenarioReport={() => {
+                onStartScenarioReport(); // AiChatPage의  시나리오 팝업 활성화
+                setIsMoreOpen(false);    // 더보기 창 닫기
+              }}
+            />
+          )}
+        </div>
       </div>
     )
   )
@@ -210,17 +274,29 @@ function Header ({ currentStep, onBack, onMyPage }) {
 
 
 // 더보기 박스 (비활성화)
-function SeeMore () {
+function SeeMore ({ onStartMessageReport, onStartScenarioReport }) {
+
   return (
+    <>
     <div className={styles.more}>
       <div className={styles.more2}>
-        <div className={styles.more3}>
+        <button
+        onClick={() => {
+          // AiChatPage에 선택 모드 켜달라고 요청
+          onStartMessageReport();
+        }}
+        className={styles.more3}>
           <p className={styles.more4}>AI 대화 신고하기</p>
-        </div>
+        </button>
 
-        <div className={styles.more3}>
+        <button
+        onClick={() => {
+          // AiChatPage에 시나리오 신고 팝업 요청
+          onStartScenarioReport();
+        }}
+        className={styles.more3}>
           <p className={styles.more4}>시나리오 신고하기</p>
-        </div>
+        </button>
       </div>
 
       <div className={styles.more5}></div>
@@ -231,17 +307,111 @@ function SeeMore () {
         </div>
 
 
-        <div className={styles.more9}>
+        <div
+        className={styles.more9}
+        >
           <p className={styles.more10}>대화 다시하기</p>
         </div>
       </div>
     </div>
+    </>
   );
 }
 
 
 
 
+function Reports ({mode, chatData, targetId, onClose}) {
+  const [isReports, setIsReports] = useState(false);
+  const [inputReports, setInputReports] = useState('');
+  const chatRoomId = chatData?.chatRoomId;
+  const titles = {
+    SCENARIO: '시나리오 신고',
+    MESSAGE: 'AI 답변 신고'
+  };
+
+  // 산고 전송
+  const handleSubmit = async() => {
+    if (!inputReports.trim()) {
+      alert('신고 내용을 입력해주세요.');
+      return;
+    }
+
+    if (isReports) return;
+    try {
+      setIsReports(true);
+
+      const result = await apiFetch('/chats/reports', {
+        method: 'POST',
+        body: JSON.stringify({
+          reportType: mode,
+          targetId: mode === 'MESSAGE' ? targetId : chatRoomId,
+          content: inputReports
+        })
+      });
+
+      if (result.success) {
+        alert('신고가 접수되었습니다.');
+        setInputReports('');
+        onClose();
+      }
+    } catch (error) {
+      log.error('ai채팅방 신고 에러', error);
+    } finally {
+      setIsReports(false);
+    }
+  };
+
+
+  return (
+    <div className={styles.reports}>
+      <div className={styles.reports2}>
+        <div className={styles.reports3}>
+          <p className={styles.reports4}>{titles[mode]}</p>
+        </div>
+
+        <div className={styles.reports5}>
+        <textarea 
+          className={styles.reports6}
+          value={inputReports}
+          onChange={(e) => setInputReports(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              handleSubmit();
+            }
+          }}
+          placeholder={
+            '신고 내용을 작성해주세요'
+          }
+          maxLength={250}
+          disabled={isReports}
+          >
+          </textarea>
+            <p className={styles['chat-input8']}>
+              {inputReports.length}
+              <span className={styles['chat-input9']}>/250자</span>
+            </p>
+        </div>
+      </div>
+
+      <div className={styles.reports7}>
+        <button 
+        onClick={onClose}
+        className={styles.reports8}
+        >
+          <p className={styles.reports9}>취소</p>
+        </button>
+
+        <button 
+        onClick={handleSubmit}
+        className={styles.reports10}>
+          <p className={styles.reports11}>{isReports ? '전송 중...' : '신고하기'}</p>
+        </button>
+      </div>
+    </div>
+  )
+}
 
 
 
@@ -958,7 +1128,7 @@ const formatDate = (isoString) => {
 
 
 
-
+// 최종정산 페이지
 function ReportPage({ reportData }) {
   if (!reportData) return null;
 
@@ -971,11 +1141,23 @@ function ReportPage({ reportData }) {
 
   return (
     <div className={styles.reportPage}>
-      {/* 캐릭터 + 한마디
-      <div>
-        <div className={styles.frog}></div>
-        <p>{expressionNaturalness?.feedback}</p>
-      </div> */}
+      {/* 캐릭터 */}
+      <div className={styles.bar2}>
+        <div 
+        className={styles.bar3}
+        style={{ backgroundImage: `url(${frog2})` }}
+        >
+        </div>
+      </div>
+
+      {/* 한마디 */}
+      <div className={styles.balloon}>
+        <div className={styles.balloon2}>
+          <p className={styles['balloon2-t']}>
+            {expressionNaturalness?.feedback}
+          </p>
+        </div>
+      </div>
 
       <div className={styles.reportPage3}>
         {/* AI 채팅 진행 결과 카드 */}
@@ -1073,7 +1255,7 @@ function ReportPage({ reportData }) {
 
 
 // 채팅방
-function ChatRoom ({ chatData, progress, setProgress, leaveChat, setMessages, messages, onFetchReport }) {
+function ChatRoom ({ chatData, progress, setProgress, setMessages, messages, onFetchReport, isSelectMode, onSelectMessage, isReportOpen, selectedTargetId, isMessage }) {
 
   const [voiceModeOn, setVoiceModeOn] = useState(false);
   const voiceModeOnRef = useRef(voiceModeOn);
@@ -1150,7 +1332,7 @@ useEffect(() => {
   // 약간 딜레이 후 (DOM 업데이트 후)
   const timer = setTimeout(scrollToBottom, 100);
   return () => clearTimeout(timer);
-}, [messages, isCompleted, suggestion]);
+}, [messages, isCompleted, suggestion, isSelectMode, isReportOpen]);
 
 
 
@@ -1722,6 +1904,8 @@ const stopRecording = () => {
 // 녹음 데이터 수신
 useEffect(() => {
   const handler = (message) => {
+
+
     if (message.type === 'RECORDING_COMPLETE') {
       fetch(message.audioData)
         .then(res => res.blob())
@@ -1739,7 +1923,37 @@ useEffect(() => {
 
 
 
+// 홈 버튼
+const handleHome = async () => {
+  try {
+    // 로컬 스토리지에서 제출 여부 확인
+    const feedback = await loadUserData('submittedFeedback');
 
+    if (!feedback?.hasSubmittedFeedback) {
+      // 로컬에 완료 기록이 없다면 서버에 한 번 더 확인
+      const check = await apiFetch('/feedback/check', { method: 'GET' });
+
+      if (!check.data.hasSubmittedFeedback) {
+        // 설문조사 미제출 상태인 경우 설문조사 페이지로 이동 (완료 후 홈으로 가도록 returnTo 설정)
+        navigate('/feedback', { 
+          state: { returnTo: '/' }
+        });
+        return;
+      } else {
+        // 서버에는 이미 제출된 상태라면 로컬 갱신 후 그냥 홈으로 이동
+        await saveUserData('submittedFeedback', { hasSubmittedFeedback: true });
+      }
+    }
+
+    // 이미 설문을 완료한 유저라면 바로 홈으로 이동
+    navigate('/');
+
+  } catch (error) {
+    log.debug('홈 이동 중 설문 여부 조회 실패:', error);
+    // 에러 발생 시 사용자 경험을 위해 일단 홈으로 보내주는 안전장치(Fallback)
+    navigate('/');
+  }
+};
 
 
 
@@ -1802,7 +2016,7 @@ useEffect(() => {
           msg.senderType === 'REPORT'
         ? <ReportBubble key={msg.messageId} message={msg} />
         : msg.senderType === 'AI'
-          ? <AI key={msg.messageId} msg={msg.content} highlightWord={msg.highlightWord} isFirst={isFirstOfGroup} />
+          ? <AI key={msg.messageId} messageId={msg.messageId} onSelect={() => onSelectMessage(msg.messageId)} msg={msg.content} highlightWord={msg.highlightWord} isFirst={isFirstOfGroup} selectedTargetId={selectedTargetId} isMessage={isMessage} />
           : <User key={msg.messageId} msg={msg.content} highlightWord={msg.highlightWord} remainingTurn={msg.remainingTurnAtTime} />
           );
         })}
@@ -1823,7 +2037,7 @@ useEffect(() => {
       </button>
       <button 
       className={styles.completionBox8}
-      onClick={leaveChat}>
+      onClick={handleHome}>
         <p className={styles.completionBox9}>대화창 나가기</p>
       </button>
         </div>
@@ -1839,7 +2053,8 @@ useEffect(() => {
       </>
 </div>
 
-      {/* 메시지 입력 창 */}
+      {/* 메시지 인풋 입력 창 모달 떠 있을 때만 사라짐 */}
+      {!isReportOpen && (
       <div className={styles['chat-input']}>
         <div className={styles['chat-input2']}>
           <textarea 
@@ -1892,20 +2107,61 @@ useEffect(() => {
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }
 
 
 // AI 말풍선
-const AI = React.memo(function AI({ msg, highlightWord, isFirst }) {
+const AI = React.memo(function AI({ msg, highlightWord, isFirst, isMessage, onSelect, selectedTargetId, messageId }) {
+  // 선택 여부
+  const isSelected = selectedTargetId === messageId;
+  
   return (
     <div className={styles['chat-ai-group']}>
+      {/* 메시지 모드인 경우 아이콘 옆에 체크박스/신고 선택 버튼 노출 */}
+      {isMessage && (
+        <button 
+          onClick={onSelect} 
+          className={styles['report-select-btn']}
+        >
+          {isSelected
+          ? <div className={styles.agreement16}>
+            {/* 선택됨 */}
+            <svg 
+            className={styles.agreement17}
+            xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M12.137 3.77574C12.566 3.30103 13.2975 3.26012 13.7767 3.6859C14.2579 4.1139 14.302 4.85088 13.8743 5.33238L13.8675 5.3402L7.08809 12.6732L7.08711 12.6722C6.86614 12.9168 6.55276 13.0578 6.22284 13.058C5.88978 13.058 5.57214 12.9152 5.35076 12.6664L1.79505 8.66637C1.36701 8.18483 1.41026 7.44699 1.89173 7.01891C2.37332 6.59106 3.11121 6.63506 3.53921 7.11656L6.22968 10.1439L12.137 3.77477V3.77574Z" fill="white"/>
+            </svg>
+          </div>
+
+          : <svg 
+          className={styles.agreement22}
+          xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <g clip-path="url(#clip0_935_1154)">
+              <path d="M23.3 12C23.3 5.75913 18.2408 0.699951 12 0.699951C5.75918 0.699951 0.699997 5.75913 0.699997 12C0.699997 18.2408 5.75918 23.2999 12 23.2999C18.2408 23.2999 23.3 18.2408 23.3 12Z" fill="#FEFDF9" stroke="#A5E7D2" stroke-width="1.4"/>
+            </g>
+            <defs>
+              <clipPath id="clip0_935_1154">
+                <rect width="24" height="24" fill="white"/>
+              </clipPath>
+            </defs>
+          </svg>}
+        </button>
+      )}
+
+
+
       {/* 첫 메시지일 때만 아이콘 */}
       {isFirst && <div 
       className={styles['chat-icon']}
       style={{ backgroundImage: `url(${frog})` }}
       ></div>}
+
+
+
+
 
       <div className={styles['chat-ai']}>
         {/* 첫 메시지에만 svg 꼬리 */}
@@ -2005,14 +2261,39 @@ export function AiChatPage () {
   });
 
   // 현재 단계 (1, 2, 3)
-  // const [step, setStep] = useState('WORD_SELECT');
   const [step, setStep] = useState('CHECK');
   const [previousChatInfo, setPreviousChatInfo] = useState(null);
   const [reportData, setReportData] = useState(null);
 
+  // 신고 선택 모드 활성화 여부
+  const [isSelectMode, setIsSelectMode] = useState(false);
 
+  // 메시지 선택 모드 구분용
+  const [isMessage, setIsMessage] = useState(false);
+  // 선택된 대상 ID (MESSAGE일 때는 messageId, SCENARIO일 때는 chatRoomId)
+  const [selectedTargetId, setSelectedTargetId] = useState(null);
+  // 신고 팝업 오픈 여부
+  const [showReportModal, setShowReportModal] = useState(false);
+  // 신고 모드 (MESSAGE 또는 SCENARIO)
+  const [reportMode, setReportMode] = useState(null);
 
+  // 대화 신고 선택 완료 처리용
+  const handleSelectMessage = (messageId) => {
+    if (!isMessage) return;  // 메시지 신고 모드 아니면 무시
 
+    setSelectedTargetId(messageId);
+    setReportMode('MESSAGE');
+    setShowReportModal(true); // 메시지가 선택되면 바로 신고 팝업을 띄움
+  };
+
+// 취소 버튼 누르거나, 신고가 완료되었을 때 호출하는 공통 닫기 함수
+const handleCloseReport = () => {
+  setShowReportModal(false);
+  setIsMessage(false);        // 메시지 선택모드 종료
+  setIsSelectMode(false);
+  setSelectedTargetId(null);  // 선택된 메시지 ID 초기화
+  setReportMode(null);
+};
 
 
 
@@ -2041,10 +2322,23 @@ const handleFetchReport = async () => {
     && progress?.currentTurn > 0 
     && !progress?.isCompleted;
 
+
+
+//   // step별로 뒤로 갈 곳을 명시
+//   const stepBackMap = {
+//       // 첫 단계는 페이지 떠남
+//   'WORD_SELECT': null,           
+//   'SCENARIO_SELECT': 'WORD_SELECT',
+//   'VOICE_SELECT': 'SCENARIO_SELECT',
+//   'CHAT': 'VOICE_SELECT',
+//   'REPORT': null  // 별도 처리
+// };
+
+
   // 뒤로가기
   const handleBack = () => {
     if (step === 'REPORT') {
-      leaveChat();
+      navigate('/feedback', { state: { returnTo: -1 } });
       return;
     }
     if (isInProgress) {
@@ -2057,7 +2351,7 @@ const handleFetchReport = async () => {
   // 마이페이지
   const handleMyPage = () => {
     if (step === 'REPORT') {
-      leaveChat();
+      navigate('/feedback', { state: { returnTo: '/my' } });
       return;
     }
     if (isInProgress) {
@@ -2073,9 +2367,6 @@ const handleFetchReport = async () => {
     setExitModal(null);
   };
 
-const leaveChat = () => {
-  navigate('/feedback'); // 피드백 페이지로 이동
-};
 
 
   // 최대 3단계 까지
@@ -2520,7 +2811,25 @@ const passedData = location.state?.wordsData;
 
   return (
     <div className={`${styles.main} ${step === 'CHAT' ? styles['main-chat'] : ''}`}>
-      {<Header currentStep={step} onBack={handleBack} onMyPage={handleMyPage} />}
+      {<Header 
+      currentStep={step} 
+      onBack={handleBack}
+      onMyPage={handleMyPage} 
+      chatData={chatData} 
+      isMessage={isMessage}
+      showReportModal={showReportModal}
+      handleCloseReport={handleCloseReport}
+      onStartMessageReport={() => {
+      setIsSelectMode(true);
+      setIsMessage(true);
+      }} 
+      onStartScenarioReport={() => {
+        setReportMode('SCENARIO');
+        // 시나리오는 바로 룸 ID 할당
+        setSelectedTargetId(chatData.chatRoomId);
+        setIsSelectMode(true);
+        setShowReportModal(true);
+      }}/>}
 
       {step !== 'CHAT' && step !== 'REPORT' && <Stepper currentStep={step} />}
 
@@ -2552,20 +2861,35 @@ const passedData = location.state?.wordsData;
       chatData={chatData}
       progress={progress}
       setProgress={setProgress}
-      leaveChat={leaveChat}
       messages={messages}
       setMessages={setMessages}
       onFetchReport={handleFetchReport}
+      isSelectMode={isSelectMode}
+      onSelectMessage={handleSelectMessage}
+      isReportOpen={showReportModal}
+      selectedTargetId={selectedTargetId}
+      isMessage={isMessage}
       />}
 
       {step !== 'CHAT' && step !== 'REPORT' && Next()}
 
       {step === 'REPORT' && (
-      <ReportPage 
-        reportData={reportData}
-        chatData={chatData}
-      />
-    )}
+        <ReportPage 
+          reportData={reportData}
+          chatData={chatData}
+        />
+      )}
+
+      {/* 신고 모달 */}
+      {showReportModal && (
+        <Reports 
+          mode={reportMode}
+          // 신고할 메시지 Id 1개
+          targetId={selectedTargetId}
+          chatData={chatData}
+          onClose={handleCloseReport}
+        />
+      )}
 
       {exitModal && (
         <ExitModal 

@@ -58,15 +58,6 @@ function QuizPage({ videoId, videoTitle, channelName, thumbnailUrl, duration }) 
   const [subtitles, setSubtitles] = useState([]);
   // 현재 보고 있는 자막 위치 (인덱스)
   const [subtitleIndex, setSubtitleIndex] = useState(-1);
-  // 현재 화면에 표시되는 자막 정보
-  const [currentSubtitle, setCurrentSubtitle] = useState({
-    text: '자막 대기 중..',
-    startTime: null,
-    endTime: null,
-    translation: '',
-    id: null
-  });
-
 
   // 현재 구간 반복 중인지 여부
   const [isLooping, setIsLooping] = useState(false);
@@ -86,8 +77,15 @@ function QuizPage({ videoId, videoTitle, channelName, thumbnailUrl, duration }) 
   // 단어 수집 버튼 누름 여부
   const [isCollected, setIsCollected] = useState(false);
 
-  // // 다음 목표 뱃지 저장
-  // const [nextBadge, setNextBadge] = useState(null);
+  // 퀴즈 정답 측정
+  const [answeredCount, setAnsweredCount] = useState(0);
+  // 퀴즈 이동 중복 클릭 방지
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  // 매칭 퀴즈 버튼 1초간 비활성화
+  const [isBlocked, setIsBlocked] = useState(false);
+  // 매칭 퀴즈 결과 전송 중복 방지
+  const [isCompleting, setIsCompleting] = useState(false);
 
   // 매칭 퀴즈 선택한 영단어
   const [matchingSelectedWord, setMatchingSelectedWord] = useState(null);
@@ -112,6 +110,9 @@ function QuizPage({ videoId, videoTitle, channelName, thumbnailUrl, duration }) 
   // 클릭한 단어의 위치/크기 저장 (위치 계산용)
   const [wordRect, setWordRect] = useState(null);
 
+  // 나가기 전 설문조사 완료 여부 기다리기
+  const [isExiting, setIsExiting] = useState(false);
+
   // useRef = DOM 요소에 직접 접근하기 위한 참조 상자
   // useState와 달리 값이 바뀌어도 리렌더링 안 됨
   // .current로 실제 값(DOM 노드)에 접근
@@ -119,16 +120,67 @@ function QuizPage({ videoId, videoTitle, channelName, thumbnailUrl, duration }) 
   // 렌더링 후에 popupRef.current = <div> 실제 DOM이 들어감
   const popupRef = useRef(null);
 
+  // 최신 state 저장 (갱신용)
+  const stateRef = useRef();
+  // 실제로 보낼 state 저장
+  const saveTimerRef = useRef();
+
+
+
+  const DEFAULT_SUBTITLE = {
+    text: '자막 대기 중..',
+    startTime: null,
+    endTime: null,
+    translation: '',
+    id: null
+  };
+
+  // 유즈 스테이트 대신 파생값으로 변경
+  // 현재 화면에 표시되는 자막 정보
+  const currentSubtitle = subtitles[subtitleIndex] ?? DEFAULT_SUBTITLE;
+
+
+
+  // 디바운스 자동 저장
+  // 매 렌더마다 최신 state를 ref에 저장
+stateRef.current = {
+  videoId, sessionId, quizzes, currentIndex,
+  correctCount, wrongCount, answers, isConfirmed, tempChoice,
+  matchingSelectedWord, matchingSelectedMeaning,
+  matchingMatchedPairs, matchingShuffledMeanings, submittedQuizIds,
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   // content.jsx에서 자막 수신
   useEffect(() => {
-    const listener = (message) => {
+    const handleSubtitleMessage = (message) => {
+
+
 
       // 전체 자막 수신
       if (message.type === 'SUBTITLES_LOADED') {
         const sorted = message.subtitles.sort((a, b) => a.startTime - b.startTime);
         setSubtitles(sorted);
         setSubtitleIndex(0);
-        setCurrentSubtitle(sorted[0]);
+        // setCurrentSubtitle(sorted[0]);
       }
 
       // 새 자막 도착
@@ -142,9 +194,22 @@ function QuizPage({ videoId, videoTitle, channelName, thumbnailUrl, duration }) 
           id: Date.now()
         };
 
-        // 중복 자막 방지 후 목록에 추가
+        // 중복 자막이면 인덱스 갱신 후 목록에 추가
         setSubtitles(prev => {
-        if (prev.some(s => s.text === message.text)) return prev;
+          const existingIdx = prev.findIndex(s => 
+            s.startTime === newSubtitle.startTime && s.text === newSubtitle.text
+          );
+          // 이미 있는 자막이면 그 위치를 현재로 설정
+          if (existingIdx !== -1) {
+            // 인덱스만 갱신
+            setSubtitleIndex(existingIdx);
+            // 배열은 그대로
+            return prev;
+          }
+
+        // if (prev.some(s => s.text === message.text)) return prev;
+
+          // 새 자막이면 추가하고 그 위치를 현재로 설정
           const newList = [...prev, newSubtitle].sort((a, b) => a.startTime - b.startTime);
 
           // 새 자막의 정렬 후 인덱스 찾기
@@ -155,15 +220,15 @@ function QuizPage({ videoId, videoTitle, channelName, thumbnailUrl, duration }) 
           return newList;
         });
 
-        setCurrentSubtitle(newSubtitle);
+        // setCurrentSubtitle(newSubtitle);
       }
     };
 
     // 메시지 리스너 등록
-    chrome.runtime.onMessage.addListener(listener);
+    chrome.runtime.onMessage.addListener(handleSubtitleMessage);
 
     // 페이지 벗어날 때 리스너 제거
-    return () => chrome.runtime.onMessage.removeListener(listener);
+    return () => chrome.runtime.onMessage.removeListener(handleSubtitleMessage);
   }, []);
 
 
@@ -230,12 +295,23 @@ function QuizPage({ videoId, videoTitle, channelName, thumbnailUrl, duration }) 
 
 
 
+
+
+
+
+
+
+
+
+
+
+
   // 이전 자막 스크립트 이동
   const goPrev = () => {
     if (subtitleIndex > 0) {
       const newIndex = subtitleIndex - 1;
       setSubtitleIndex(newIndex);
-      setCurrentSubtitle(subtitles[newIndex]);
+      // setCurrentSubtitle(subtitles[newIndex]);
     }
   };
 
@@ -246,7 +322,7 @@ function QuizPage({ videoId, videoTitle, channelName, thumbnailUrl, duration }) 
     if (subtitleIndex < subtitles.length - 1) {
       const newIndex = subtitleIndex + 1;
       setSubtitleIndex(newIndex);
-      setCurrentSubtitle(subtitles[newIndex]);
+      // setCurrentSubtitle(subtitles[newIndex]);
     }
   };
 
@@ -835,6 +911,7 @@ function QuizPage({ videoId, videoTitle, channelName, thumbnailUrl, duration }) 
 
   // 매칭 퀴즈 영단어 클릭
   const matchingHandleWordClick = (wordQuizId) => {
+    if (isBlocked) return;
     // 이미 맞춘 단어면 무시
     if (matchingMatchedPairs.some(pair => pair.wordQuizId === wordQuizId)) return;
 
@@ -851,6 +928,7 @@ function QuizPage({ videoId, videoTitle, channelName, thumbnailUrl, duration }) 
 
   // 매칭 퀴즈 뜻 클릭
   const matchingHandleMeaningClick = (meaningQuizId) => {
+    if (isBlocked) return;
     // 이미 맞춘 뜻이면 무시
     if (matchingMatchedPairs.some(pair => pair.meaningQuizId === meaningQuizId)) return;
 
@@ -915,13 +993,23 @@ function QuizPage({ videoId, videoTitle, channelName, thumbnailUrl, duration }) 
           log.debug('매칭 오답 전송 실패:', error);
         }
       }
+
+      // 선택한 정보 초기화
+      setMatchingSelectedWord(null);
+      setMatchingSelectedMeaning(null);
+
+      // 정오답 시각효과
       setMatchingWrongPair({ wordQuizId, meaningQuizId });
 
-      // 1초 후 초기화
+      // 1초 동안 버튼 비활성화
+      setIsBlocked(true);
+
+      // 1초 후 시각 효과 초기화 및 버튼 활성화
       setTimeout(() => {
         setMatchingWrongPair(null);
-        setMatchingSelectedWord(null);
-        setMatchingSelectedMeaning(null);
+
+        // 버튼 활성화
+        setIsBlocked(false);
       }, 1000);
     }
   };
@@ -970,37 +1058,51 @@ function QuizPage({ videoId, videoTitle, channelName, thumbnailUrl, duration }) 
 
   // 매칭 퀴즈 결과 보기 버튼
   const handleMatchingComplete = async () => {
+    if (isSettlement) return;
+    // 결과 중복 전송 막기
+    if (isCompleting) return;
+  
     // 모든 매칭 완료했는지 확인
-    if (matchingMatchedPairs.length === quizzes.length) {
-      try {
-        const finalResult = await apiFetch(`/quiz/sessions/${sessionId}/complete`, {
-          method: 'POST'
-        });
-        // 해당 유저의 저장된 진행 상황 삭제
-        // chrome.storage.local.remove('quizState');
-        await removeUserData('quizState');
-        // 정산 페이지로 이동
-        setSettlementData(finalResult.data);
-        setIsSettlement(true);
-        // onSettlementPage(finalResult.data);
-      } catch (error) {
-        log.debug('handleMatchingComplete 세션 종료 실패', error);
+    if (matchingMatchedPairs.length !== quizzes.length) return;
+    // 결과 전송 완료 처리
+    setIsCompleting(true);
+
+    try {
+      const finalResult = await apiFetch(`/quiz/sessions/${sessionId}/complete`, {
+        method: 'POST'
+      });
+      // 해당 유저의 저장된 진행 상황 삭제
+      await removeUserData('quizState');
+      // 정산 데이터 저장
+      setSettlementData(finalResult.data);
+      // 정산 페이지 표시
+      setIsSettlement(true);
+    } catch (error) {
+      log.debug('complete 실패:', error);
+        
+      // 400 = 이미 완료, 그 외 = 진짜 에러
+      if (error.status === 400) {
+        // 이미 완료된 상태 확인용
+        log.debug('이미 완료된 세션');
+      } else {
+        // 네트워크 에러 등 -> 재시도 가능
+        setIsCompleting(false);
       }
     }
   };
 
 
-
   // 퀴즈 초기화 및 이전 진행 상황 복원
   useEffect(() => {
     const restoreQuiz = async () => {
+      // 새로운 영상으로 전환되거나 복원을 시작할 때 정산/설문 화면 초기화
+      setIsSettlement(false);
+
+
       // 크롬 저장소에서 유저 id에 맞는 이전 진행 상황 확인
       const quizState = await loadUserData('quizState');
-    // 크롬 저장소에서 이전 진행 상황 확인
-    // chrome.storage.local.get('quizState', async (result) => {
 
       // 같은 영상의 저장된 퀴즈가 있으면 이어하기
-      // if (result.quizState?.videoId === videoId) {
       if (quizState && quizState.videoId === videoId) {
         setQuizzes(quizState.quizzes);
         setMatchingShuffledMeanings(quizState.matchingShuffledMeanings ?? []);
@@ -1029,76 +1131,118 @@ function QuizPage({ videoId, videoTitle, channelName, thumbnailUrl, duration }) 
     // });
     restoreQuiz();
 
-    // content.jsx에서 새 퀴즈 받기
-    const listener = (message) => {
-      if (message.type === 'QUIZ_READY') {
 
-        // 새 퀴즈로 초기화
-        setSessionId(message.sessionId);
-        setQuizzes(message.quizzes);
-        if (message.quizzes[0]?.quizType === 'MATCHING') {
-  // { quizId, meaning } 형태로 저장
-  const meaningsWithId = message.quizzes.map(q => ({
-    quizId: q.quizId,
-    meaning: q.answer
-  }));
-  setMatchingShuffledMeanings(shuffle(meaningsWithId));
-} else {
-  setMatchingShuffledMeanings([]);
-}
-        setCurrentIndex(0);
-        setCorrectCount(0);
-        setWrongCount(0);
-        setAnswers([]);
-        setIsConfirmed(false);
-        setTempChoice(null);
-        setMatchingSelectedWord(null);
-        setMatchingSelectedMeaning(null);
-        setMatchingMatchedPairs([]);
-        setMatchingWrongPair(null);
-        setSubmittedQuizIds([]);
 
-      // 영상 일시정지 메시지 전송
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        if (tabs[0]) chrome.tabs.sendMessage(tabs[0].id, { type: 'SET_QUIZ_MODE', active: true }).catch((error) => {log.debug('이거 에러33:', error)});
-      });
+  // 비동기 처리 함수 분리
+  const processQuizReady = async (message) => {
+    // 새 퀴즈 시작 시 이전 저장 데이터 삭제
+    await removeUserData('quizState');
+
+    // 새 퀴즈로 초기화할 때 정산 및 설문 페이지 상태도 확실하게 초기화
+    setIsSettlement(false);
+
+
+    // 새 퀴즈로 초기화
+    setSessionId(message.sessionId);
+    setQuizzes(message.quizzes);
+    
+    if (message.quizzes[0]?.quizType === 'MATCHING') {
+      const meaningsWithId = message.quizzes.map(q => ({
+        quizId: q.quizId,
+        meaning: q.answer
+      }));
+      setMatchingShuffledMeanings(shuffle(meaningsWithId));
+    } else {
+      setMatchingShuffledMeanings([]);
+    }
+    setCurrentIndex(0);
+    setCorrectCount(0);
+    setWrongCount(0);
+    setAnswers([]);
+    setIsConfirmed(false);
+    setTempChoice(null);
+    setMatchingSelectedWord(null);
+    setMatchingSelectedMeaning(null);
+    setMatchingMatchedPairs([]);
+    setMatchingWrongPair(null);
+    setSubmittedQuizIds([]);
+
+    // 영상 일시정지 메시지 전송
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs[0]) chrome.tabs.sendMessage(tabs[0].id, { type: 'SET_QUIZ_MODE', active: true })
+        .catch((error) => log.debug('영상 일시정지 메시지 전송 오류', error));
+    });
+  };
+
+
+  // 동기 리스너
+  const handleQuizMessage = (message) => {
+    if (message.type === 'QUIZ_READY') {
+      // 비동기 호출
+      processQuizReady(message);
     }
   };
-  chrome.runtime.onMessage.addListener(listener);
-
+  
+  chrome.runtime.onMessage.addListener(handleQuizMessage);
   // cleanup
-  return () => chrome.runtime.onMessage.removeListener(listener);
-  }, [videoId]);
+  return () => chrome.runtime.onMessage.removeListener(handleQuizMessage);
+}, [videoId]);
 
 
+useEffect(() => {
+  if (!sessionId || isRestoring) return;
+  
+  // 디바운스 패턴
+  clearTimeout(saveTimerRef.current);
+  saveTimerRef.current = setTimeout(() => {
+    saveUserData('quizState', stateRef.current);
+  }, 500);
+  
+  return () => clearTimeout(saveTimerRef.current);
+}, [
+  currentIndex, correctCount, wrongCount, answers, isConfirmed,
+  sessionId, tempChoice, isRestoring,
+  matchingSelectedWord, matchingSelectedMeaning, matchingMatchedPairs,
+  submittedQuizIds
+  // videoId, quizzes 제외 (별도 처리)
+]);
 
 
-  // 진행 상황 자동 저장 (상태 바뀔 때마다)
-  useEffect(() => {
-    // 복원 중 아닐 때만 저장
-    if (sessionId && !isRestoring) {
-    // chrome.storage.local.set({
-    //   quizState: {
-      saveUserData('quizState', {
-        videoId,
-        sessionId,
-        quizzes,
-        currentIndex,
-        correctCount,
-        wrongCount,
-        answers,
-        isConfirmed,
-        tempChoice,
-        matchingSelectedWord,
-        matchingSelectedMeaning,
-        matchingMatchedPairs,
-        matchingShuffledMeanings,
-        submittedQuizIds,
-      }
-    )
-  };
-      // });
-  }, [currentIndex, correctCount, wrongCount, answers, isConfirmed, sessionId, tempChoice, videoId, isRestoring, quizzes, matchingSelectedWord, matchingSelectedMeaning, matchingMatchedPairs, matchingShuffledMeanings, submittedQuizIds]);
+// 영상 변경 시 즉시 저장
+useEffect(() => {
+  if (!sessionId || isRestoring || !videoId) return;
+  
+  // 디바운스 취소하고 즉시 저장
+  clearTimeout(saveTimerRef.current);
+  saveUserData('quizState', stateRef.current);
+}, [videoId, sessionId, isRestoring]);
+
+
+  // // 진행 상황 자동 저장 (상태 바뀔 때마다)
+  // useEffect(() => {
+  //   // 복원 중 아닐 때만 저장
+  //   if (sessionId && !isRestoring) {
+
+  //     saveUserData('quizState', {
+  //       videoId,
+  //       sessionId,
+  //       quizzes,
+  //       currentIndex,
+  //       correctCount,
+  //       wrongCount,
+  //       answers,
+  //       isConfirmed,
+  //       tempChoice,
+  //       matchingSelectedWord,
+  //       matchingSelectedMeaning,
+  //       matchingMatchedPairs,
+  //       matchingShuffledMeanings,
+  //       submittedQuizIds,
+  //     }
+  //   )
+  // };
+
+  // }, [currentIndex, correctCount, wrongCount, answers, isConfirmed, sessionId, tempChoice, videoId, isRestoring, quizzes, matchingSelectedWord, matchingSelectedMeaning, matchingMatchedPairs, matchingShuffledMeanings, submittedQuizIds]);
 
 
 
@@ -1119,6 +1263,15 @@ function QuizPage({ videoId, videoTitle, channelName, thumbnailUrl, duration }) 
       setFeedback(result.data);
       setIsConfirmed(true);
 
+      // 문제별 기록 저장
+      setAnswers(prev => [...prev, {
+        quizId: currentQuiz?.quizId,
+        userAnswer: tempChoice,
+        isCorrect: result.data?.correct
+      }]);
+
+      setAnsweredCount(prev => prev + 1);
+
       // 정답/오답 카운트
       if (result.data?.correct) {
         setCorrectCount(prev => prev + 1);
@@ -1126,12 +1279,7 @@ function QuizPage({ videoId, videoTitle, channelName, thumbnailUrl, duration }) 
         setWrongCount(prev => prev + 1);
       }
 
-      // 문제별 기록 저장
-      setAnswers(prev => [...prev, {
-        quizId: currentQuiz?.quizId,
-        userAnswer: tempChoice,
-        isCorrect: result.data?.correct
-      }]);
+
     } catch (error) {
       log.debug('제출 실패', error);
     }
@@ -1141,38 +1289,59 @@ function QuizPage({ videoId, videoTitle, channelName, thumbnailUrl, duration }) 
 
   // 다음 문제 또는 정산 완료
   const handleNext = async () => {
-    // 매칭 퀴즈면 바로 정산 페이지
-    if (currentQuiz?.quizType === 'MATCHING') {
-      try {
-        const finalResult = await apiFetch(`/quiz/sessions/${sessionId}/complete`, {
-          method: 'POST'
-        });
-        // chrome.storage.local.remove('quizState');
-        // 해당 유저의 저장된 진행 상황 삭제
-        await removeUserData('quizState');
+    // 정산 끝났으면 아무것도 안 함
+    if (isSettlement) return;
+    if (isProcessing || isCompleting) return;
 
-        // 정산 페이지로 이동
-        setSettlementData(finalResult.data);
-        setIsSettlement(true);
-        // onSettlementPage(finalResult.data);
-      } catch (error) {
-        log.debug('MATCHING handleNext 세션 종료 실패', error);
+    setIsProcessing(true);
+
+    try {
+      // 매칭 퀴즈면 바로 정산 페이지
+      if (currentQuiz?.quizType === 'MATCHING') {
+        // 전송 완료 처리
+        setIsCompleting(true);
+
+        try {
+          const finalResult = await apiFetch(`/quiz/sessions/${sessionId}/complete`, {
+            method: 'POST'
+          });
+          // 해당 유저의 저장된 진행 상황 삭제
+          await removeUserData('quizState');
+          // 정산 페이지로 이동
+          setSettlementData(finalResult.data);
+          setIsSettlement(true);
+        } catch (error) {
+          log.debug('complete 실패:', error);
+        
+          // 400 = 이미 완료, 그 외 = 진짜 에러
+          // error.status === 400은 HTTP 표준
+          if (error.status === 400) {
+            // 이미 완료된 상태 확인용
+            log.debug('이미 완료된 세션');
+          } else {
+            // 네트워크 에러 등 재시도 가능하게 설정
+            setIsCompleting(false);
+          }
+        }
+        return;
       }
-      return;
-    }
 
-    if (currentIndex < quizzes.length - 1) {
-      // 다음 문제로 이동
-      setCurrentIndex(prev => prev + 1);
-      setTempChoice(null);
-      setIsConfirmed(false);
-      setFeedback(null);
-      setDictionaryData(null);
-    } else {
-      // 마지막 문제였으면 퀴즈 종료
-      try {
+      // 빈칸/OX → 다음 문제 또는 종료
+      // 건너뛰기 = 진행도만 +1 (답안 기록은 안 함)
+      if (!isConfirmed) {
+        setAnsweredCount(prev => prev + 1);
+      }
+
+      if (currentIndex < quizzes.length - 1) {
+        // 다음 문제로 이동
+        setCurrentIndex(prev => prev + 1);
+        setTempChoice(null);
+        setIsConfirmed(false);
+        setFeedback(null);
+        setDictionaryData(null);
+      } else {
+        // 마지막 문제였으면 퀴즈 종료
         // 해당 유저의 저장된 진행 상황 삭제
-        // chrome.storage.local.remove('quizState');
         await removeUserData('quizState');
 
         // 영상 재생 신호
@@ -1190,9 +1359,9 @@ function QuizPage({ videoId, videoTitle, channelName, thumbnailUrl, duration }) 
         setFeedback(null);
         setDictionaryData(null);
         setSubmittedQuizIds([]);
-      } catch (error) {
-        log.debug('빈칸,ox handleNext 세션 종료 실패', error);
       }
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -1221,6 +1390,18 @@ function QuizPage({ videoId, videoTitle, channelName, thumbnailUrl, duration }) 
 
   // 뒤로가기 버튼
   const handleBack = () => {
+    // if (feedbackPage) {
+    //   navigate('/feedback', { state: { returnTo: -1 } });
+    //   return;
+    // }
+
+    // 정산 했는지 체크
+    if (isSettlement) {
+      // 쿠키 확인 후 페이지 이동
+      handleExitFromSettlement();
+      return;
+    }
+
     if (currentQuiz) {
       setExitModal('back');
     } else {
@@ -1230,6 +1411,18 @@ function QuizPage({ videoId, videoTitle, channelName, thumbnailUrl, duration }) 
 
   // 마이페이지 버튼
   const handleMyPage = () => {
+
+    // if (feedbackPage) {
+    //   navigate('/feedback', { state: { returnTo: '/my' } });
+    //   return;
+    // }
+
+    // 정산 했는지 체크
+    if (isSettlement) {
+      handleExitFromSettlement('/my');
+      return;
+    }
+
     if (currentQuiz) {
       setExitModal('mypage');
     } else {
@@ -1238,30 +1431,52 @@ function QuizPage({ videoId, videoTitle, channelName, thumbnailUrl, duration }) 
   };
 
 
-
-  // // 테스트 버튼 오류
-  // const testButton = async () => {
-  //   try {
-  //       const finalResult = await apiFetch(`/quiz/sessions/${sessionId}/complete`, {
-  //         method: 'POST'
-  //       });
-  //       // chrome.storage.local.remove('quizState');
-  //       // 해당 유저의 저장된 진행 상황 삭제
-  //       await removeUserData('quizState');
-
-  //       // 정산 페이지로 이동
-  //       setSettlementData(finalResult.data);
-  //       setIsSettlement(true);
-  //       // onSettlementPage(finalResult.data);
-  //     } catch (error) {
-  //       log.debug('MATCHING handleNext 세션 종료 실패', error);
-  //     }
-  // };
+// 쿠키 확인 -> 설문조사 or 페이지 이동
+const handleExitFromSettlement = async (target = -1) => {
+  if (isExiting) return;
+  setIsExiting(true);
 
 
+  try {
+    // 로컬 저장소 확인
+
+    const feedback = await loadUserData('submittedFeedback');
+
+    if (!feedback?.hasSubmittedFeedback) {
+
+      const check = await apiFetch('/feedback/check', { method: 'GET' });
+      const hasSubmitted = check?.data?.hasSubmittedFeedback === true;
 
 
+      if (!hasSubmitted) {
 
+        // 설문 안 했음 → 설문 페이지로
+        navigate('/feedback', { 
+          state: { returnTo: target }
+        });
+        return;
+      } else {
+
+        // 서버엔 제출됨 → 로컬에 저장
+        await saveUserData('submittedFeedback', { hasSubmittedFeedback: true });
+      }
+    }
+    
+    // 설문 이미 했으면 바로 이동
+    if (target === -1) {
+      navigate(-1);
+    } else {
+      navigate(target);
+    }
+  } catch (error) {
+    log.debug('나가기 실패:', error);
+    // 에러 나도 일단 이동
+    if (target === -1) navigate(-1);
+    else navigate(target);
+  } finally {
+    setIsExiting(false);
+  }
+};
 
 
 
@@ -1277,21 +1492,23 @@ function QuizPage({ videoId, videoTitle, channelName, thumbnailUrl, duration }) 
 
         <div className={styles.header}>
           <div className={styles.header2}>
+            {/* 뒤로가기 */}
             <button
             onClick={handleBack}
             className={styles['header3-l']}>
               <svg xmlns="http://www.w3.org/2000/svg" width="10" height="17" viewBox="0 0 10 17" fill="none">
-  <path d="M9.35862 0.35565C9.83282 0.82987 9.83282 1.59871 9.35862 2.07292L2.93152 8.5L9.35862 14.9271C9.83282 15.4013 9.83282 16.1702 9.35862 16.6444C8.88442 17.1185 8.11562 17.1185 7.64142 16.6444L0.355657 9.3586C-0.118553 8.8845 -0.118553 8.1156 0.355657 7.6414L7.64142 0.35565C8.11562 -0.11855 8.88442 -0.11855 9.35862 0.35565Z" fill="#454440"/>
-</svg>
+                <path d="M9.35862 0.35565C9.83282 0.82987 9.83282 1.59871 9.35862 2.07292L2.93152 8.5L9.35862 14.9271C9.83282 15.4013 9.83282 16.1702 9.35862 16.6444C8.88442 17.1185 8.11562 17.1185 7.64142 16.6444L0.355657 9.3586C-0.118553 8.8845 -0.118553 8.1156 0.355657 7.6414L7.64142 0.35565C8.11562 -0.11855 8.88442 -0.11855 9.35862 0.35565Z" fill="#454440"/>
+              </svg>
             </button>
 
+            {/* 마이페이지 */}
             <button
             onClick={handleMyPage}
             className={styles['header3-r']}
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
-  <path d="M13.0293 13.1426C16.5637 13.1428 19.4287 16.0085 19.4287 19.543C19.4287 19.7954 19.2241 20 18.9717 20H5.0293C4.77685 20 4.57134 19.7954 4.57129 19.543C4.57129 16.0084 7.4371 13.1426 10.9717 13.1426H13.0293ZM12 4C14.2091 4 16 5.79086 16 8C16 10.2091 14.2091 12 12 12C9.79101 11.9998 8 10.209 8 8C8 5.79096 9.79101 4.00016 12 4Z" fill="#454440"/>
-</svg>
+                <path d="M13.0293 13.1426C16.5637 13.1428 19.4287 16.0085 19.4287 19.543C19.4287 19.7954 19.2241 20 18.9717 20H5.0293C4.77685 20 4.57134 19.7954 4.57129 19.543C4.57129 16.0084 7.4371 13.1426 10.9717 13.1426H13.0293ZM12 4C14.2091 4 16 5.79086 16 8C16 10.2091 14.2091 12 12 12C9.79101 11.9998 8 10.209 8 8C8 5.79096 9.79101 4.00016 12 4Z" fill="#454440"/>
+              </svg>
             </button>
           </div>
           <div className={styles.header4}>
@@ -1311,17 +1528,24 @@ function QuizPage({ videoId, videoTitle, channelName, thumbnailUrl, duration }) 
           </div>
 
           <div className={styles.bar4}>
+
           {quizzes && quizzes.length > 0 && (
             <div className={styles.bar5}>
-              <p className={styles['bar5-t']}>{currentQuiz?.quizType === 'MATCHING' ? matchingMatchedPairs.length : currentIndex + 1}</p>
-              <span className={styles['bar5-t']}> /{quizzes?.length}</span>
+              {/* 0값이지만 1로 보이게 +1 */}
+              <p className={styles['bar5-t']}>{currentQuiz?.quizType === 'MATCHING' 
+              ? matchingMatchedPairs.length 
+              : currentIndex + 1}</p>
+              <span className={styles['bar5-t']}> / {quizzes?.length}</span>
             </div>
             )}
             <div className={styles.bar6}>
               <div className={styles.bar7}></div>
               <div 
               className={styles.bar8}
-              style={{width: currentQuiz?.quizType === 'MATCHING' ? `${274 * (matchingMatchedPairs.length / quizzes.length)}px` : `${274 * ((currentIndex + 1) / quizzes.length)}px`}}
+
+              style={{width: currentQuiz?.quizType === 'MATCHING' 
+                ? `${274 * (matchingMatchedPairs.length / quizzes.length)}px` 
+                : `${274 * (answeredCount / quizzes.length)}px`}}
               ></div>
             </div>
           </div>
@@ -1460,9 +1684,19 @@ function QuizPage({ videoId, videoTitle, channelName, thumbnailUrl, duration }) 
   }
 
 
+
+
+
+
+
+
+
+
+
   // 실제 빈칸퀴즈 테스트용 오류
   const blankQuiz = () => {
     if (!currentQuiz?.options?.length) return null;
+
     return (
           isConfirmed && !feedback?.correct ? (
             // 틀린 경우 해설 보이기
@@ -1481,12 +1715,11 @@ function QuizPage({ videoId, videoTitle, channelName, thumbnailUrl, duration }) 
               </div>
               <div className={styles.explain4}>
                 <p className={styles.explain5}>{feedback?.explanation}</p>
-                {/* <p className={styles.explain6}></p> */}
               </div>
             </div>
 
 
-            <div className={styles.information}>
+            {/* <div className={styles.information}>
               <div className={styles.information2}>
                 <p className={styles.information3}>💡 함께 알아두면 좋은 표현</p>
               </div>
@@ -1494,7 +1727,7 @@ function QuizPage({ videoId, videoTitle, channelName, thumbnailUrl, duration }) 
                 <p className={styles.information5}>stop -ing : ~하는 것을 멈추다 (He stopped smoking. 그는 담배를 끊었다.)</p>
                 <p className={styles.information5}>stop to 동사원형 : ~하기 위해 멈추다 (He stopped to smoke. 그는 담배를 피우려고 멈췄다.)</p>
               </div>
-            </div>
+            </div> */}
 
 
             <div className={styles['quiz-s']}>
@@ -1757,35 +1990,34 @@ function QuizPage({ videoId, videoTitle, channelName, thumbnailUrl, duration }) 
 
           <div className={styles['quiz-b']}>
             <div className={styles['quiz-c']}>
-
               <div className={styles.matching}>
                 {/* 매칭 퀴즈 보기 버튼 */}
-            {quizzes?.map((quiz, i) => {
-  const meaningItem = matchingShuffledMeanings[i]; // { quizId, meaning }
-  return (
-    <React.Fragment key={quiz.quizId}>
-      {/* 영어 단어 */}
-      <button
-        disabled={matchingMatchedPairs.some(p => p.wordQuizId === quiz.quizId)}
-        onClick={() => matchingHandleWordClick(quiz.quizId)}
-        className={styles.matching2}
-        style={{ ...matchingGetWordStyle(quiz.quizId) }}
-      >
-        {quiz.question}
-      </button>
+                {quizzes?.map((quiz, i) => {
+                  const meaningItem = matchingShuffledMeanings[i]; // { quizId, meaning }
+                  return (
+                    <React.Fragment key={quiz.quizId}>
+                      {/* 영어 단어 */}
+                      <button
+                        disabled={isBlocked || matchingMatchedPairs.some(p => p.wordQuizId === quiz.quizId)}
+                        onClick={() => matchingHandleWordClick(quiz.quizId)}
+                        className={styles.matching2}
+                        style={{ ...matchingGetWordStyle(quiz.quizId) }}
+                      >
+                        {quiz.question}
+                      </button>
 
-      {/* 단어 뜻 */}
-      <button
-        disabled={matchingMatchedPairs.some(p => p.meaningQuizId === meaningItem.quizId)}
-        onClick={() => matchingHandleMeaningClick(meaningItem.quizId)}
-        className={styles.matching3}
-        style={{ ...matchingGetMeaningStyle(meaningItem.quizId) }}
-      >
-        {meaningItem.meaning}
-      </button>
-    </React.Fragment>
-  );
-})}
+                      {/* 단어 뜻 */}
+                      <button
+                        disabled={isBlocked || matchingMatchedPairs.some(p => p.meaningQuizId === meaningItem.quizId)}
+                        onClick={() => matchingHandleMeaningClick(meaningItem.quizId)}
+                        className={styles.matching3}
+                        style={{ ...matchingGetMeaningStyle(meaningItem.quizId) }}
+                      >
+                        {meaningItem.meaning}
+                      </button>
+                    </React.Fragment>
+                  );
+                })}
               </div>
             </div>
 
@@ -1806,7 +2038,7 @@ function QuizPage({ videoId, videoTitle, channelName, thumbnailUrl, duration }) 
             {/* 매칭 퀴즈는 결과 보기만 나옴 */}
             <button
             onClick={handleMatchingComplete}
-            disabled={matchingMatchedPairs.length < quizzes.length}
+            disabled={isCompleting || matchingMatchedPairs.length < quizzes.length}
             className={styles['quiz-s5']}
             >
               <p className={styles['quiz-s6']}>
@@ -1840,6 +2072,7 @@ function QuizPage({ videoId, videoTitle, channelName, thumbnailUrl, duration }) 
 // 실제 퀴즈나가기 테스트용 오류
   const testExit= () => {
     return (
+      <div className={styles.overlay}>
       <div className={styles.exit}>
         <div className={styles.exit2}>
           <p className={styles.exit3}>지금 끝내기에는 아쉬워요! <br />조금만 더 가봐요!</p>
@@ -1862,6 +2095,7 @@ function QuizPage({ videoId, videoTitle, channelName, thumbnailUrl, duration }) 
             <p className={styles.exit10}>저장하고 나가기</p>
           </button>
         </div>
+      </div>
       </div>
     )
   }
