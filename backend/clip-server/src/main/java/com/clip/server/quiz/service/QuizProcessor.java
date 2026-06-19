@@ -2,6 +2,8 @@ package com.clip.server.quiz.service;
 
 import com.clip.server.common.exception.BusinessException;
 import com.clip.server.common.exception.ErrorCode;
+import com.clip.server.quiz.ai.OpenAIService;
+import com.clip.server.quiz.ai.QuizFallbackService;
 import com.clip.server.quiz.dto.request.QuizGenerateRequest;
 import com.clip.server.quiz.dto.request.QuizWordRequest;
 import com.clip.server.quiz.dto.response.QuizCompleteResponse;
@@ -24,7 +26,6 @@ import com.clip.server.user.repository.UserBadgeRepository;
 import com.clip.server.user.repository.UserRepository;
 import com.clip.server.user.service.ExpLogService;
 import com.clip.server.video.entity.Video;
-import com.clip.server.video.repository.VideoRepository;
 import com.clip.server.word.entity.WordType;
 import com.clip.server.word.repository.CollectedWordRepository;
 import lombok.RequiredArgsConstructor;

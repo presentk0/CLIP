@@ -19,7 +19,6 @@ import java.util.stream.IntStream;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class ChatScenarioService {
 
     private final ChatScenarioAiClient chatScenarioAiClient;

@@ -90,6 +90,7 @@ function isValidSender(sender) {
     `chrome-extension://${chrome.runtime.id}`,
     'https://www.youtube.com',
     'https://youtube.com',
+    'https://m.youtube.com',
   ];
 
   if (sender.origin && !ALLOWED_ORIGINS.includes(sender.origin)) {
@@ -180,17 +181,23 @@ function validateEndpoint(endpoint) {
 // ============ 인증 헬퍼 ============
 async function getAuth() {
 
-  // return await chrome.storage.session.get(['accessToken', 'user']);
+
   const result = await chrome.storage.session.get(['accessToken', 'user']);
-  // log.debug('백그라운드 GET_AUTH:', JSON.stringify(result, null, 2), Date.now());
+
   return result;
 }
 
 async function setAuth({ accessToken, user }) {
+
+
   await chrome.storage.session.set({ accessToken, user });
+
+
+
 }
 
 async function clearAuth() {
+
   await chrome.storage.session.remove(['accessToken', 'user']);
 }
 
@@ -224,8 +231,10 @@ const handleTranslate = (message, sendResponse) => {
 
       sendResponse(translateData);
     } catch (error) {
-      log.debug('번역 apiFetch 실패:', error.message, error.code,Date.now());
-
+      // 오류, 처음 등록하면 서버에 값이 없어서 첫 시도는 실패함, 일단 첫 시도는 로그 뜨지 않게 설정하고 재시도
+      if (retryCount > 0 && retryCount < MAX_RETRY) {
+        log.debug('번역 apiFetch 실패:', error.message, error.code,Date.now());
+      }
 
 
       if (retryCount < MAX_RETRY) {
@@ -234,7 +243,7 @@ const handleTranslate = (message, sendResponse) => {
           fetchTranslate(retryCount + 1);
         }, RETRY_DELAY);
       } else {
-
+        log.error('번역 최종 실패', error.message, error.code);
         sendResponse({ success: false, error: sanitizeError(error) });
       }
     }
@@ -268,7 +277,12 @@ const handleTranslateWord = (message, sendResponse) => {
 
       sendResponse(translateWordData);
     } catch (error) {
-      log.debug('번역 apiFetch 실패', error.message, error.code,Date.now());
+
+      // 오류, 처음 등록하면 서버에 값이 없어서 첫 시도는 실패함, 일단 첫 시도는 로그 뜨지 않게 설정하고 재시도
+      if (retryCount > 0 && retryCount < MAX_RETRY) {
+        log.debug('단어 번역 apiFetch 실패', error.message, error.code,Date.now());
+      }
+
 
 
 
@@ -278,7 +292,7 @@ const handleTranslateWord = (message, sendResponse) => {
           fetchTranslateWord(retryCount + 1);
         }, RETRY_DELAY);
       } else {
-
+        log.error('단어 번역 최종 실패', error.message, error.code);
         sendResponse({ success: false, error: sanitizeError(error) });
       }
     }
@@ -293,9 +307,12 @@ const handleTranslateWord = (message, sendResponse) => {
 
 // 인증 정보 조회
 const handleGetAuth = async (sendResponse) => {
+
   try {
     const auth = await getAuth();
+
     sendResponse(auth);
+
   } catch (error) {
     log.error('인증 조회 실패', error);
     sendResponse({ success: false, error: sanitizeError(error) });
@@ -365,6 +382,8 @@ const handleGetUserId = async (sendResponse) => {
 // ============ 메시지 라우터 ============
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+
+
   // 메시지 검증
   if (!message?.type) return;
 
@@ -382,15 +401,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     'GET_AUTH',
     'CLEAR_AUTH',
     'GET_USER_ID',
-
-
-
-
-
   ];
 
   // 백그라운드용 메시지 아니면 리턴
   if (!HANDLED_TYPES.includes(message.type)) {
+
     return;
   }
 
@@ -448,16 +463,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 // 저장소 변경 감지 리스너 등록
 chrome.storage.onChanged.addListener((changes, area) => {
+
   // 변경된 저장소가 session이 아니면 리턴
   if (area !== 'session') return;
 
   // 이번 변경에 토큰 또는 유저 정보가 포함되어야만 반응
   if (!changes.accessToken && !changes.user) return;
-  
+
   // 모든 유튜브 탭에 알림
   chrome.tabs.query({ url: '*://*.youtube.com/*' }, (tabs) => {
+
     tabs.forEach(tab => {
+
       chrome.tabs.sendMessage(tab.id, { type: 'AUTH_CHANGED' })
+        // chrome.tabs.sendMessage는 수신자가 없으면 에러를 던짐
+        // 받을 수 있는 탭만 받는 형태라 에러 로깅 필요없음
         .catch(() => {});
     });
   });

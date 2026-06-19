@@ -8,6 +8,8 @@ public enum MessageType {
     AI_AUDIO, // AI 음성의 URL
     PROGRESS,
     SUGGESTION,
+    HINT_OFFER,    // 힌트 제안 팝업 ("힌트 보기 좋은 타이밍이에요!")
+    HINT_CARD,     // 힌트 카드 본체 (단어 + 예문)
     COMPLETION,
     ERROR
 }

@@ -4,7 +4,7 @@ import com.clip.server.common.exception.BusinessException;
 import com.clip.server.common.exception.ErrorCode;
 import com.clip.server.progress.entity.UserVideoProgress;
 import com.clip.server.progress.repository.UserVideoProgressRepository;
-import com.clip.server.quiz.service.KeywordExtractionService;
+import com.clip.server.quiz.ai.KeywordExtractionService;
 import com.clip.server.subtitle.dto.request.SubtitleRequest;
 import com.clip.server.subtitle.dto.response.SubtitleDetailResponse;
 import com.clip.server.subtitle.dto.response.SubtitleListResponse;
@@ -82,7 +82,7 @@ public class SubtitleProcessor {
                 ? subtitleRequest.getTranslation() : "";
 
         Subtitle subtitle = subtitleRepository
-                .findByVideoAndStartTimeAndText(managedVideo, subtitleRequest.getStartTime(), subtitleRequest.getText())
+                .findFirstByVideoAndStartTimeAndText(managedVideo, subtitleRequest.getStartTime(), subtitleRequest.getText())
                 .orElseGet(() -> saveSubtitleAndKeywords(
                         managedVideo,
                         subtitleRequest.getText(),
@@ -116,7 +116,7 @@ public class SubtitleProcessor {
 
             // 기존 자막 조회
             Optional<Subtitle> existingSubtitle = subtitleRepository
-                    .findByVideoAndStartTimeAndText(video, req.getStartTime(), req.getText());
+                    .findFirstByVideoAndStartTimeAndText(video, req.getStartTime(), req.getText());
 
             if (existingSubtitle.isPresent()) {
                 //  기존 자막 - translation이 비어있으면 업데이트

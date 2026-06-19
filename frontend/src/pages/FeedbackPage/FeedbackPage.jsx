@@ -4,7 +4,8 @@ import { submitFeedback } from '../../services/feedback';
 import styles from './FeedbackPage.module.css';
 import { log } from '../../utils/logger';
 import frog from '../../imgs/image_809.png';
-
+import { useLocation } from 'react-router-dom';
+import { saveUserData } from '../../utils/userStorage';
 
 const SCORE_LABELS = {
   1: '어색했다',
@@ -13,14 +14,24 @@ const SCORE_LABELS = {
 
 const FeedbackPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+
   const [score, setScore] = useState(0);
   const [goodPoint, setGoodPoint] = useState('');
   const [improvePoint, setImprovePoint] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // 어디로 가야 할지 받기
+  const returnTo = location.state?.returnTo ?? '/';
+
+  // 다음 페이지 이동 결정 함수
+  const goToNext = () => {
+    navigate(returnTo);
+  };
+
   // 그냥 나가기 (X 버튼)
   const handleClose = () => {
-    navigate('/'); // 홈으로
+    goToNext();
   };
 
   // 제출하고 나가기
@@ -45,9 +56,18 @@ const FeedbackPage = () => {
         improvePoint,
       });
 
-      // apiFetch가 success: false면 throw하므로 여기 오면 성공
+      // API 제출 성공 시점에 로컬 스토리지에 제출 완료 기록
+      // 로컬 저장은 try/catch로 분리 (실패해도 진행)
+      try {
+        await saveUserData('submittedFeedback', { hasSubmittedFeedback: true });
+      } catch (saveError) {
+        // 어차피 서버에 저장됐으니 문제없음
+        log.debug('로컬 저장 실패 (무시 가능)', saveError);
+      }
+
+
       alert(result?.message || '소중한 의견 감사합니다!');
-      navigate('/');
+      goToNext();
     } catch (error) {
       log.debug('피드백 제출 실패:', error);
       alert(error.message || '제출에 실패했습니다.');
@@ -145,68 +165,3 @@ const FeedbackPage = () => {
 };
 
 export default FeedbackPage;
-
-
-
-
-        {/* <div className={styles.header}>
-          <img src="/frog.png" alt="frog" className={styles.icon} />
-          <h2>여러분의 경험은 어땠나요?</h2>
-          <p>잠깐, 30초만 들려주세요</p>
-        </div> */}
-
-        {/* Q1 */}
-        {/* <section className={styles.section}>
-          <h3>
-            <span className={styles.qNum}>01</span>
-            영상 보는 흐름에 학습이 자연스럽게 녹아들었나요?
-          </h3>
-          <div className={styles.scoreBox}>
-            {[1, 2, 3, 4, 5].map((num) => (
-              <div key={num} className={styles.scoreItem}>
-                <button
-                  className={`${styles.scoreBtn} ${score === num ? styles.active : ''}`}
-                  onClick={() => setScore(num)}
-                >
-                  {num}
-                </button>
-                {SCORE_LABELS[num] && (
-                  <span className={styles.scoreLabel}>{SCORE_LABELS[num]}</span>
-                )}
-              </div>
-            ))}
-          </div>
-        </section> */}
-
-        {/* Q2 */}
-        {/* <section className={styles.section}>
-          <h3>
-            <span className={styles.qNum}>02</span>
-            딱 하나씩만 알려주세요
-          </h3>
-
-          <label className={styles.label}>가장 좋았던 점</label>
-          <textarea
-            className={styles.textarea}
-            placeholder="퀴즈, 채팅에 상관 없이 작성해주세요"
-            value={goodPoint}
-            onChange={(e) => setGoodPoint(e.target.value)}
-          />
-
-          <label className={styles.label}>가장 불편했던 점</label>
-          <textarea
-            className={styles.textarea}
-            placeholder="퀴즈, 채팅에 상관 없이 작성해주세요"
-            value={improvePoint}
-            onChange={(e) => setImprovePoint(e.target.value)}
-          />
-        </section>
-
-        <button
-          className={styles.submitBtn}
-          onClick={handleSubmit}
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? '제출 중...' : '제출하고 마치기'}
-        </button> */}
-      {/* </div> */}

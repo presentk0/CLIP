@@ -1,4 +1,4 @@
-package com.clip.server.quiz.service;
+package com.clip.server.quiz.ai;
 
 import com.clip.server.quiz.dto.response.OpenAIQuizDataResponse;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -33,15 +33,23 @@ public class OpenAIService {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
+    // ==================== OX 퀴즈 생성 ====================
+
     /**
      * OX 퀴즈 생성
+     *
+     * @param word     단어
+     * @param meaning  의미
+     * @param failHint 이전 시도 실패 사유 (없으면 null) → Self-Correction용
      */
-    public OpenAIQuizDataResponse generateOXQuiz(String word, String meaning) {
+    public OpenAIQuizDataResponse generateOXQuiz(String word, String meaning, String failHint) {
+        String hintSection = buildHintSection(failHint);
+
         String prompt = String.format("""
                 ## 역할
                 당신은 CLIPZY의 개구리 캐릭터 '클립 프로그'입니다.
                 사용자와 함께 단어를 수집하며 세계를 넓혀가는 동반자입니다.
-        
+                %s
                 ## 말투 규칙 (반드시 지킬 것)
                 - 존댓말 사용
                 - 문장 1개 30자 이내
@@ -49,15 +57,15 @@ public class OpenAIService {
                 - 이모지 사용 금지
                 - 과장된 칭찬 금지
                 - "공부, 시험, 실패, 암기" 단어 금지
-        
+
                 ## 입력
                 - 단어: %s
                 - 의미: %s
-        
+
                 ## 추가 규칙
                 - similarWord:
                   → 입력 단어와 헷갈리는 유사어 1개 생성 (go, move 등)
-        
+
                 ## 퀴즈 생성 규칙
                 1. content:
                    - O: word를 정확히 사용
@@ -77,39 +85,39 @@ public class OpenAIService {
                    - 이전과 동일한 문장 구조 반복 금지
                    - 매번 다른 예문 사용
                    - content 문장은 다양하게 생성
-        
+
                 ## 피드백 규칙 ⭐
                 - 같은 표현 반복 금지
                 - 두 문장까지 허용 (반응 + 정보/행동)
                 - 한문장 피드백은 가급적 자제
-                  
+
                 correctFeedback 스타일:
                 1. "맞았어요."
                 2. "정답이에요. 다음도 볼까요?"
                 3. "문맥 잘 보셨어요."
                 4. "좋아요. 이어서 가볼까요?"
                 5. "잘 찾으셨어요."
-                  
+
                 wrongFeedback 스타일 (유형별):
                 [위로형]
                 - "괜찮아요. 다음에 다시 만날 거예요"
                 - "괜찮아요, 천천히 가도 돼요"
                 - "괜찮아요. 낯설 수 있어요."
-                  
+
                 [관찰형]
                 - "조금 헷갈릴 수 있어요."
                 - "이 부분이 까다로워요."
-                  
+
                 [정보형]
                 - "이 문맥은 해당 단어가 맞아요."
                 - "비슷한 단어와는 쓰임이 달라요."
-                  
+
                 [재도전형]
                 - "다시 한 번 볼까요?"
                 - "같이 다시 살펴볼까요?"
-                  
+
                 - 가능하면 "위로/관찰 + 정보" 조합 사용
-        
+
                 ## JSON 응답 형식
                 {
                   "word": "%s",
@@ -123,19 +131,26 @@ public class OpenAIService {
                   "wrongFeedback": "오답 피드백",
                   "options": null
                 }
-        """, word, meaning, word);
+                """, hintSection, word, meaning, word);
+
         return processSingle(prompt);
     }
 
+    // ==================== 빈칸 퀴즈 생성 ====================
+
     /**
-     * 빈칸 채우기 퀴즈 생성 (4지선다형 상세 프롬프트)
+     * 빈칸 채우기 퀴즈 생성
+     *
+     * @param failHint 이전 시도 실패 사유 (없으면 null)
      */
-    public OpenAIQuizDataResponse generateBlankQuiz(String word, String meaning) {
+    public OpenAIQuizDataResponse generateBlankQuiz(String word, String meaning, String failHint) {
+        String hintSection = buildHintSection(failHint);
+
         String prompt = String.format("""
                 ## 역할
                 당신은 CLIPZY의 개구리 캐릭터 '클립 프로그'입니다.
                 사용자와 함께 단어를 수집하며 세계를 넓혀가는 동반자입니다.
-                
+                %s
                 ## 말투 규칙 (반드시 지킬 것)
                 - 존댓말 사용
                 - 문장 1개 30자 이내
@@ -143,20 +158,32 @@ public class OpenAIService {
                 - 이모지 사용 금지
                 - 과장된 칭찬 금지
                 - "공부, 시험, 실패" 단어 금지
-                
+
                 ## 입력
                 - 단어: %s
                 - 의미: %s
-                
+
                 ## 퀴즈 생성 규칙
                 1. content:
                    - 정답 위치를 [ ]로 표시
                    - 자연스러운 문장
                    - 정답 위치를 반드시 [ ] 로 표시
                    - [ ] 내부에는 아무 단어도 넣지 말 것
-                   - 정답 단어를 content에 직접 작성 금지
-                   - 잘못된 예시: [travel], [apple]
-                   - 올바른 예시: [ ]                   
+
+                   - answer 단어는 content 어디에도 등장하면 안 됨
+                   - answer의 변형 형태도 등장하면 안 됨
+                     (예: travel, traveled, traveling, traveler 모두 금지)
+
+                   - 사용자는 content만 보고 정답을 추론할 수 있어야 함
+                   - 정답을 직접 암시하는 표현 금지
+
+                   잘못된 예시:
+                   - Travel is fun. I want to [ ] around the world.
+                   - I am traveling now. Let's [ ] tomorrow.
+
+                   올바른 예시:
+                   - I want to [ ] around the world.
+                   - She decided to [ ] by train this summer.
                 2. translation:
                    - 자연스러운 해석
                 3. question:
@@ -169,38 +196,38 @@ public class OpenAIService {
                 6. explanation:
                    - 정답과 오답 차이 설명
                    - 1~2문장
-                
+
                 ## 피드백 규칙 ⭐
                 - 같은 표현 반복 금지
                 - 두 문장까지 허용 (반응 + 정보/행동)
                 - 한문장 피드백은 가급적 자제
-                
+
                 correctFeedback:
                 - "맞았어요."
                 - "정답이에요. 다음도 볼까요?"
                 - "문맥 잘 보셨어요."
                 - "좋아요. 이어서 가볼까요?"
                 - "잘 찾으셨어요."
-        
+
                 wrongFeedback:
-                - 가능하면 "위로/관찰 + 정보" 조합 사용  
+                - 가능하면 "위로/관찰 + 정보" 조합 사용
                 [위로형]
                 - "괜찮아요. 다음에 다시 만날 거예요"
                 - "괜찮아요, 천천히 가도 돼요"
                 - "괜찮아요. 낯설 수 있어요."
-        
+
                 [관찰형]
                 - "조금 헷갈릴 수 있어요."
                 - "이 부분이 까다로워요."
-        
+
                 [정보형]
                 - "이 문맥은 해당 단어가 맞아요."
                 - "다른 선택지와 쓰임이 달라요."
-        
+
                 [재도전형]
                 - "다시 한 번 볼까요?"
                 - "같이 다시 살펴볼까요?"
-                  
+
                 ## JSON 형식
                 {
                   "word": "%s",
@@ -213,22 +240,28 @@ public class OpenAIService {
                   "correctFeedback": "정답 피드백",
                   "wrongFeedback": "오답 피드백"
                 }
-        """, word, meaning, word, word);
+                """, hintSection, word, meaning, word, word);
 
         return processSingle(prompt);
     }
 
+    // ==================== 매칭 퀴즈 생성 ====================
+
     /**
      * 매칭 퀴즈 세트 생성
+     *
+     * @param failHint 이전 시도 실패 사유 (없으면 null)
      */
-    public List<OpenAIQuizDataResponse> generateMatchingQuiz(List<Map<String, String>> wordList) {
+    public List<OpenAIQuizDataResponse> generateMatchingQuiz(List<Map<String, String>> wordList, String failHint) {
         try {
             String wordsJson = objectMapper.writeValueAsString(wordList);
+            String hintSection = buildHintSection(failHint);
+
             String prompt = String.format("""
                     ## 역할
                     당신은 CLIPZY의 개구리 캐릭터 '클립 프로그'입니다.
                     사용자와 함께 단어를 수집하며 세계를 넓혀가는 동반자입니다.
-                    
+                    %s
                     ## 말투 규칙 (반드시 지킬 것)
                     - 존댓말 사용
                     - 문장 1개 30자 이내
@@ -236,10 +269,10 @@ public class OpenAIService {
                     - 이모지 사용 금지
                     - 과장된 칭찬 금지
                     - "공부, 시험, 실패" 단어 금지
-                    
+
                     ## 입력 단어 리스트
                     %s
-                    
+
                     ## 퀴즈 생성 규칙
                     - 정확히 5개 생성
                     - question: 영어 단어
@@ -251,26 +284,26 @@ public class OpenAIService {
                     - content: 자연스러운 예문
                     - translation: 해석
                     - explanation: 단어 의미 간단 설명 (1문장)
-                    
+
                     ## 피드백 다양성 규칙 (매우 중요)
                     - 같은 표현 반복 금지
-        
+
                     correctFeedback 스타일:
                     1. "맞았어요."
                     2. "정답이에요."
                     3. "잘 찾으셨어요."
                     4. "문맥 잘 보셨어요."
                     5. "좋아요."
-        
+
                     wrongFeedback 스타일:
                     1. "괜찮아요. 다시 보면 보여요."
                     2. "이 단어는 해당 의미예요."
                     3. "다른 단어와는 쓰임이 달라요."
                     4. "문맥을 다시 보면 보여요."
-                    5. "다시 한 번 볼까요?"          
+                    5. "다시 한 번 볼까요?"
                     - 반드시 다양한 표현을 사용하고 반복하지 말 것
-                    
-                    ## JSON 형식- 반드시 아래 JSON 형식대로만 출력할 것
+
+                    ## JSON 형식 - 반드시 아래 JSON 형식대로만 출력할 것
                     {
                       "quizzes": [
                         {
@@ -286,16 +319,19 @@ public class OpenAIService {
                         }
                       ]
                     }
-            """, wordsJson);
+                    """, hintSection, wordsJson);
 
             return processList(prompt, new TypeReference<List<OpenAIQuizDataResponse>>() {});
         } catch (Exception e) {
+            log.error("매칭 퀴즈 프롬프트 생성 실패", e);
             return List.of();
         }
     }
 
+    // ==================== 중요 단어 추천 ====================
+
     /**
-     * 중요 단어 추천
+     * 중요 단어 추천 (재시도 패턴 미적용 - 필요 시 추가 가능)
      */
     public List<Map<String, String>> recommendImportantWords(String subtitles, int count) {
         String prompt = String.format("""
@@ -316,11 +352,30 @@ public class OpenAIService {
         return processList(prompt, new TypeReference<List<Map<String, String>>>() {});
     }
 
-    // --- 공통 처리 로직 (안정적인 파싱) ---
+    // ==================== Self-Correction 힌트 빌더 ====================
+
+    /**
+     * 이전 시도 실패 사유를 프롬프트 섹션으로 변환
+     * - null이면 빈 문자열 반환
+     * - 값이 있으면 강조 섹션 생성
+     */
+    private String buildHintSection(String failHint) {
+        if (failHint == null || failHint.isBlank()) {
+            return "";
+        }
+        return String.format("""
+                
+                ## ⚠️ 이전 시도 실패 사유 (반드시 이를 피해서 다시 생성하세요)
+                %s
+                
+                위 실패 사유를 분석하고, 이번에는 반드시 해당 문제를 피해서 응답하세요.
+                """, failHint);
+    }
+
+    // ==================== 공통 처리 로직 ====================
 
     private OpenAIQuizDataResponse processSingle(String prompt) {
         String raw = callOpenAI(prompt);
-
         if (raw == null) return null;
 
         try {
@@ -331,50 +386,13 @@ public class OpenAIService {
                 node = node.elements().next();
             }
 
-            OpenAIQuizDataResponse quiz =
-                    objectMapper.treeToValue(node, OpenAIQuizDataResponse.class);
-
-            // content 한글 검증
-            if (quiz.getContent() != null &&
-                    quiz.getContent().matches(".*[가-힣].*")) {
-                log.warn("content에 한글 포함됨: {}", quiz.getContent());
-                return null;  // ← Fallback으로 전환
-            }
-
-            // content와 translation 동일 검증
-            if (quiz.getContent() != null &&
-                    quiz.getTranslation() != null &&
-                    quiz.getContent().equals(quiz.getTranslation())) {
-
-                log.warn(
-                        "content와 translation 동일함 content={}, translation={}",
-                        quiz.getContent(),
-                        quiz.getTranslation()
-                );
-                return null;  // ← Fallback으로 전환
-            }
-
-            if (quiz.getTranslation() != null &&
-                    (quiz.getTranslation().length() > 80 ||
-                            countSentences(quiz.getTranslation()) > 2)) {
-                log.warn("translation 이상 감지 - Fallback 전환: {}", quiz.getTranslation());
-                return null;  // ← Fallback으로 전환
-            }
-
-            return quiz;
-
+            return objectMapper.treeToValue(node, OpenAIQuizDataResponse.class);
         } catch (Exception e) {
             log.error("단일 파싱 실패: {}", e.getMessage());
             return null;
         }
     }
-    
-    // 문장 개수 체크
-    private int countSentences(String text) {
-        if (text == null) return 0;
-        return (int) text.chars().filter(c -> c == '.' || c == '?' || c == '!').count();
-    }
-    
+
     private <T> List<T> processList(String prompt, TypeReference<List<T>> typeReference) {
         String raw = callOpenAI(prompt);
         if (raw == null) return List.of();
@@ -403,7 +421,7 @@ public class OpenAIService {
 
                 Map<String, Object> body = new HashMap<>();
                 body.put("model", model);
-                body.put("temperature", 0.7); // 적절한 창의성을 위해 0.7 설정
+                body.put("temperature", 0.7);
                 body.put("messages", List.of(
                         Map.of("role", "system", "content", "당신은 모든 응답을 JSON으로만 해야 하는 영어 교육 봇입니다. 절대 JSON 외의 텍스트를 포함하지 마세요."),
                         Map.of("role", "user", "content", prompt)
@@ -412,9 +430,11 @@ public class OpenAIService {
 
                 return restTemplate.postForObject(apiUrl, new HttpEntity<>(body, headers), String.class);
             } catch (HttpClientErrorException.TooManyRequests e) {
+                log.warn("OpenAI Rate Limit - {}회 재시도 대기 {}ms", i + 1, wait);
                 try { Thread.sleep(wait); } catch (InterruptedException ignored) {}
                 wait *= 2;
             } catch (Exception e) {
+                log.error("OpenAI 호출 실패", e);
                 break;
             }
         }
@@ -424,9 +444,7 @@ public class OpenAIService {
     private JsonNode extractContentNode(String raw) throws Exception {
         JsonNode root = objectMapper.readTree(raw);
         String content = root.path("choices").get(0).path("message").path("content").asText();
-        // 마크다운 기호 제거 로직 (ObjectMapper 안정성 확보)
         String cleaned = content.replaceAll("```json|```", "").trim();
         return objectMapper.readTree(cleaned);
     }
-
 }

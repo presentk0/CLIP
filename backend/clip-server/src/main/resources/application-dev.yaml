@@ -49,6 +49,7 @@ cors:
     - "chrome-extension://mgphcoglgpmnmcojmjppoaolehipgbdp"
     - "https://*.youtube.com"
     - "https://dev.clip-server.com"
+    - "https://*.vercel.app"
 
 openai:
   api:
@@ -72,9 +73,6 @@ youtube:
   api:
     key: ${YOUTUBE_API_KEY}
     base-url: https://www.googleapis.com/youtube/v3
-
-admin:
-  api-key: ${ADMIN_API_KEY}
 
 azure:
   speech:

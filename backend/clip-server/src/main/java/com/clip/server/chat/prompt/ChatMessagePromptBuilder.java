@@ -204,4 +204,93 @@ public class ChatMessagePromptBuilder {
     public String buildOpeningUserPrompt(ChatRoom chatRoom) {
         return "지금 시나리오가 시작되었습니다. 학습자에게 건넬 첫 멘트를 JSON 형식으로 작성해주세요.";
     }
+
+    // =========== 힌트 카드 생성 ===========
+    private static final String HINT_CARD_SYSTEM_PROMPT_TEMPLATE = """
+        당신은 영어 학습자에게 힌트를 제공하는 친절한 도우미입니다.
+        학습자가 대화 중에 막혀서 힌트를 요청한 상황입니다.
+        
+        [시나리오 정보]
+        - 시나리오 제목: %s
+        - 학습자 미션: %s
+        - 학습자 상황: %s
+        - 타겟 단어: %s
+        - 단어 뜻: %s
+        
+        [작업]
+        최근 대화 흐름을 보고, 학습자가 타겟 단어 "%s"를 자연스럽게 사용할 수 있도록
+        힌트 카드를 만들어주세요.
+        
+        [작성 규칙]
+        1. contextMessage: 직전 AI 발화의 맥락을 한 줄로 요약 (한글, 30자 이내)
+           - 예: "친구가 \\"다르게 보고 싶다\\"라고 했어요"
+           - 예: "직원이 다른 옵션을 물어봤어요"
+        2. guideMessage: 타겟 단어를 어떻게 쓰면 좋을지 안내 (한글, 30자 이내)
+           - 예: "%s를 써서 위로해볼 수 있어요!"
+           - 예: "%s를 활용해서 답해볼까요?"
+        3. exampleSentence: 타겟 단어를 사용한 자연스러운 영어 예문 (1문장)
+           - 타겟 단어 반드시 포함
+           - 자연스러운 회화체 (CEFR A2~B1)
+           - 현재 대화 흐름에 어울리는 답변 형태
+        4. exampleTranslation: 예문의 한글 해석 (자연스럽게)
+        
+        [중요 규칙]
+        - 모든 한글 메시지는 친근한 존댓말 사용
+        - 응답은 반드시 JSON 형식만 사용. 다른 텍스트 절대 금지
+        - exampleSentence에 타겟 단어가 반드시 포함되어야 함
+        
+        [응답 형식]
+        {
+          "contextMessage": "직전 AI 발화 맥락 요약",
+          "guideMessage": "단어 활용 안내",
+          "exampleSentence": "타겟 단어를 포함한 영어 예문",
+          "exampleTranslation": "예문의 한글 해석"
+        }
+        """;
+
+    /**
+     * 힌트 카드 생성용 System 프롬프트
+     */
+    public String buildHintCardSystemPrompt(ChatRoom chatRoom, String targetWord, String targetMeaning) {
+        String scenarioTitle = chatRoom.getScenarioTitle() != null
+                ? chatRoom.getScenarioTitle()
+                : "자유 대화";
+        String scenarioGoal = chatRoom.getScenarioGoal() != null
+                ? chatRoom.getScenarioGoal()
+                : "특별한 미션 없음";
+        String scenarioSituation = chatRoom.getScenarioSituation() != null
+                ? chatRoom.getScenarioSituation()
+                : "특별한 상황 없음";
+
+        return String.format(
+                HINT_CARD_SYSTEM_PROMPT_TEMPLATE,
+                scenarioTitle, scenarioGoal, scenarioSituation,
+                targetWord, targetMeaning,
+                targetWord, targetWord, targetWord
+        );
+    }
+
+    /**
+     * 힌트 카드 생성용 User 프롬프트 (최근 대화 흐름 전달)
+     */
+    public String buildHintCardUserPrompt(List<ChatMessage> recentMessages) {
+        StringBuilder sb = new StringBuilder();
+
+        if (recentMessages.isEmpty()) {
+            sb.append("[대화 흐름]\n아직 대화가 시작되지 않았습니다.\n\n");
+        } else {
+            sb.append("[최근 대화 흐름]\n");
+            // 최근 4개 메시지만 사용 (직전 컨텍스트만)
+            recentMessages.stream()
+                    .skip(Math.max(0, recentMessages.size() - 4))
+                    .forEach(msg -> {
+                        String role = msg.getSenderType() == SenderType.USER ? "학습자" : "AI";
+                        sb.append(String.format("%s: %s%n", role, msg.getContent()));
+                    });
+            sb.append("\n");
+        }
+
+        sb.append("위 대화를 보고 학습자에게 도움이 될 힌트 카드를 JSON 형식으로 작성해주세요.");
+        return sb.toString();
+    }
 }

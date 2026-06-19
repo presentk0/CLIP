@@ -1,9 +1,10 @@
-package com.clip.server.quiz.service;
+package com.clip.server.quiz.persistence;
 
 import com.clip.server.common.exception.BusinessException;
 import com.clip.server.common.exception.ErrorCode;
 import com.clip.server.quiz.entity.QuizSession;
 import com.clip.server.quiz.entity.QuizSessionWord;
+import com.clip.server.quiz.entity.SessionStatus;
 import com.clip.server.quiz.entity.SessionType;
 import com.clip.server.quiz.repository.QuizResultRepository;
 import com.clip.server.quiz.repository.QuizSessionRepository;
@@ -39,7 +40,7 @@ public class QuizTxService {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public QuizSession getOrCreateSession(User user, Video video, SessionType type) {
 
-        return quizSessionRepository.findByUserAndVideo(user, video)
+        return quizSessionRepository.findByUserAndVideoAndStatus(user, video, SessionStatus.IN_PROGRESS)
                 .orElseGet(() -> {
                     try {
 
@@ -59,7 +60,7 @@ public class QuizTxService {
 
                         log.warn("### 세션 동시 생성 충돌 발생. 기존 세션 재조회");
 
-                        return quizSessionRepository.findByUserAndVideo(user, video)
+                        return quizSessionRepository.findByUserAndVideoAndStatus(user, video, SessionStatus.IN_PROGRESS)
                                 .orElseThrow(() ->
                                         new BusinessException(ErrorCode.SESSION_NOT_FOUND));
                     }
