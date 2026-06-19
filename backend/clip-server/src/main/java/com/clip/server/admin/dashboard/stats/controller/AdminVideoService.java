@@ -1,4 +1,4 @@
-package com.clip.server.video.service.admin;
+package com.clip.server.admin.dashboard.stats.controller;
 
 import com.clip.server.video.dto.response.VideoMetadata;
 import com.clip.server.video.dto.request.AdminVideoRequest;

@@ -57,6 +57,7 @@ public class QuizSession {
     private LocalDateTime completedAt; // 퀴즈 종료 시각
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
     private SessionStatus status = SessionStatus.IN_PROGRESS; // 세션 진행 상태 기본 IN_PROGRESS, 세션 완료 COMPLETED
 
     @Builder

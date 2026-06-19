@@ -14,7 +14,7 @@ import java.util.Optional;
 
 public interface QuizSessionRepository extends JpaRepository<QuizSession, Long> {
 
-    Optional<QuizSession> findByUserAndVideo(User user, Video video);
+    Optional<QuizSession> findByUserAndVideoAndStatus(User user, Video video, SessionStatus status);
 
     // 정복한 영상 종류 수 (중복 제거) ← 대시보드용
     @Query("SELECT COUNT(DISTINCT qs.video.videoId) " +
