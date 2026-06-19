@@ -44,7 +44,7 @@ export function AuthProvider({ children }) {
 
   const [needsOnboarding, setNeedsOnboarding] = useState(null);
 
-  // const [token, setToken] = useState(null);
+
   const [isLoading, setIsLoading] = useState(true);
 
   // !!은 값을 boolean으로 변환
@@ -53,10 +53,13 @@ export function AuthProvider({ children }) {
   // 백그라운드에서 토큰 가져오기
   useEffect(() => {
     const initAuth = async () => {
+
       try {
         // 백그라운드에 저장된 인증 확인 (창 다시 열 때 빠르게)
         const cached = await chrome.runtime.sendMessage({ type: 'GET_AUTH' });
+
         if (cached?.accessToken && cached?.user) {
+
           setUser(cached.user);
           setIsLoading(false);
 
@@ -66,9 +69,12 @@ export function AuthProvider({ children }) {
           return;
         }
 
+
         // 캐시 없으면 refresh 시도 (HttpOnly 쿠키 자동 전송)
         const refreshRes = await apiFetch('/auth/refresh', { method: 'POST' });
+
           if (!refreshRes.success) {
+
             // 401 → 비로그인 상태 유지
             setIsLoading(false);
             return;
@@ -85,8 +91,9 @@ export function AuthProvider({ children }) {
 
         // 사용자 못 찾으면 토큰 정리
         if (!meRes.success) {
+
           if (meRes.error?.code === 'USER_NOT_FOUND') {
-            log.debug('사용자 정보 없음 - 로그아웃 처리');
+
             await chrome.runtime.sendMessage({ type: 'CLEAR_AUTH' });
           }
           return;
@@ -97,14 +104,15 @@ export function AuthProvider({ children }) {
 
         
         setNeedsOnboarding(meRes.data.needsOnboarding);
-        
+
         await chrome.runtime.sendMessage({
           type: 'SET_AUTH',
           accessToken: newAccessToken,
           user: meRes.data,
         });
+
       } catch (error) {
-        log.debug('인증 초기화 실패', error);
+        log.error('인증 초기화 실패', error);
       } finally {
         setIsLoading(false);
       }
