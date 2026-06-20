@@ -11,6 +11,7 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
+import java.util.concurrent.ThreadLocalRandom;
 
 import java.util.HashMap;
 import java.util.List;
@@ -45,93 +46,188 @@ public class OpenAIService {
     public OpenAIQuizDataResponse generateOXQuiz(String word, String meaning, String failHint) {
         String hintSection = buildHintSection(failHint);
 
+        // 정답 50:50 랜덤 결정 (정답 분포 균등화)
+        boolean isCorrectAnswer = ThreadLocalRandom.current().nextBoolean();
+        String answerType = isCorrectAnswer ? "O" : "X";
+
+        // 정답에 따른 명확한 지시
+        String answerSection = String.format("""
+        ## ⭐ 이번 문제 정답 지정 (반드시 준수)
+        정답: %s
+        
+        %s
+        """,
+                answerType,
+                isCorrectAnswer
+                        ? String.format("""
+                        → content에 단어 '%s'를 자연스러운 문장 안에 사용하세요.
+                        → 일상 회화에서 쓸 법한 자연스러운 문장으로 작성하세요.
+                        → 단어가 문맥에 자연스럽게 어울려야 합니다 ('O' 정답).
+                        
+                        ✅ 좋은 예시 (단어가 'travel'일 때):
+                        - "I want to travel to Japan next year."
+                        - "She loves to travel by train."
+                        
+                        ❌ 나쁜 예시 (피할 것):
+                        - "This word means travel." (단어 설명 문장 금지)
+                        - "Travel is a verb." (메타 설명 금지)
+                        """, word)
+                        : String.format("""
+                        → content에 단어 '%s'를 절대 사용하지 마세요.
+                        → similarWord를 사용한 문장을 작성하되,
+                          입력 단어(word)를 사용하는 것이 훨씬 자연스러운 문맥이어야 함
+                        
+                        → 사용자가 문장을 읽었을 때
+                          "문법 오류"가 아니라
+                          "이 자리는 word가 더 적절하다"
+                          라고 판단할 수 있어야 함
+                        
+                        → X 문제는 반드시
+                          word와 similarWord의 미묘한 쓰임 차이를 이용해 생성
+                        
+                        예시
+                        
+                        word = travel
+                        similarWord = go
+                        
+                        좋은 예시
+                        I want to go around the world by train.
+                        → travel이 더 적절
+                        
+                        나쁜 예시
+                        I go to school every day.
+                        → go가 자연스러우므로 문제로 부적절
+                        """, word, word)
+        );
+
+        log.debug("OX 퀴즈 생성 - word: {}, 지정 정답: {}", word, answerType);
+
         String prompt = String.format("""
-                ## 역할
-                당신은 CLIPZY의 개구리 캐릭터 '클립 프로그'입니다.
-                사용자와 함께 단어를 수집하며 세계를 넓혀가는 동반자입니다.
-                %s
-                ## 말투 규칙 (반드시 지킬 것)
-                - 존댓말 사용
-                - 문장 1개 30자 이내
-                - 메시지 최대 2문장
-                - 이모지 사용 금지
-                - 과장된 칭찬 금지
-                - "공부, 시험, 실패, 암기" 단어 금지
+            ## 역할
+            당신은 CLIPZY의 개구리 캐릭터 '클립 프로그'입니다.
+            사용자와 함께 단어를 수집하며 세계를 넓혀가는 동반자입니다.
+            %s
+            %s
+            
+            ## 말투 규칙 (반드시 지킬 것)
+            - 존댓말 사용
+            - 문장 1개 30자 이내
+            - 메시지 최대 2문장
+            - 이모지 사용 금지
+            - 과장된 칭찬 금지
+            - "공부, 시험, 실패, 암기" 단어 금지
 
-                ## 입력
-                - 단어: %s
-                - 의미: %s
+            ## 입력
+            - 단어: %s
+            - 의미: %s
 
-                ## 추가 규칙
-                - similarWord:
-                  → 입력 단어와 헷갈리는 유사어 1개 생성 (go, move 등)
+            ## 추가 규칙
+            - similarWord:
+              → 입력 단어와 같은 품사여야 함
+              → 의미가 일부 겹쳐야 함
+              → RELATED 단어 금지
+              → 동사면 동사, 명사면 명사만 사용
+              → 입력 단어보다 훨씬 어렵거나 희귀한 단어 사용 금지
+            
+            예시
+            travel → go
+            donate → give
+            purchase → buy
+            
+            잘못된 예시
+            travel → airplane
+            donate → money
+            purchase → shopping
 
-                ## 퀴즈 생성 규칙
-                1. content:
-                   - O: word를 정확히 사용
-                   - X: similarWord를 사용
-                   - 영어 문장만 작성
-                   - 한글 절대 포함 금지
-                   - translation 내용을 포함하지 말 것
-                2. translation:
-                   - 자연스러운 한글 해석
-                3. question:
-                   - "맞을까요?" 형태
-                4. explanation:
-                   - word와 similarWord 차이 설명
-                   - 두 단어 모두 반드시 포함
-                   - 1~2문장
-                5. 추가 규칙
-                   - 이전과 동일한 문장 구조 반복 금지
-                   - 매번 다른 예문 사용
-                   - content 문장은 다양하게 생성
+            ## 퀴즈 생성 규칙
+            1. content:
+               - 위 '이번 문제 정답 지정' 섹션의 지시를 반드시 따를 것
+               - 영어 문장만 작성
+               - 한글 절대 포함 금지
+               - translation 내용을 포함하지 말 것
+               - content는 반드시 실제 회화에서 사용할 수 있는 자연스러운 문장이어야 함
+                   ⚠️ 단어 설명 문장 금지
+                   금지 예시:
+                   "This word means travel."
+                   "Travel is a verb."
+                   "Travel and go are different."
+            2. translation:
+               - 자연스러운 한글 해석
+            3. question:
+               - 반드시 아래 문장 사용
+               - "이 문장은 자연스러운 표현일까요?"
+            4. answer:
+               - 반드시 "%s"를 그대로 작성 (O 또는 X)     
+            5. word 필드:
+               - 반드시 입력 단어 "%s"를 그대로 작성
+                - ⚠️ "O"나 "X"를 word 필드에 넣지 마세요!                    
+            6. explanation:
+               - word와 similarWord를 모두 포함
+               - 왜 word가 더 적절한지 설명
+               - similarWord가 왜 덜 적절한지 설명
+               - 사전식 정의 금지
+               - 실제 사용 상황 차이를 설명
+            
+                좋은 예시:
+                travel은 여행이나 장거리 이동을 말할 때 사용해요.
+                go는 단순 이동을 의미하는 더 일반적인 표현이에요.
+                
+                나쁜 예시:
+                travel은 여행이다.
+                go는 가다.
+            7. relatedExpressions (함께 알아두면 좋은 표현):
+               - word와 관련된 표현이나 활용법 1~2개
+               - 형식: "표현 : 의미 (영어 예문. 한글 해석.)"
+               - 각 표현은 줄바꿈(\\n)으로 구분
+               - 예: "stop -ing : ~하는 것을 멈추다 (He stopped smoking. 그는 담배를 끊었다.)\\nstop to 동사원형 : ~하기 위해 멈추다 (He stopped to smoke. 그는 담배를 피우려고 멈췄다.)"
 
-                ## 피드백 규칙 ⭐
-                - 같은 표현 반복 금지
-                - 두 문장까지 허용 (반응 + 정보/행동)
-                - 한문장 피드백은 가급적 자제
+            ## 피드백 규칙 ⭐
+            - 같은 표현 반복 금지
+            - 두 문장까지 허용 (반응 + 정보/행동)
+            - 한문장 피드백은 가급적 자제
 
-                correctFeedback 스타일:
-                1. "맞았어요."
-                2. "정답이에요. 다음도 볼까요?"
-                3. "문맥 잘 보셨어요."
-                4. "좋아요. 이어서 가볼까요?"
-                5. "잘 찾으셨어요."
+            correctFeedback 스타일:
+            1. "맞았어요."
+            2. "정답이에요. 다음도 볼까요?"
+            3. "문맥 잘 보셨어요."
+            4. "좋아요. 이어서 가볼까요?"
+            5. "잘 찾으셨어요."
 
-                wrongFeedback 스타일 (유형별):
-                [위로형]
-                - "괜찮아요. 다음에 다시 만날 거예요"
-                - "괜찮아요, 천천히 가도 돼요"
-                - "괜찮아요. 낯설 수 있어요."
+            wrongFeedback 스타일 (유형별):
+            [위로형]
+            - "괜찮아요. 다음에 다시 만날 거예요"
+            - "괜찮아요, 천천히 가도 돼요"
+            - "괜찮아요. 낯설 수 있어요."
 
-                [관찰형]
-                - "조금 헷갈릴 수 있어요."
-                - "이 부분이 까다로워요."
+            [관찰형]
+            - "조금 헷갈릴 수 있어요."
+            - "이 부분이 까다로워요."
 
-                [정보형]
-                - "이 문맥은 해당 단어가 맞아요."
-                - "비슷한 단어와는 쓰임이 달라요."
+            [정보형]
+            - "이 문맥은 해당 단어가 맞아요."
+            - "비슷한 단어와는 쓰임이 달라요."
 
-                [재도전형]
-                - "다시 한 번 볼까요?"
-                - "같이 다시 살펴볼까요?"
+            [재도전형]
+            - "다시 한 번 볼까요?"
+            - "같이 다시 살펴볼까요?"
 
-                - 가능하면 "위로/관찰 + 정보" 조합 사용
+            - 가능하면 "위로/관찰 + 정보" 조합 사용
 
-                ## JSON 응답 형식
-                {
-                  "word": "%s",
-                  "content": "영어 문장",
-                  "translation": "한글 해석",
-                  "question": "질문",
-                  "answer": "O 또는 X",
-                  "similarWord": "go",
-                  "explanation": "travel은 여행 의미이고 go는 단순 이동이에요.",
-                  "correctFeedback": "정답 피드백",
-                  "wrongFeedback": "오답 피드백",
-                  "options": null
-                }
-                """, hintSection, word, meaning, word);
+            ## JSON 응답 형식
+            {
+              "word": "%s",
+              "content": "영어 문장",
+              "translation": "한글 해석",
+              "question": "질문",
+              "answer": "%s",
+              "similarWord": "go",
+              "explanation": "travel은 여행 의미이고 go는 단순 이동이에요.",
+              "correctFeedback": "정답 피드백",
+              "wrongFeedback": "오답 피드백",
+              "relatedExpressions": "go : 단순 이동을 의미해요 (I go to school. 나는 학교에 가요.)\\ntravel to : ~로 여행하다 (I travel to Japan. 나는 일본으로 여행해요.)",
+              "options": null
+            }
+            """, hintSection, answerSection, word, meaning, answerType, word, word, answerType);
 
         return processSingle(prompt);
     }
@@ -196,7 +292,12 @@ public class OpenAIService {
                 6. explanation:
                    - 정답과 오답 차이 설명
                    - 1~2문장
-
+                7. relatedExpressions (함께 알아두면 좋은 표현):
+                   - 정답 단어와 관련된 표현이나 활용법 1~2개
+                   - 형식: "표현 : 의미 (영어 예문. 한글 해석.)"
+                   - 각 표현은 줄바꿈(\\n)으로 구분
+                   - 예: "travel by : ~로 여행하다 (I travel by train. 나는 기차로 여행해요.)\\ntravel abroad : 해외 여행하다 (She loves to travel abroad. 그녀는 해외 여행을 좋아해요.)"
+                   
                 ## 피드백 규칙 ⭐
                 - 같은 표현 반복 금지
                 - 두 문장까지 허용 (반응 + 정보/행동)
@@ -237,6 +338,7 @@ public class OpenAIService {
                   "options": ["travel", "move", "go", "visit"],
                   "answer": "%s",
                   "explanation": "해설",
+                  "relatedExpressions": "travel by : ~로 여행하다 (I travel by train. 나는 기차로 여행해요.)\\ntravel abroad : 해외 여행하다 (She loves to travel abroad. 그녀는 해외 여행을 좋아해요.)",
                   "correctFeedback": "정답 피드백",
                   "wrongFeedback": "오답 피드백"
                 }
@@ -284,7 +386,11 @@ public class OpenAIService {
                     - content: 자연스러운 예문
                     - translation: 해석
                     - explanation: 단어 의미 간단 설명 (1문장)
-
+                    - relatedExpressions: 함께 알아두면 좋은 표현 1~2개 (선택사항, 없으면 null 가능)
+                      형식: "표현 : 의미 (영어 예문. 한글 해석.)"
+                      각 표현은 줄바꿈(\\n)으로 구분
+                      예: "travel by : ~로 여행하다 (I travel by train. 나는 기차로 여행해요.)"
+                      
                     ## 피드백 다양성 규칙 (매우 중요)
                     - 같은 표현 반복 금지
 
@@ -314,6 +420,7 @@ public class OpenAIService {
                           "question": "travel",
                           "answer": "여행",
                           "explanation": "travel은 이동하며 경험하는 의미예요.",
+                          "relatedExpressions": "travel by : ~로 여행하다 (I travel by train. 나는 기차로 여행해요.)",
                           "correctFeedback": "맞았어요!",
                           "wrongFeedback": "괜찮아요. 이 단어는 여행 의미예요."
                         }
