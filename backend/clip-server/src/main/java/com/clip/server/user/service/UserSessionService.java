@@ -1,6 +1,5 @@
 package com.clip.server.user.service;
 
-import com.clip.server.user.entity.UserSession;
 import com.clip.server.user.repository.UserSessionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,7 +21,7 @@ public class UserSessionService {
      */
     @Transactional
     public void updateUserActivity(Long userId) {
-        userSessionRepository.findFirstByUserIdOrderByLoginAtDesc(userId)
+        userSessionRepository.findFirstByUser_IdOrderByLoginAtDesc(userId)
                 .ifPresent(session -> {
                     if (session.getLastActivityAt().isAfter(LocalDateTime.now().minusMinutes(30))) {
                         session.updateLastActivity();
