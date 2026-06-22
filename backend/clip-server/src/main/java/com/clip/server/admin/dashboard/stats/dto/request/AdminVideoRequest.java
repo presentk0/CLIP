@@ -1,4 +1,4 @@
-package com.clip.server.video.dto.request;
+package com.clip.server.admin.dashboard.stats.dto.request;
 
 import com.clip.server.user.entity.preference.LearningGoal;
 import com.clip.server.video.entity.VideoDifficulty;

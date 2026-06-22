@@ -1,7 +1,7 @@
-package com.clip.server.admin.dashboard.stats.controller;
+package com.clip.server.admin.dashboard.stats.service;
 
 import com.clip.server.video.dto.response.VideoMetadata;
-import com.clip.server.video.dto.request.AdminVideoRequest;
+import com.clip.server.admin.dashboard.stats.dto.request.AdminVideoRequest;
 import com.clip.server.video.entity.DifficultySource;
 import com.clip.server.video.entity.Video;
 import com.clip.server.video.repository.VideoRepository;
@@ -10,8 +10,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 @Slf4j
 @Service

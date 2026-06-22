@@ -1,6 +1,7 @@
 package com.clip.server.admin.dashboard.stats.controller;
 
-import com.clip.server.video.dto.request.AdminVideoRequest;
+import com.clip.server.admin.dashboard.stats.service.AdminVideoService;
+import com.clip.server.admin.dashboard.stats.dto.request.AdminVideoRequest;
 import com.clip.server.admin.dashboard.stats.service.AdminVideoBatchService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

@@ -4,6 +4,7 @@ import com.clip.server.auth.jwt.JwtProvider;
 import com.clip.server.common.exception.BusinessException;
 import com.clip.server.common.exception.ErrorCode;
 import com.clip.server.common.security.JwtAuthenticationFilter;
+import com.clip.server.common.security.SessionActivityFilter;
 import com.clip.server.subtitle.dto.request.SubtitleRequest;
 import com.clip.server.subtitle.dto.response.SubtitleDetailResponse;
 import com.clip.server.subtitle.dto.response.SubtitleListResponse;
@@ -54,6 +55,9 @@ public class SubtitleControllerTest {
 
     @MockitoBean
     private SubtitleService subtitleService;
+
+    @MockitoBean
+    private SessionActivityFilter sessionActivityFilter;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
