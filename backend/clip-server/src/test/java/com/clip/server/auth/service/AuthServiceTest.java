@@ -6,8 +6,10 @@ import com.clip.server.auth.jwt.JwtProvider;
 import com.clip.server.auth.entity.OAuthProvider;
 import com.clip.server.common.exception.BusinessException;
 import com.clip.server.common.exception.ErrorCode;
+import com.clip.server.common.security.SessionActivityFilter;
 import com.clip.server.user.entity.User;
 import com.clip.server.user.repository.UserRepository;
+import com.clip.server.user.repository.UserSessionRepository;
 import io.jsonwebtoken.ExpiredJwtException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -17,6 +19,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Optional;
@@ -45,6 +48,9 @@ class AuthServiceTest {
 
     @Mock
     private RefreshTokenService refreshTokenService;
+
+    @Mock
+    private UserSessionRepository userSessionRepository;
 
     private User existingUser;
     private GoogleUserInfo googleUserInfo;

@@ -1,7 +1,6 @@
 package com.clip.server.admin.dashboard.stats.service;
 
-import com.clip.server.video.dto.request.AdminVideoRequest;
-import com.clip.server.admin.dashboard.stats.controller.AdminVideoService;
+import com.clip.server.admin.dashboard.stats.dto.request.AdminVideoRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

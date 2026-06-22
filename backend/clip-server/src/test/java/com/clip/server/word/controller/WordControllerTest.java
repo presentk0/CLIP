@@ -3,6 +3,7 @@ package com.clip.server.word.controller;
 import com.clip.server.auth.jwt.JwtProvider;
 import com.clip.server.common.response.PaginationResponse;
 import com.clip.server.common.security.JwtAuthenticationFilter;
+import com.clip.server.common.security.SessionActivityFilter;
 import com.clip.server.word.contorller.WordController;
 import com.clip.server.word.dto.request.CollectedWordRequest;
 import com.clip.server.word.dto.response.CollectedWordResponse;
@@ -49,6 +50,9 @@ public class WordControllerTest {
 
     @MockitoBean
     private JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    @MockitoBean
+    private SessionActivityFilter sessionActivityFilter;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 

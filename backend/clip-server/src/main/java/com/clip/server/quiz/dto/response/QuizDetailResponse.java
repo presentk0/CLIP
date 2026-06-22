@@ -24,4 +24,14 @@ public class QuizDetailResponse {
 
     private String videoTimeStamp; // 다시 듣기용 비디오 타임스탬프
 
+    /**
+     * 매칭 퀴즈가 아니면 answer를 null로 반환하여 정답 노출 방지
+     */
+    public String getAnswer() {
+        if (quizType == QuizType.MATCHING) {
+            return answer;
+        }
+        return null;
+    }
+
 }

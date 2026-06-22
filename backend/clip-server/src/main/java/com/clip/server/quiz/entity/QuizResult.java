@@ -55,6 +55,9 @@ public class QuizResult {
     @Column(columnDefinition = "TEXT")
     private String explanation; // 뉘앙스 차이 등을 포함한 친절한 해설
 
+    @Column(name = "related_expressions", columnDefinition = "TEXT")
+    private String relatedExpressions; // 함께 알아두면 좋은 표현
+
     @Column(name = "user_answer")
     private String userAnswer; // 사용자 답변
 
@@ -80,7 +83,8 @@ public class QuizResult {
     @Builder
     public QuizResult(QuizSession quizSession, User user, String word, QuizType quizType,
                       String question, String correctAnswer, String explanation, String videoTimestamp,
-                      String content, String translation, String correctFeedback, String wrongFeedback) {
+                      String content, String translation, String correctFeedback, String wrongFeedback,
+                      String relatedExpressions) {
         this.quizSession = quizSession;
         this.user = user;
         this.word = word;
@@ -93,6 +97,7 @@ public class QuizResult {
         this.translation = translation;
         this.correctFeedback = correctFeedback;
         this.wrongFeedback = wrongFeedback;
+        this.relatedExpressions = relatedExpressions;
     }
 
     // 사용자가 퀴즈를 풀었을 때 호출

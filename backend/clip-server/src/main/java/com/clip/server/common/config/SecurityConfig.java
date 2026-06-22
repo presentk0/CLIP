@@ -2,6 +2,7 @@ package com.clip.server.common.config;
 
 import com.clip.server.common.security.AdminAuthenticationFilter;  // 🆕
 import com.clip.server.common.security.JwtAuthenticationFilter;
+import com.clip.server.common.security.SessionActivityFilter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,6 +30,7 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final AdminAuthenticationFilter adminAuthenticationFilter;
     private final CorsProperties corsProperties;
+    private final SessionActivityFilter sessionActivityFilter;
 
     // 현재 구동 중인 환경(Profile) 정보
     @Value("${spring.profiles.active:local}")
@@ -51,7 +53,7 @@ public class SecurityConfig {
                                     "/api/auth/**",
                                     "/api/admin/auth/login",
                                     "/health",
-                                    "/ws-chat/**", "ws-voice-test.html"
+                                    "/ws-chat/**"
                             ).permitAll();
 
                     // 2. Swagger 프로필별 조건부 분기
@@ -68,7 +70,8 @@ public class SecurityConfig {
                             .anyRequest().authenticated();
                 })
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterBefore(adminAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(adminAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(sessionActivityFilter, JwtAuthenticationFilter.class);
 
         return http.build();
     }
