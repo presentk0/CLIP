@@ -83,7 +83,7 @@ public class AuthService {
         refreshTokenService.save(user.getId(), refreshToken);
 
         // 4-1. 세션 관리(기존 세션 갱신 또는 새 세션 갱신)
-        handleUserSession(user.getId());
+        handleUserSession(user);
 
         // 5. 결과 반환
         return LoginResult.builder()
@@ -99,10 +99,10 @@ public class AuthService {
      * - 30분 이내 활동 기록이 있으면 기존 세션 갱신
      * - 30분 초과 또는 첫 로그인이면 새 세션 생성
      */
-    private void handleUserSession(Long userId) {
+    private void handleUserSession(User user) {
         LocalDateTime now = LocalDateTime.now();
 
-        userSessionRepository.findFirstByUserIdOrderByLoginAtDesc(userId)
+        userSessionRepository.findFirstByUser_IdOrderByLoginAtDesc(user.getId())
                 .ifPresentOrElse(
                         existingSession -> {
                             // 마지막 활동이 30분 이내면 기존 세션 갱신
@@ -110,27 +110,27 @@ public class AuthService {
                                 existingSession.updateLastActivity();
                                 userSessionRepository.save(existingSession);
                                 log.info("기존 세션 갱신: userId={}, sessionId={}, duration={}분",
-                                        userId, existingSession.getId(), existingSession.getDurationMinutes());
+                                        user.getId(), existingSession.getId(), existingSession.getDurationMinutes());
                             } else {
                                 // 30분 초과면 새 세션
-                                createNewSession(userId, now);
+                                createNewSession(user, now);
                             }
                         },
                         // 첫 로그인이면 새 세션
-                        () -> createNewSession(userId, now)
+                        () -> createNewSession(user, now)
                 );
     }
 
     /**
      * 새 세션 생성
      */
-    private void createNewSession(Long userId, LocalDateTime loginAt) {
+    private void createNewSession(User user, LocalDateTime loginAt) {
         UserSession newSession = UserSession.builder()
-                .userId(userId)
+                .user(user)
                 .loginAt(loginAt)
                 .build();
         userSessionRepository.save(newSession);
-        log.info("새 세션 생성: userId={}, sessionId={}", userId, newSession.getId());
+        log.info("새 세션 생성: userId={}, sessionId={}", user.getId(), newSession.getId());
     }
 
     /**
