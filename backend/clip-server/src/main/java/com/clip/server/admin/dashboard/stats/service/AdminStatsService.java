@@ -4,6 +4,7 @@ import com.clip.server.admin.dashboard.stats.dto.request.ChatPatternStatRequest;
 import com.clip.server.admin.dashboard.stats.dto.request.UserVideoStatRequest;
 import com.clip.server.admin.dashboard.stats.dto.response.ChatPatternStatResponse;
 import com.clip.server.admin.dashboard.stats.dto.response.UserVideoWordStatResponse;
+import com.clip.server.user.repository.UserSessionRepository;
 import com.clip.server.word.repository.CollectedWordRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +32,7 @@ public class AdminStatsService {
     private final ChatMessageRepository chatMessageRepository;
     private final QuizResultRepository quizResultRepository;
     private final ChatRoomRepository chatRoomRepository;
+    private final UserSessionRepository userSessionRepository;
 
     /**
      * 유저-영상별 단어 수집 통계 목록 조회
@@ -128,4 +130,5 @@ public class AdminStatsService {
                 .averagePronunciationScore(avgScore)
                 .build();
     }
+
 }
