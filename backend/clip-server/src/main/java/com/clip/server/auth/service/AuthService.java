@@ -7,12 +7,16 @@ import com.clip.server.auth.entity.OAuthProvider;
 import com.clip.server.common.exception.BusinessException;
 import com.clip.server.common.exception.ErrorCode;
 import com.clip.server.user.entity.User;
+import com.clip.server.user.entity.UserSession;
 import com.clip.server.user.repository.UserRepository;
+import com.clip.server.user.repository.UserSessionRepository;
 import io.jsonwebtoken.ExpiredJwtException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 
 /**
  * [AuthService]
@@ -31,6 +35,7 @@ public class AuthService {
     private final JwtProvider jwtProvider;
     private final UserRepository userRepository;
     private final RefreshTokenService refreshTokenService;
+    private final UserSessionRepository userSessionRepository;
 
     /**
      * 구글 로그인 (회원가입 자동 처리)
@@ -77,6 +82,9 @@ public class AuthService {
         // 4. Refresh Token Redis 저장
         refreshTokenService.save(user.getId(), refreshToken);
 
+        // 4-1. 세션 관리(기존 세션 갱신 또는 새 세션 갱신)
+        handleUserSession(user.getId());
+
         // 5. 결과 반환
         return LoginResult.builder()
                 .accessToken(accessToken)
@@ -84,6 +92,45 @@ public class AuthService {
                 .user(user)
                 .isNewUser(isNewUserFlag[0])
                 .build();
+    }
+
+    /**
+     * 사용자 세션 처리
+     * - 30분 이내 활동 기록이 있으면 기존 세션 갱신
+     * - 30분 초과 또는 첫 로그인이면 새 세션 생성
+     */
+    private void handleUserSession(Long userId) {
+        LocalDateTime now = LocalDateTime.now();
+
+        userSessionRepository.findFirstByUserIdOrderByLoginAtDesc(userId)
+                .ifPresentOrElse(
+                        existingSession -> {
+                            // 마지막 활동이 30분 이내면 기존 세션 갱신
+                            if (existingSession.getLastActivityAt().isAfter(now.minusMinutes(30))) {
+                                existingSession.updateLastActivity();
+                                userSessionRepository.save(existingSession);
+                                log.info("기존 세션 갱신: userId={}, sessionId={}, duration={}분",
+                                        userId, existingSession.getId(), existingSession.getDurationMinutes());
+                            } else {
+                                // 30분 초과면 새 세션
+                                createNewSession(userId, now);
+                            }
+                        },
+                        // 첫 로그인이면 새 세션
+                        () -> createNewSession(userId, now)
+                );
+    }
+
+    /**
+     * 새 세션 생성
+     */
+    private void createNewSession(Long userId, LocalDateTime loginAt) {
+        UserSession newSession = UserSession.builder()
+                .userId(userId)
+                .loginAt(loginAt)
+                .build();
+        userSessionRepository.save(newSession);
+        log.info("새 세션 생성: userId={}, sessionId={}", userId, newSession.getId());
     }
 
     /**

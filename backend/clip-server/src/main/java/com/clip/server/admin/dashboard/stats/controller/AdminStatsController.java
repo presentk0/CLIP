@@ -6,18 +6,20 @@ import com.clip.server.admin.dashboard.stats.dto.request.ChatPatternStatRequest;
 import com.clip.server.admin.dashboard.stats.dto.request.UserVideoStatRequest;
 import com.clip.server.admin.dashboard.stats.dto.response.AiUsageStatResponse;
 import com.clip.server.admin.dashboard.stats.dto.response.ChatPatternStatResponse;
+import com.clip.server.admin.dashboard.stats.dto.response.UserSessionStatResponse;
 import com.clip.server.admin.dashboard.stats.dto.response.UserVideoWordStatResponse;
 import com.clip.server.admin.dashboard.stats.service.AdminStatsService;
+import com.clip.server.admin.dashboard.stats.service.UserSessionStatService;
 import com.clip.server.common.response.ApiResponse;
+import com.clip.server.user.service.UserSessionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -27,6 +29,7 @@ import java.util.List;
 public class AdminStatsController {
 
     private final AdminStatsService adminStatsService;
+    private final UserSessionStatService userSessionStatService;
 
     /**
      * 유저-영상별 단어 수집 통계 목록 조회
@@ -69,5 +72,21 @@ public class AdminStatsController {
         ChatPatternStatResponse response = adminStatsService.getChatPatternStatistics(request);
 
         return ResponseEntity.ok(ApiResponse.success(response, "채팅 세션 패턴 통계 조회가 완료되었습니다."));
+    }
+
+    /**
+     * 사용자 세션 통계 조회
+     * GET /api/admin/stats/user-sessions?startDate=2024-11-01&endDate=2024-12-01
+     */
+    @GetMapping("/user-sessions")
+    public ApiResponse<UserSessionStatResponse> getUserSessionStats(
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+    ) {
+        UserSessionStatResponse response = userSessionStatService.getUserSessionStats(startDate, endDate);
+        return ApiResponse.success(response, "사용자 세션 조회가 성공적으로 완료되었습니다.");
     }
 }
