@@ -59,6 +59,9 @@ public class ChatRoom {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "hint_offered", nullable = false)
+    private boolean hintOffered = false;
+
     @LastModifiedDate
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
@@ -76,11 +79,15 @@ public class ChatRoom {
         this.scenarioSituation = scenarioSituation;
         this.aiGender = aiGender;
         this.status = ChatRoomStatus.IN_PROGRESS;
+        this.hintOffered = false;
     }
-
 
     public void complete() {
         this.status = ChatRoomStatus.COMPLETED;
+    }
+
+    public void markHintOffered() {
+        this.hintOffered = true;
     }
 }
 

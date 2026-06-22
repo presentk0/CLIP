@@ -21,8 +21,13 @@ public class OpenAIQuizDataResponse {
     private String answer;      // 정답
     private String explanation; // 뉘앙스 차이를 포함한 친절한 해설
     private List<String> options; // 빈칸 채우기용 4지선다 보기 리스트
+
     @JsonProperty("correctFeedback")
     private String correctFeedback; // 정답시 피드백
+
     @JsonProperty("wrongFeedback")
     private String wrongFeedback; // 오답시 피드백
+
+    @JsonProperty("relatedExpressions")
+    private String relatedExpressions; // 함께 알아두면 좋은 표현
 }

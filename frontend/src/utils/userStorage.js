@@ -8,7 +8,7 @@ async function getCurrentUserId() {
     const response = await chrome.runtime.sendMessage({ type: 'GET_USER_ID' });
     return response?.success ? response.userId : null;
   } catch (error) {
-    log.debug('userId 조회 실패', error);
+    log.error('userId 조회 실패', error);
     return null;
   }
 }
@@ -16,8 +16,14 @@ async function getCurrentUserId() {
 // 유저별 키로 저장
 export async function saveUserData(key, value) {
   const userId = await getCurrentUserId();
-  if (!userId) return;
+
+
+  if (!userId) {
+
+    return;
+  }
   await chrome.storage.local.set({ [`${key}_${userId}`]: value });
+
 }
 
 // 유저별 키로 읽기

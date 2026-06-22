@@ -177,6 +177,7 @@ public class QuizService {
                         ? quizResult.getCorrectFeedback()
                         : quizResult.getWrongFeedback())
                 .explanation(quizResult.getExplanation())
+                .relatedExpressions(quizResult.getRelatedExpressions())
                 .currentExp(currentExp)
                 .build();
     }
