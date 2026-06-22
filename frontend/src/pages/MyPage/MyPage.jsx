@@ -677,13 +677,13 @@ const handleHomeClick = () => {
       </div>
 
       <div className={styles['infor-card32']}>
-        <div className={styles['infor-card33']}></div>
+        {/* <div className={styles['infor-card33']}></div> */}
         <div className={styles['infor-card34']}>
           <p 
             className={styles['infor-card35']}
             style={{ color: log.amount >= 0 ? '#6CAEFB' : '#BDBDBD' }}  /* 음수면 회색 */
           >
-            {log.amount}P
+            {log.amount >= 0 ? '+' : ''}{log.amount}P
           </p>
         </div>
       </div>
