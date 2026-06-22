@@ -8,9 +8,9 @@ NGINX_CONF_PATH="./nginx/service-env.inc"
 
 # 1. 구동 중인 스프링 컨테이너 포트 확인 및 환경 변수 설정
 echo "> 현재 구동 중인 스프링 애플리케이션 포트 확인..."
-CURRENT_PORT=$(curl -s -o /dev/null -2 "%{http_code}" http://172.18.0.1:8081/health)
+CURRENT_STATUS=$(curl -s -o /dev/null -2 "%{http_code}" http://172.18.0.1:8081/health)
 
-if [ "$CURRENT_PORT" -eq 200 ]; then
+if [ "$CURRENT_STATUS" == "OK" ]; then
     TARGET_PORT=8082
     TARGET_SERVICE="app-b"
     EXISTING_CONTAINER="spring-app-a"
@@ -53,7 +53,7 @@ done
 
 # 4. Nginx 라우팅 스위칭
 echo "> Nginx 라우팅 설정 변경..."
-docker exec -i $NGINX_CONTAINER_NAME sh -c "echo 'set \$service_url http://172.18.0.1:$TARGET_PORT;' > $NGINX_CONF_PAATH"
+docker exec -i $NGINX_CONTAINER_NAME sh -c "echo 'set \$service_url http://172.18.0.1:$TARGET_PORT;' > $NGINX_CONF_PATH"
 
 # Nginx 설정 문법 검사 실행
 docker exec $NGINX_CONTAINER_NAME nginx -t
