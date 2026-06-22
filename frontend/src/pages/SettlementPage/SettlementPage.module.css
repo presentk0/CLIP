@@ -277,6 +277,48 @@ fill: #D9D9D9;
 
 
 
+
+
+
+
+
+.bronze {
+  width: 24px;
+height: 24px;
+fill: #F7D4AE;
+stroke-width: 2px;
+stroke: #E3CEB9;
+box-shadow: 0 0 12px 0 rgba(92, 90, 87, 0.70) inset;
+}
+
+
+
+
+.silver {
+  width: 24px;
+height: 24px;
+aspect-ratio: 1/1;
+}
+
+
+
+.gold {
+  width: 24px;
+height: 24px;
+aspect-ratio: 1/1;
+}
+
+
+
+
+
+
+
+
+
+
+
+
 .quiz-result-card11 {
 display: flex;
 flex-direction: column;
@@ -452,9 +494,10 @@ gap: 8px;
 display: flex;
 width: 36px;
 height: 36px;
+padding: 10px;
+justify-content: center;
 align-items: center;
 gap: 10px;
-background: #D9D9D9;
 }
 
 
@@ -535,10 +578,12 @@ gap: 8px;
 
 
 .recommendation-card4 {
+display: flex;
 width: 24px;
 height: 24px;
-aspect-ratio: 1/1;
-background: #D9D9D9;
+flex-direction: column;
+justify-content: center;
+align-items: center;
 }
 
 

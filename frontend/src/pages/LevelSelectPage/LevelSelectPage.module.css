@@ -170,6 +170,8 @@ border-radius: 14px;
 border: 2px solid #00AA71;
 background: #0AC290;
 box-shadow: 0 4px 4px 0 rgba(208, 181, 252, 0.16);
+
+
 }
 
 
@@ -177,15 +179,24 @@ box-shadow: 0 4px 4px 0 rgba(208, 181, 252, 0.16);
 .level19 {
 display: flex;
 align-items: center;
-gap: 127px;
+/* gap: 127px; */
+
+  justify-content: space-between;   
+  gap: 0;                            
+  width: 100%;                       
 }
 
 
 
 .level20 {
 display: flex;
-width: 180px;
-height: 14px;
+/* width: 180px;
+height: 14px; */
+
+width: auto;
+height: auto;
+
+
 flex-direction: column;
 justify-content: center;
 color: #FFF;

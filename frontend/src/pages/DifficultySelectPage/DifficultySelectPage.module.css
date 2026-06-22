@@ -1,5 +1,13 @@
 .level {
-display: inline-flex;
+/* display: inline-flex; */
+
+display: flex;                
+  width: 100%;                  
+  min-height: 100vh; 
+
+
+
+
 padding: 80px 15px 52px 16px;
 flex-direction: column;
 justify-content: flex-end;

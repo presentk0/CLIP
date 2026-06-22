@@ -77,8 +77,7 @@ function QuizPage({ videoId, videoTitle, channelName, thumbnailUrl, duration }) 
   // 단어 수집 버튼 누름 여부
   const [isCollected, setIsCollected] = useState(false);
 
-  // 퀴즈 정답 측정
-  const [answeredCount, setAnsweredCount] = useState(0);
+
   // 퀴즈 이동 중복 클릭 방지
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -1270,7 +1269,6 @@ useEffect(() => {
         isCorrect: result.data?.correct
       }]);
 
-      setAnsweredCount(prev => prev + 1);
 
       // 정답/오답 카운트
       if (result.data?.correct) {
@@ -1327,10 +1325,6 @@ useEffect(() => {
       }
 
       // 빈칸/OX → 다음 문제 또는 종료
-      // 건너뛰기 = 진행도만 +1 (답안 기록은 안 함)
-      if (!isConfirmed) {
-        setAnsweredCount(prev => prev + 1);
-      }
 
       if (currentIndex < quizzes.length - 1) {
         // 다음 문제로 이동
@@ -1544,8 +1538,8 @@ const handleExitFromSettlement = async (target = -1) => {
               className={styles.bar8}
 
               style={{width: currentQuiz?.quizType === 'MATCHING' 
-                ? `${274 * (matchingMatchedPairs.length / quizzes.length)}px` 
-                : `${274 * (answeredCount / quizzes.length)}px`}}
+                ? `${(matchingMatchedPairs.length / quizzes.length) * 100}%` 
+                : `${((currentIndex + (isConfirmed ? 1 : 0)) / quizzes.length) * 100}%`}}
               ></div>
             </div>
           </div>

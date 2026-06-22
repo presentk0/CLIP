@@ -146,6 +146,8 @@ line-height: normal;
 
 
 .bar6 {
+
+
   display: flex;
 flex-direction: column;
 align-items: flex-start;
@@ -156,7 +158,8 @@ align-self: stretch;
 
 
 .bar7 {
-  width: 298px;
+  /* width: 298px; */
+  width: 274px;
 height: 16px;
 position: absolute;
 border-radius: 999px;
@@ -506,10 +509,15 @@ display: flex;
 
 width: 100%;
 
-/* 위쪽 정렬 */
-align-items: flex-start; 
+
+/* align-items: flex-start;  */
+align-items: stretch;
 margin-top: 40px;
 /* margin-top: auto; */
+
+
+flex: 1;
+
 }
 
 .quiz-badge-n {
@@ -594,6 +602,8 @@ gap: 60px;
 align-self: stretch;
 border-radius: 36px 36px 0 0;
 background: #FEFDF9;
+
+flex: 1;
 }
 
 
@@ -906,6 +916,7 @@ line-height: 20px; /* 125% */
 
 
 .explain {
+  padding-top: 17px;
   display: inline-flex;
 flex-direction: column;
 align-items: flex-start;
@@ -1019,6 +1030,8 @@ flex-direction: column;
 align-items: flex-start;
 gap: 10px;
 background: #FEFDF9;
+
+margin-top: auto
 }
 
 .quiz-s2 {
