@@ -14,7 +14,7 @@ public interface UserSessionRepository extends JpaRepository<UserSession, Long> 
      * 유저의 가장 최근 세션 조회
      * - 활동 시각 갱신 시 사용
      */
-    Optional<UserSession> findFirstByUserIdOrderByLoginAtDesc(Long userId);
+    Optional<UserSession> findFirstByUser_IdOrderByLoginAtDesc(Long userId);
 
     /**
      * 기간 내 전체 세션 수
@@ -56,7 +56,7 @@ public interface UserSessionRepository extends JpaRepository<UserSession, Long> 
      * 활성 유저 수 (기간 내 로그인한 유니크 유저)
      */
     @Query("""
-        SELECT COUNT(DISTINCT s.userId)
+        SELECT COUNT(DISTINCT s.user.id)
         FROM UserSession s
         WHERE s.loginAt >= :startDate
           AND s.loginAt < :endDate

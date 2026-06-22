@@ -20,8 +20,9 @@ public class UserSession {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "user_id", nullable = false)
-    private Long userId; // 사용자 ID
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
     @Column(name = "login_at", nullable = false)
     private LocalDateTime loginAt; // 로그인 시각
@@ -41,8 +42,8 @@ public class UserSession {
     private LocalDateTime updatedAt; // 테이블 수정 시각
 
     @Builder
-    public UserSession(Long userId, LocalDateTime loginAt) {
-        this.userId = userId;
+    public UserSession(User user, LocalDateTime loginAt) {
+        this.user = user;
         this.loginAt = loginAt;
         this.lastActivityAt = loginAt;
         this.durationMinutes = 0;
