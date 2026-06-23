@@ -3,12 +3,17 @@
 >
 > 좋아하는 유튜브 영상을 보면서 단어를 모으고, AI 퀴즈로 복습하는 크롬 확장 프로그램
 
+---
 ## 📥 설치 및 사용
+
+<p align="center">
+  <strong>👇 아래 버튼을 클릭하여 Chrome 웹스토어에서 설치하세요!</strong>
+</p>
 
 <p align="center">
   <a href="https://chromewebstore.google.com/detail/clipzy/mcgnjdjgakffdoagkocfgemnmlndplai">
     <img src="https://img.shields.io/badge/Chrome%20Web%20Store-Install%20CLIPZY-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white" 
-         alt="Install CLIPZY" 
+         alt="Click to install CLIPZY" 
          height="50" />
   </a>
 </p>
@@ -17,10 +22,6 @@
   <img src="https://img.shields.io/chrome-web-store/v/mcgnjdjgakffdoagkocfgemnmlndplai?style=flat-square&color=success&label=Version" />
   <img src="https://img.shields.io/chrome-web-store/users/mcgnjdjgakffdoagkocfgemnmlndplai?style=flat-square&color=orange&label=Users" />
   <img src="https://img.shields.io/chrome-web-store/rating/mcgnjdjgakffdoagkocfgemnmlndplai?style=flat-square&color=yellow&label=Rating" />
-</p>
-
-<p align="center">
-  🔗 <a href="https://chromewebstore.google.com/detail/clipzy/mcgnjdjgakffdoagkocfgemnmlndplai"><strong>Chrome 웹스토어 바로가기</strong></a>
 </p>
 
 ### 🚀 빠른 시작 가이드
