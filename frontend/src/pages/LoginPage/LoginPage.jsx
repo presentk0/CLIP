@@ -214,14 +214,6 @@ function decodeJwtPayload(token) {
 
 
   return (
-    // <div style={{
-    //   display: 'flex',
-    //   justifyContent: 'center',
-    //   alignItems: 'center',
-    //   minHeight: 'calc(100vh - 300px)',
-    //   padding: '2rem 1rem',
-    // }}>
-
     <div className={styles.login}>
       <div className={styles.login2}>
         <div className={styles.login3}>
@@ -281,42 +273,5 @@ function decodeJwtPayload(token) {
         </button>
       </div>
     </div>
-
-
-
-
-
-
-
-      // <div style={{
-      //   width: '100%',
-      //   maxWidth: '400px',
-      //   backgroundColor: 'white',
-      //   borderRadius: '12px',
-      //   padding: '2rem',
-      //   boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-      // }}>
-
-      //   <h1 style={{
-      //     fontSize: '1.5rem',
-      //     textAlign: 'center',
-      //     marginBottom: '2rem',
-      //   }}>
-      //     로그인
-      //   </h1>
-
-
-        
-
-      //   <Button 
-      //     onClick={handleGoogleLogin}
-      //     fullWidth 
-      //     isLoading={isLoading}
-      //   >
-      //     Google로 로그인
-      //   </Button>
-
-      //   </div>
-      // </div>
   );
 }
