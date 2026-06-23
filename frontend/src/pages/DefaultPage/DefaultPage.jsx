@@ -10,6 +10,129 @@ import { log } from "../../utils/logger";
 import { saveUserData, loadUserData } from "../../utils/userStorage";
 
 
+const BADGE_ICONS = {
+  BRONZE: (<svg className={style.bronze} xmlns="http://www.w3.org/2000/svg" width="21" height="24" viewBox="0 0 21 24" fill="none">
+  <g filter="url(#filter0_i_1435_11641)">
+    <path d="M10.3921 0L20.7844 6V18L10.3921 24L-0.000214577 18V6L10.3921 0Z" fill="#F7D4AE"/>
+  </g>
+  <path d="M19.7847 6.57715V17.4219L10.3921 22.8447L0.999512 17.4219V6.57715L10.3921 1.1543L19.7847 6.57715Z" stroke="#E3CEB9" stroke-width="2"/>
+  <defs>
+    <filter id="filter0_i_1435_11641" x="0" y="0" width="20.7842" height="24" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset/>
+      <feGaussianBlur stdDeviation="6"/>
+      <feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.358974 0 0 0 0 0.353279 0 0 0 0 0.33999 0 0 0 0.7 0"/>
+      <feBlend mode="normal" in2="shape" result="effect1_innerShadow_1435_11641"/>
+    </filter>
+  </defs>
+</svg>),
+  SILVER: (<svg className={style.silver} xmlns="http://www.w3.org/2000/svg" width="29" height="32" viewBox="0 0 29 32" fill="none">
+  <path d="M24.2847 6.28809V17.7109L14.3921 23.4229L4.49951 17.7109V6.28809L14.3921 0.576172L24.2847 6.28809Z" fill="#DCD6C6" stroke="#E5E0D2"/>
+  <g filter="url(#filter0_di_1435_11627)">
+    <path d="M14.3921 0L24.7844 6V18L14.3921 24L3.99979 18V6L14.3921 0Z" fill="#CDC6B9"/>
+    <path d="M23.7847 6.57715V17.4219L14.3921 22.8447L4.99951 17.4219V6.57715L14.3921 1.1543L23.7847 6.57715Z" stroke="#D9D5CA" stroke-width="2"/>
+  </g>
+  <g filter="url(#filter1_d_1435_11627)">
+    <path d="M14.3921 15L11.0171 16.5L11.3921 12.75L9.14209 9.75L12.8921 9.375L14.3921 6L16.2671 9.375L20.3921 10.125L17.3921 12.75L17.7671 16.5L14.3921 15Z" fill="#EFEADB"/>
+  </g>
+  <path d="M10.4707 10.3335L13.367 10.1242L12.2412 8.62479L7.26701 9.375L10.4707 10.3335Z" fill="#C9C2B3"/>
+  <path d="M11.8671 15.3734L12.6167 12.3741L10.7417 13.1243L9.89223 17.9998L11.8671 15.3734Z" fill="#C9C2B3"/>
+  <path d="M10.4717 10.3291L12.6173 12.3714L10.7414 13.1244L7.26712 9.375L10.4717 10.3291Z" fill="#A6A293"/>
+  <path d="M18.6171 10.2768L15.6171 10.1268L16.7173 8.62562L21.5177 9.3772L18.6171 10.2768Z" fill="#C9C2B3"/>
+  <path d="M18.6166 10.2745L16.5166 12.3745L18.2416 13.1245L21.5171 9.375L18.6166 10.2745Z" fill="#A6A293"/>
+  <path d="M14.4917 7.5003L15.6167 10.1253L16.7417 8.6253L14.4917 4.125V7.5003Z" fill="#A6A293"/>
+  <path d="M11.8664 15.3754L14.4914 13.8751L14.4914 15.7504L9.89196 18L11.8664 15.3754Z" fill="#837D6D"/>
+  <path d="M17.1158 15.3736L16.5158 12.3739L18.2408 13.1237L18.8919 17.9998L17.1158 15.3736Z" fill="#C9C2B3"/>
+  <path d="M17.1184 15.3781L14.4924 13.8766L14.4924 15.7513L18.8924 18.0002L17.1184 15.3781Z" fill="#999484"/>
+  <path d="M14.4917 7.49864L13.3667 10.1236L12.2417 8.62364L14.4917 4.125V7.49864Z" fill="#FDF8E9"/>
+  <defs>
+    <filter id="filter0_di_1435_11627" x="0" y="0" width="28.7842" height="32" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset dy="4"/>
+      <feGaussianBlur stdDeviation="2"/>
+      <feComposite in2="hardAlpha" operator="out"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.12 0"/>
+      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1435_11627"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1435_11627" result="shape"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset/>
+      <feGaussianBlur stdDeviation="6"/>
+      <feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.358974 0 0 0 0 0.353279 0 0 0 0 0.33999 0 0 0 0.7 0"/>
+      <feBlend mode="normal" in2="shape" result="effect2_innerShadow_1435_11627"/>
+    </filter>
+    <filter id="filter1_d_1435_11627" x="5.14209" y="4" width="19.25" height="18.5" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset dy="2"/>
+      <feGaussianBlur stdDeviation="2"/>
+      <feComposite in2="hardAlpha" operator="out"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.448718 0 0 0 0 0.427145 0 0 0 0 0.366021 0 0 0 0.6 0"/>
+      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1435_11627"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1435_11627" result="shape"/>
+    </filter>
+  </defs>
+</svg>),
+  GOLD: (<svg className={style.gold} xmlns="http://www.w3.org/2000/svg" width="29" height="32" viewBox="0 0 29 32" fill="none">
+  <g filter="url(#filter0_di_1435_11642)">
+    <path d="M14.3921 0L24.7844 6V18L14.3921 24L3.99979 18V6L14.3921 0Z" fill="#FFC229"/>
+    <path d="M23.7847 6.57715V17.4219L14.3921 22.8447L4.99951 17.4219V6.57715L14.3921 1.1543L23.7847 6.57715Z" stroke="#F4D78E" stroke-width="2"/>
+  </g>
+  <g filter="url(#filter1_d_1435_11642)">
+    <path d="M10.6421 16.125V13.875L8.76709 12L10.2671 10.5V7.875H12.8921L14.3921 6.375L15.8921 7.875H18.5171V10.5L20.0171 12L18.5171 13.5V16.125H15.8921L14.3921 17.625L12.8921 16.125H10.6421Z" fill="#FEEEC5"/>
+  </g>
+  <path d="M17.6156 8.77477L15.7046 8.84977L16.3046 7.31227L19.1696 7.22241L17.6156 8.77477Z" fill="#FEE3A3"/>
+  <path d="M11.1686 8.77477L13.0796 8.84977L12.4796 7.31227L9.61459 7.22241L11.1686 8.77477Z" fill="#FEFDF9"/>
+  <path d="M11.1671 8.7675L11.2421 10.6875L9.7046 10.0875L9.61475 7.2225L11.1671 8.7675Z" fill="#FEE3A3"/>
+  <path d="M17.6171 8.7675L17.5421 10.6875L19.0796 10.0875L19.1694 7.2225L17.6171 8.7675Z" fill="#E1A131"/>
+  <path d="M11.1686 15.2252L13.0796 15.1502L12.4796 16.6877L9.61459 16.7776L11.1686 15.2252Z" fill="#B77E25"/>
+  <path d="M17.6156 15.2252L15.7046 15.1502L16.3046 16.6877L19.1696 16.7776L17.6156 15.2252Z" fill="#D09232"/>
+  <path d="M11.1671 15.2325L11.2421 13.3125L9.7046 13.9125L9.61475 16.7775L11.1671 15.2325Z" fill="#FEE3A3"/>
+  <path d="M17.6171 15.2325L17.5421 13.3125L19.0796 13.9125L19.1694 16.7775L17.6171 15.2325Z" fill="#D09232"/>
+  <path d="M14.3922 7.5V5.25L16.3047 7.3125L15.7047 8.85L14.3922 7.5Z" fill="#E1A131"/>
+  <path d="M14.3922 16.5V18.75L16.3047 16.6875L15.7047 15.15L14.3922 16.5Z" fill="#B77E25"/>
+  <path d="M14.392 7.5V5.25L12.4795 7.3125L13.0795 8.85L14.392 7.5Z" fill="#FEE3A3"/>
+  <path d="M14.392 16.5V18.75L12.4795 16.6875L13.0795 15.15L14.392 16.5Z" fill="#D09232"/>
+  <path d="M9.89209 12.0001L7.64209 12.0001L9.70459 10.0876L11.2421 10.6876L9.89209 12.0001Z" fill="#FEFDF9"/>
+  <path d="M18.8921 12.0001L21.1421 12.0001L19.0796 10.0876L17.5421 10.6876L18.8921 12.0001Z" fill="#FEE3A3"/>
+  <path d="M9.89209 11.9999L7.64209 11.9999L9.70459 13.9124L11.2421 13.3124L9.89209 11.9999Z" fill="#E1A131"/>
+  <path d="M18.8921 11.9999L21.1421 11.9999L19.0796 13.9124L17.5421 13.3124L18.8921 11.9999Z" fill="#B77E25"/>
+  <defs>
+    <filter id="filter0_di_1435_11642" x="0" y="0" width="28.7842" height="32" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset dy="4"/>
+      <feGaussianBlur stdDeviation="2"/>
+      <feComposite in2="hardAlpha" operator="out"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.12 0"/>
+      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1435_11642"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1435_11642" result="shape"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset/>
+      <feGaussianBlur stdDeviation="6"/>
+      <feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.778846 0 0 0 0 0.545221 0 0 0 0 0.183478 0 0 0 1 0"/>
+      <feBlend mode="normal" in2="shape" result="effect2_innerShadow_1435_11642"/>
+    </filter>
+    <filter id="filter1_d_1435_11642" x="4.76709" y="4.375" width="19.25" height="19.25" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset dy="2"/>
+      <feGaussianBlur stdDeviation="2"/>
+      <feComposite in2="hardAlpha" operator="out"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.669872 0 0 0 0 0.459726 0 0 0 0 0.132042 0 0 0 0.6 0"/>
+      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1435_11642"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1435_11642" result="shape"/>
+    </filter>
+  </defs>
+</svg>),
+};
+
+
 
 
 function formatDuration (duration) {
@@ -139,8 +262,19 @@ function UserAvatar({ imageUrl, name }) {
 
 
 
-// function SectionBadgeCard({ currentBadge, videoId, videoTitle, videoDuration, channelName }) {
-function SectionBadgeCard({ videoId, videoTitle, videoDuration, channelName }) {
+
+
+
+
+
+
+
+
+
+
+
+function SectionBadgeCard({ currentBadge, videoId, videoTitle, videoDuration, channelName }) {
+// function SectionBadgeCard({ videoId, videoTitle, videoDuration, channelName }) {
 
   // 썸네일 클릭 시 메인 탭에서 유튜브 영상 열기
   const handleClick = (e) => {
@@ -149,6 +283,8 @@ function SectionBadgeCard({ videoId, videoTitle, videoDuration, channelName }) {
     e.preventDefault();
     openYoutubeVideo(videoId);
   };
+
+
 
   return (
     <article className={style.masteryCard}>
@@ -184,9 +320,10 @@ function SectionBadgeCard({ videoId, videoTitle, videoDuration, channelName }) {
           </div>
 
         <div className={style.sectionBadge}>
-          <span className={style.sectionBadgeIcon}>
-            {/* {currentBadge} */}
-          </span>
+          {/* <span className={style.sectionBadgeIcon}> */}
+          {/* <span> */}
+            {BADGE_ICONS[currentBadge] || null}
+          {/* </span> */}
 
           <span className={style.sectionBadgeLabel}>
             <p className={style.sectionBadgeLabelText}>
@@ -415,7 +552,7 @@ try {
 
   // false면 API 호출 없이 바로 차단 (나중에 단어 삭제 생기면 전부 삭제됐을 때 false로 되돌리는것도 필요함)
   if (hasWords === false) {
-    alert('수집된 단어가 없습니다! 1');
+    alert('수집된 단어가 없습니다!');
     return;
   }
 
@@ -429,7 +566,7 @@ try {
     // await setHasWordsCache(res.data.hasWords);
 
     if (!res.data.hasWords) {
-      alert(res.data.guideMessage || '수집된 단어가 없습니다! 2');
+      alert(res.data.guideMessage || '수집된 단어가 없습니다!');
       return;
     }
 
@@ -446,6 +583,11 @@ try {
   setIsAiBlocked(false);
 }
 };
+
+
+
+
+
 
   return (
     // 전체 박스
@@ -743,7 +885,11 @@ try {
 
             <div className={style.recommendedSectionBox}>
               <div className={style.recommendedTitle}>
-                <div className={style.recommendedTitle2}></div>
+                <div className={style.recommendedTitle2}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 23 23" fill="none">
+  <path d="M11.6471 0.41721C17.744 0.417582 22.6862 5.36163 22.6862 11.4592C22.6858 17.5565 17.7438 22.4994 11.6471 22.4997C5.55012 22.4997 0.606941 17.5567 0.606581 11.4592C0.606581 11.1755 0.618045 10.8936 0.640273 10.6155C0.665945 10.2954 0.940283 10.0573 1.26137 10.0573C1.64929 10.0577 1.94593 10.4012 1.91908 10.7883C1.90366 11.0097 1.89564 11.2339 1.89564 11.4592C1.896 16.8453 6.26146 21.2107 11.6471 21.2107C17.0324 21.2103 21.3967 16.8451 21.3971 11.4592C21.3971 6.07304 17.0327 1.70665 11.6471 1.70627C11.422 1.70627 11.1975 1.71454 10.9762 1.72971C10.589 1.75601 10.2453 1.45871 10.2453 1.07053C10.2454 0.749618 10.4835 0.476337 10.8034 0.450901C11.0815 0.428973 11.3635 0.41721 11.6471 0.41721ZM13.736 15.1404H12.3239L11.7086 13.321H8.93861L8.32777 15.1404H6.91566L9.50697 7.77951H11.1344L13.736 15.1404ZM15.9318 15.1404H14.6105V7.77951H15.9318V15.1404ZM9.29457 12.2531H11.3527L10.3507 9.28537H10.2907L9.29457 12.2531ZM4.4767 0.311741C4.54544 -0.0972571 5.13007 -0.106529 5.21205 0.300022L5.27943 0.635472C5.68492 2.64634 7.33556 4.16964 9.37221 4.41477C9.7578 4.46151 9.80116 5.00459 9.42787 5.11203L8.96058 5.2468C7.10696 5.77891 5.68432 7.26854 5.23842 9.14475L5.21937 9.21946C5.12358 9.62014 4.54946 9.60923 4.46937 9.20481C4.09333 7.30606 2.6786 5.78225 0.813124 5.26584L0.260878 5.11203C-0.115769 5.00773 -0.0731594 4.46129 0.315077 4.41623C2.41283 4.17267 4.09713 2.57156 4.4474 0.488987L4.4767 0.311741Z" fill="#F5F9F8"/>
+</svg>
+                </div>
                 <div className={style.recommendedTitle3}>
                   <p className={style.recommendedTitle4}>추천 영상</p>
                 </div>

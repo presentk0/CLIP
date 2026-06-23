@@ -126,42 +126,6 @@ export default function LevelSelectPage() {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-      {/* <h1>현재 영어 실력을 선택해주세요</h1>
-      <p>나중에 언제든 다시 바꿀 수 있어요</p>
-
-      <ul>
-        {ABSOLUTE_OPTIONS.map((opt) => (
-          <div key={opt.value}>
-            <button
-              type="button"
-              onClick={() => handleSelect(opt.value)}
-              aria-pressed={selected === opt.value}
-            >
-              {opt.label} {selected === opt.value ? '✓' : ''}
-            </button>
-          </div>
-        ))}
-      </ul>
-
-      <button
-        type="button"
-        onClick={handleConfirm}
-        disabled={!selected}
-      >
-        확인
-      </button> */}
     </div>
   );
 }

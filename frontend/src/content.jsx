@@ -1374,13 +1374,7 @@ async function startQuizSession() {
 
     quizSectionCount++;
 
-    // // 섹션 저장
-    // chrome.storage.local.set({
-    //   [`quizProgress_${videoId}`]: {
-    //     sectionCount: quizSectionCount,
-    //     matchingCount: matchingQuizCount
-    //   }
-    // });
+
 
     // 영상과 유저에 맞게 섹션 저장
     await saveUserData(`quizProgress_${videoId}`, {
@@ -1398,11 +1392,7 @@ async function startQuizSession() {
       totalCount: sessionResponse.data.totalQuizCount || 10
     }).catch((error) => { log.error('퀴즈 전송 에러', error) });
 
-    // // Chrome Storage에도 저장 (패널 닫혀있을 때 대비)
-    // chrome.storage.local.set({
-    //   currentSessionId: sessionResponse.data.sessionId,
-    //   currentQuizzes: sessionResponse.data.quizzes
-    // });
+
   } catch (error) {
     log.error('퀴즈 세션 실패', error);
   } finally {
@@ -1456,12 +1446,6 @@ async function matchingQuiz() {
       matchingCount: matchingQuizCount
     });
   
-    // chrome.storage.local.set({
-    //   [`quizProgress_${videoId}`]: {
-    //     sectionCount: quizSectionCount,
-    //     matchingCount: matchingQuizCount
-    //   }
-    // });
 
     // 사이드 패널로 퀴즈 전송
     chrome.runtime.sendMessage({
@@ -1472,11 +1456,6 @@ async function matchingQuiz() {
       totalCount: matchingResponse.data.totalQuizCount || 10
     }).catch((error) => { log.error('매칭 퀴즈 전송 실패', error) });
 
-    // // Chrome Storage에도 저장 (패널 닫혀있을 때 대비)
-    // chrome.storage.local.set({
-    //   currentSessionId: matchingResponse.data.sessionId,
-    //   currentQuizzes: matchingResponse.data.quizzes
-    // });
   } catch (error) {
     log.error('매칭 퀴즈 세션 실패', error);
   } finally {

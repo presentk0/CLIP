@@ -718,13 +718,12 @@ gap: 8px;
 }
 
 .collection-card4 {
-  display: flex;
+display: flex;
 width: 36px;
 height: 36px;
-flex-shrink: 0;
-align-items: center;
-gap: 10px;
-background: #E9E4D3;
+padding-bottom: 3px;
+justify-content: center;
+align-items: flex-end;
 }
 
 .collection-card5 {
@@ -792,7 +791,7 @@ width: 36px;
 height: 36px;
 align-items: center;
 gap: 10px;
-background: #E9E4D3;
+
 }
 
 .collection-card-v4 {
@@ -962,12 +961,13 @@ gap: 8px;
 
 
 .growth-card11 {
-  display: flex;
+display: flex;
 width: 36px;
 height: 36px;
+padding: 10px;
+justify-content: center;
 align-items: center;
 gap: 10px;
-background: #E9E4D3;
 }
 
 
@@ -1033,12 +1033,13 @@ gap: 8px;
 
 
 .growth-card17 {
-  display: flex;
+display: flex;
 width: 36px;
 height: 36px;
+padding: 10px;
+justify-content: center;
 align-items: center;
 gap: 10px;
-background: #E9E4D3;
 }
 
 
@@ -1297,6 +1298,8 @@ justify-content: flex-end;
 }
 
 .chart11-g {
+  position: relative;
+
 width: 40px;
 /* height: 60px; */
 border-radius: 16px;
@@ -1304,6 +1307,8 @@ background: #DBE7C4;
 }
 
 .chart12-g {
+  position: relative;
+
 width: 40px;
 /* height: 160px; */
 border-radius: 16px;
@@ -1343,9 +1348,10 @@ line-height: normal;
 
 .chart15 {
     position: absolute;
-
-  bottom: calc(100%);
-  right: auto;
+  bottom: 100%;
+  margin-bottom: 5px;
+  /* bottom: calc(100%); */
+  /* right: auto; */
   left: 50%;
 transform: translateX(-50%);
 z-index: 2;
@@ -1701,12 +1707,14 @@ flex-shrink: 0;
 
 .objectives-card10 {
 display: flex;
-width: 56px;
-height: 40px;
+width: 50px;
+height: 36px;
 flex-direction: column;
-align-items: flex-start;
+justify-content: center;
+align-items: center;
 gap: 10px;
 flex-shrink: 0;
+aspect-ratio: 25/18;
 }
 
 
