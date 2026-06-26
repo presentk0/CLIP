@@ -5,7 +5,7 @@ services:
     ports:
       - "80:80"
     volumes:
-      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
       - ./nginx/service-env.inc:/etc/nginx/conf.d/service-env.inc
       - ./nginx/logs:/var/log/nginx
     restart: always
