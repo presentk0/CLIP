@@ -13,8 +13,7 @@ permissions:
     group: ubuntu
 
 hooks:
-  # 배포 단계 중 'AfterInstall' 단계에서 실행
-  AfterInstall:
+  ApplicationStart:
     - location: scripts/deploy.sh
       timeout: 300
       runas: ubuntu
