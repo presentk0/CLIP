@@ -53,10 +53,10 @@ done
 
 # 4. Nginx 라우팅 스위칭
 echo "> Nginx 라우팅 설정 변경..."
-docker exec -i $NGINX_CONTAINER_NAME sh -c "echo 'set \$service_url http://172.18.0.1:$TARGET_PORT;' > $NGINX_CONF_PATH"
+echo "set \$service_url http://172.18.0.1:$TARGET_PORT;" > $NGINX_CONF_PATH
 
 # Nginx 설정 문법 검사 실행
-docker exec $NGINX_CONTAINER_NAME nginx -t
+docker exec -i $NGINX_CONTAINER_NAME nginx -t
 if [ $? -eq 0 ]; then
     echo "> Nginx 문법 검사 통과. 변경된 설정 적용..."
     docker exec $NGINX_CONTAINER_NAME nginx -s reload
