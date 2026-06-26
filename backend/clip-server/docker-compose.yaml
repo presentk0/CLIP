@@ -6,16 +6,18 @@ services:
       - "80:80"
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/service-env.inc:/etc/nginx/conf.d/service-env.inc
       - ./nginx/logs:/var/log/nginx
-    depends_on:
-      app:
-        condition: service_healthy
     restart: always
+    networks:
+      - app_default
 
-  app:
+  app-a:
     build:
       context: .
-    container_name: spring-app
+    container_name: spring-app-a
+    ports:
+      - "8081:8080"
     env_file:
       - .env
     environment:
@@ -23,10 +25,37 @@ services:
       - SERVER_PORT=${SERVER_PORT}
     volumes:
       - /home/ubuntu/app/log:/home/ubuntu/app/log
-    # 컨테이너 상태 체크 로직
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 10s
+      interval: 10s
+      timeout: 5s
       retries: 3
-    restart: on-failure
+    restart: always
+    networks:
+      - app_default
+
+  app-b:
+    build:
+      context: .
+    container_name: spring-app-b
+    ports:
+      - "8082:8080"
+    env_file:
+      - .env
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
+      - SERVER_PORT=${SERVER_PORT}
+    volumes:
+      - /home/ubuntu/app/log:/home/ubuntu/app/log
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: always
+    networks:
+      - app_default
+
+networks:
+  app_default:
+    external: true
