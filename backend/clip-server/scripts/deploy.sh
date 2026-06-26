@@ -4,7 +4,7 @@ cd $PROJECT_ROOT
 cp /home/ubuntu/config/.env ./.env
 
 NGINX_CONTAINER_NAME="nginx-proxy"
-NGINX_CONF_PATH="./nginx/service-env.inc"
+NGINX_CONF_PATH="/etc/nginx/conf.d/service-env.inc"
 
 # 1. 구동 중인 스프링 컨테이너 포트 확인 및 환경 변수 설정
 echo "> 현재 구동 중인 스프링 애플리케이션 포트 확인..."
