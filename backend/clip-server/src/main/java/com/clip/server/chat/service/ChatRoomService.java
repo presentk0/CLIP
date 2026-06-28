@@ -3,6 +3,8 @@ package com.clip.server.chat.service;
 import com.clip.server.chat.dto.request.ChatRoomInitRequest;
 import com.clip.server.chat.dto.response.ChatRoomCompleteResponse;
 import com.clip.server.chat.dto.response.ChatRoomInitResponse;
+import com.clip.server.chat.dto.response.ChatRoomTargetWordResponse;
+import com.clip.server.chat.dto.response.ChatWordsResponse;
 import com.clip.server.chat.entity.ChatRoom;
 import com.clip.server.chat.entity.ChatRoomStatus;
 import com.clip.server.chat.repository.ChatMessageRepository;
@@ -12,12 +14,15 @@ import com.clip.server.common.exception.ErrorCode;
 import com.clip.server.user.entity.User;
 import com.clip.server.user.repository.UserRepository;
 import com.clip.server.word.entity.CollectedWord;
+import com.clip.server.word.entity.WordMeaning;
 import com.clip.server.word.repository.CollectedWordRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -175,4 +180,50 @@ public class ChatRoomService {
                 .completedAt(chatRoom.getUpdatedAt())
                 .build();
     }
+
+    /**
+     * AI 채팅 선택 단어 조회
+     */
+     public ChatRoomTargetWordResponse getChatWord(Long userId, Long chatRoomId) {
+         log.info("AI 채팅 학습 단어 조회. userId={}, chatRoomId={}", userId, chatRoomId) ;
+
+         // 1. 채팅방 조회
+         ChatRoom chatRoom = chatRoomRepository.findByIdAndUserWithWord(chatRoomId, userId)
+                 .orElseThrow(()-> new BusinessException(ErrorCode.CHAT_ROOM_NOT_FOUND));
+
+         // 2. AI 채팅 선택 단어 여부 존재 확인
+         CollectedWord word = chatRoom.getWord();
+         if(word == null) {
+             log.warn("채팅방에 학습 단어가 없습니다. chatRoomId={}", chatRoomId);
+             throw new BusinessException(ErrorCode.WORD_NOT_FOUND);
+         }
+
+        return mapToChatRoomTargetWordResponse(word);
+     }
+
+     // CollectedWord -> ChatRoomTargetWordResponse 변환
+     private ChatRoomTargetWordResponse mapToChatRoomTargetWordResponse(CollectedWord word) {
+         return ChatRoomTargetWordResponse.builder()
+                 .wordId(word.getId())
+                 .word(word.getWord())
+                 .meanings(extractMeanings(word.getMeaningsByPos()))
+                 .build();
+     }
+
+     /**
+     * 품사별 의미를 단순 리스트로 변환    { partOfSpeech: "동사", meanings: ["기부하다", "기증하다"] } -> ["기부하다", "기증하다", "기부"]
+     */
+     private List<String> extractMeanings(List<WordMeaning> meaningsByPos) {
+         if(meaningsByPos == null && meaningsByPos.isEmpty()) {
+             return new ArrayList<>();
+         }
+
+         List<String> result = new ArrayList<>();
+         for(WordMeaning wm : meaningsByPos) {
+             if(wm.getMeanings() !=null) {
+                 result.addAll(wm.getMeanings());
+             }
+         }
+         return result;
+     }
 }

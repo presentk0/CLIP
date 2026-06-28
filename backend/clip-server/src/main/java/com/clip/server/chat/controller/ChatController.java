@@ -101,10 +101,17 @@ public class ChatController {
             @PathVariable Long chatRoomId
     ) {
         ChatReportResponse response = chatReportService.generateReport(userId, chatRoomId);
-        return ApiResponse.success(
-                response,
-                "AI 대화 리포트 생성이 완료되었습니다. 고생하셨습니다!"
-        );
+        return ApiResponse.success(response, "AI 대화 리포트 생성이 완료되었습니다. 고생하셨습니다!");
+    }
+
+    @Operation(summary = "AI 채팅 선택 단어 조회")
+    @GetMapping("/rooms/{chatRoomId}/word")
+    public ApiResponse<ChatRoomTargetWordResponse> getChatRoomTargetWord(
+            @AuthenticationPrincipal Long userId,
+            @PathVariable Long chatRoomId
+    ) {
+        ChatRoomTargetWordResponse response = chatRoomService.getChatWord(userId, chatRoomId);
+        return ApiResponse.success(response,"AI 채팅 단어 조회에 성공하였습니다.");
     }
 
 }
