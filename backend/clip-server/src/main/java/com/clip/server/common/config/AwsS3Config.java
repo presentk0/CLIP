@@ -16,7 +16,7 @@ public class AwsS3Config {
     @Value("${aws.region}")
     private String region;
 
-    @Value("${aws.profile:}")  // ✨ 빈 문자열 기본값!
+    @Value("${aws.profile:}")  //  빈 문자열 기본값!
     private String profile;
 
     /**
