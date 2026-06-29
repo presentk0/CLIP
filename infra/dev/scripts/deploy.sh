@@ -54,7 +54,7 @@ done
 # 4. Nginx 라우팅 스위칭
 echo "> Nginx 라우팅 설정 변경..."
 echo "set \$service_url http://172.18.0.1:$TARGET_PORT;" > $NGINX_CONF_PATH
-docker exec -i $NGINX_CONTAINER_NAME sh -c "echo 'set \$service_url http://172.18.0.1:$TARGET_PORT;' >/etc/nginx/conf.d/service-env.inc"
+docker exec -i $NGINX_CONTAINER_NAME sh -c "echo 'set \$service_url http://172.18.0.1:$TARGET_PORT;' > /etc/nginx/conf.d/service-env.inc"
 
 # Nginx 설정 문법 검사 실행
 docker exec -i $NGINX_CONTAINER_NAME nginx -t
