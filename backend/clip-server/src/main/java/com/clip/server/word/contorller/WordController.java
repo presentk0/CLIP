@@ -40,11 +40,13 @@ public class WordController {
     @GetMapping("/my-collection")
     public ApiResponse<WordListResponse> getMyCollection(
             @AuthenticationPrincipal Long userId,
-            @RequestParam(defaultValue = "0") @Min(value = 0, message = "페이지 번호는 0 이상이어야 합니다. (입력값: ${validatedValue})")int page,
-            @RequestParam(defaultValue = "10") @Min(1)int size,
-            @RequestParam(required = false) String videoId
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "latest") String sort,
+            @RequestParam(defaultValue = "all") String filter,
+            @RequestParam(required = false) String keyword
     ) {
-        WordListResponse wordListResponse = wordService.getWords(userId, page,size,videoId);
+        WordListResponse wordListResponse = wordService.getWords(userId,  page, size, sort, filter, keyword);
         return ApiResponse.success(wordListResponse,"단어장이 성공적으로 조회됐습니다.");
     }
 }
