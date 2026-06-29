@@ -43,6 +43,12 @@ jobs:
       - name: Build with Gradle
         run: ./gradlew clean build -x test
 
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
       - name: Copy Prod Infra Files
         run: |
           cp -r ../../infra/prod/* .
@@ -52,12 +58,6 @@ jobs:
           chmod +x scripts/*.sh
           zip -r clip-${{ env.STAGE }}-deploy-${{ env.DEPLOY_DATE }}.zip .
         shell: bash
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Upload to S3
         run: aws s3 cp --region ${{ secrets.AWS_REGION }} clip-${{ env.STAGE }}-deploy-${{ env.DEPLOY_DATE }}.zip s3://${{ secrets.S3_DEPLOY_BUCKET_NAME }}/${{ env.STAGE }}/clip-${{ env.STAGE }}-deploy-${{ env.DEPLOY_DATE }}.zip
