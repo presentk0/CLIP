@@ -2,13 +2,13 @@ package com.clip.server.chat.dto.request;
 
 import com.clip.server.chat.entity.AiGender;
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Schema(description = "AI 채팅방 초기화 요청")
@@ -22,6 +22,10 @@ public class ChatRoomInitRequest {
 
     @Size(max = 50, message = "단어는 50자 이하여야 합니다.")
     private String aiRecommendedWord;
+
+    @Schema(description = "AI 추천 단어의 의미 리스트", example = "[\"유지보수\", \"정비\"]")
+    private List<String> aiRecommendedMeanings;
+
 
     @Size(max = 100, message = "시나리오 제목은 100자 이하여야 합니다.")
     private String scenarioTitle;
