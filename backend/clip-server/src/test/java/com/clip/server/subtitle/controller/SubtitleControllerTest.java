@@ -1,5 +1,8 @@
 package com.clip.server.subtitle.controller;
 
+import com.clip.server.analytics.mapper.EventNameMapper;
+import com.clip.server.analytics.repository.UserEventRepository;
+import com.clip.server.analytics.service.UserEventService;
 import com.clip.server.auth.jwt.JwtProvider;
 import com.clip.server.common.exception.BusinessException;
 import com.clip.server.common.exception.ErrorCode;
@@ -10,6 +13,7 @@ import com.clip.server.subtitle.dto.response.SubtitleDetailResponse;
 import com.clip.server.subtitle.dto.response.SubtitleListResponse;
 import com.clip.server.subtitle.dto.response.SubtitleResponse;
 import com.clip.server.subtitle.service.SubtitleService;
+import com.clip.server.user.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -58,6 +62,18 @@ public class SubtitleControllerTest {
 
     @MockitoBean
     private SessionActivityFilter sessionActivityFilter;
+
+    @MockitoBean
+    private UserEventService userEventService;
+
+    @MockitoBean
+    private EventNameMapper eventNameMapper;
+
+    @MockitoBean
+    private UserEventRepository userEventRepository;
+
+    @MockitoBean
+    private UserRepository userRepository;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
