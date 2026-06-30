@@ -1,9 +1,13 @@
 package com.clip.server.word.controller;
 
+import com.clip.server.analytics.mapper.EventNameMapper;
+import com.clip.server.analytics.repository.UserEventRepository;
+import com.clip.server.analytics.service.UserEventService;
 import com.clip.server.auth.jwt.JwtProvider;
 import com.clip.server.common.response.PaginationResponse;
 import com.clip.server.common.security.JwtAuthenticationFilter;
 import com.clip.server.common.security.SessionActivityFilter;
+import com.clip.server.user.repository.UserRepository;
 import com.clip.server.word.contorller.WordController;
 import com.clip.server.word.dto.request.CollectedWordRequest;
 import com.clip.server.word.dto.response.CollectedWordResponse;
@@ -53,6 +57,18 @@ public class WordControllerTest {
 
     @MockitoBean
     private SessionActivityFilter sessionActivityFilter;
+
+    @MockitoBean
+    private UserEventService userEventService;
+
+    @MockitoBean
+    private EventNameMapper eventNameMapper;
+
+    @MockitoBean
+    private UserEventRepository userEventRepository;
+
+    @MockitoBean
+    private UserRepository userRepository;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
