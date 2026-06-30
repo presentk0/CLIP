@@ -23,6 +23,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -91,27 +93,48 @@ public class WordService {
     }
 
     // 사용자의 전체 수집 단어 조회 메서드
-    public WordListResponse getWords(Long userId, int page, int size, String videoId) {
-        // 페이징 파라미터 검증
+    public WordListResponse getWords(Long userId,
+                                     int page,
+                                     int size,
+                                     String sort,
+                                     String filter,
+                                     String keyword
+    ) {
+        // 1. 페이징 파라미터 검증 (잘못된 값 방어)
         if (page < 0) page = 0;
         if (size <= 0 || size > 100) size = 20;
 
-        PageRequest pageRequest = PageRequest.of(page,size, Sort.by("collectedAt").descending());
-        Page<CollectedWord> wordPage;
+        // 2. 정렬 조건 변환 (String → Spring Sort 객체)
+        Sort sortOption = convertSort(sort);
+        PageRequest pageRequest = PageRequest.of(page, size, sortOption);
 
-        // 1. Video 정보 확인
-        if (videoId != null && !videoId.isBlank()) {
-            wordPage = collectedWordRepository.findAllByUserIdAndVideo_VideoIdAndWordType(userId, videoId, WordType.COLLECT, pageRequest);
-        } else {
-            wordPage = collectedWordRepository.findAllByUserIdAndWordType(userId, WordType.COLLECT, pageRequest);
-        }
+        // 3. '오늘 수집' 필터 처리
+        //    - filter=today일 경우 오늘 00:00:00 이후 수집된 단어만 조회
+        //    - filter=all일 경우 null로 두어 전체 조회
+        LocalDateTime todayStart = "today".equalsIgnoreCase(filter)
+                ? LocalDate.now().atStartOfDay()
+                : null;
 
-        // Page-> WordResponse DTO 변환
+        // 4. 검색어 정제 (null 또는 공백이면 검색 조건에서 제외)
+        String searchKeyword = (keyword != null && !keyword.isBlank())
+                ? keyword.trim()
+                : null;
+
+        // 5. DB 조회 (Native Query - word + meaning 컬럼 LIKE 검색)
+        Page<CollectedWord> wordPage = collectedWordRepository.searchMyWords(
+                userId,
+                WordType.COLLECT.name(),  // Native Query라 Enum → String 변환
+                todayStart,
+                searchKeyword,
+                pageRequest
+        );
+
+        // 6. Entity → DTO 변환 (응답용 경량 객체로 매핑)
         List<WordResponse> words = wordPage.getContent().stream()
                 .map(this::mapToWordResponse)
                 .toList();
 
-        // Page-> PaginationResponse DTO 변환
+        // 7. 페이지네이션 정보 구성
         PaginationResponse paginationResponse = PaginationResponse.builder()
                 .totalCount(wordPage.getTotalElements())
                 .currentPage(wordPage.getNumber())
@@ -119,7 +142,7 @@ public class WordService {
                 .totalPage(wordPage.getTotalPages())
                 .build();
 
-        // WordListResponse DTO 반환
+        // 8. 최종 응답 DTO 반환
         return WordListResponse.builder()
                 .words(words)
                 .pagination(paginationResponse)
@@ -141,6 +164,19 @@ public class WordService {
                 .toList();
     }
 
+
+    private Sort convertSort(String sort) {
+        if (sort == null) return Sort.by("collected_at").descending();
+
+        return switch (sort.toLowerCase()) {
+            case "oldest"        -> Sort.by("collected_at").ascending();   // 오래된 순
+            case "alphabet-asc"  -> Sort.by("word").ascending();           // 알파벳 A-Z
+            case "alphabet-desc" -> Sort.by("word").descending();          // 알파벳 Z-A
+            default              -> Sort.by("collected_at").descending();  // 최신 순 (기본값)
+        };
+    }
+
+    // collectWord, totalCount -> CollectWordResponse 변환
     private CollectedWordResponse mapToCollectedWordResponse(CollectedWord collectedWord, long totalCount) {
         return CollectedWordResponse.builder()
                 .wordId(collectedWord.getId())
@@ -149,26 +185,17 @@ public class WordService {
                 .build();
     }
 
+    // collectWord -> WordResponse 변환
     private WordResponse mapToWordResponse(CollectedWord collectedWord) {
-
-        List<WordResponse.MeaningByPosDto> meaningsByPosDtos =
-                collectedWord.getMeaningsByPos().stream()
-                        .map(wm -> WordResponse.MeaningByPosDto.builder()
-                                .partOfSpeech(wm.getPartOfSpeech())
-                                .meanings(wm.getMeanings())
-                                .build())
-                        .toList();
+        // 품사별 뜻을 플랫 배열로 합치기
+        List<String> meanings = collectedWord.getMeaningsByPos().stream()
+                .flatMap(wm -> wm.getMeanings().stream())
+                .toList();
 
         return WordResponse.builder()
                 .id(collectedWord.getId())
-                .videoId(collectedWord.getVideo().getVideoId())
-                .wordType(collectedWord.getWordType())
                 .word(collectedWord.getWord())
-                .meaningsByPos(meaningsByPosDtos)
-                .sentence(collectedWord.getSentence())
-                .translation(collectedWord.getTranslation())
-                .timestamp(collectedWord.getTimestamp())
-                .collectedAt(collectedWord.getCollectedAt())
+                .meanings(meanings)
                 .build();
     }
 }

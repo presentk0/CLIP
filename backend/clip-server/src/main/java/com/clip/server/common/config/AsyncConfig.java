@@ -21,4 +21,20 @@ public class AsyncConfig {
         executor.initialize();
         return executor;
     }
+
+    /**
+     * 이벤트 로깅 전용 Executor
+     * - 분석용 데이터라 우선순위 낮음
+     * - 스레드 적게, 큐는 크게
+     */
+    @Bean(name = "eventTaskExecutor")
+    public Executor eventTaskExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(2);          // 기본 2개
+        executor.setMaxPoolSize(5);           // 최대 5개
+        executor.setQueueCapacity(500);       // 큐 크게 (이벤트 폭주 대비)
+        executor.setThreadNamePrefix("Event-");
+        executor.initialize();
+        return executor;
+    }
 }
