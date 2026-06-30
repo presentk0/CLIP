@@ -38,6 +38,14 @@ public class ChatRoom {
     @JoinColumn(name = "word_id")
     private CollectedWord word;  // 이어하기 시 null 가능
 
+    @Column(length = 50)
+    private String aiRecommendedWord; // AI 추천 단어 (word가 null일 때)
+
+
+    @Column(length = 500)
+    private String aiRecommendedMeanings; // AI 추천 단어 의미 (쉼표 구분)
+
+
     @Column(name = "scenario_title", length = 100)
     private String scenarioTitle; // 시나리오 제목 (예: "병원 모금 참여")
 
@@ -67,13 +75,18 @@ public class ChatRoom {
     private LocalDateTime updatedAt;
 
     @Builder
-    public ChatRoom(User user, CollectedWord word,
+    public ChatRoom(User user,
+                    CollectedWord word,
+                    String aiRecommendedWord,
+                    String aiRecommendedMeanings,
                     String scenarioTitle,
                     String scenarioGoal,
                     String scenarioSituation,
                     AiGender aiGender) {
         this.user = user;
         this.word = word;
+        this.aiRecommendedWord = aiRecommendedWord;
+        this.aiRecommendedMeanings = aiRecommendedMeanings;
         this.scenarioTitle = scenarioTitle;
         this.scenarioGoal = scenarioGoal;
         this.scenarioSituation = scenarioSituation;
