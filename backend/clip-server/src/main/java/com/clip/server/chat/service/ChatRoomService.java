@@ -136,18 +136,18 @@ public class ChatRoomService {
      */
     private void validateNewStartFields(ChatRoomInitRequest request) {
         //  wordId 또는 aiRecommendedWord 중 하나는 필수
-        boolean hasWordId = request.getWordId() != null;
-        boolean hasAiWord = request.getAiRecommendedWord() != null
-                && !request.getAiRecommendedWord().isBlank();
-
-        if (!hasWordId && !hasAiWord) {
-            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE,
-                    "wordId 또는 aiRecommendedWord 중 하나는 필수입니다.");
-        }
-        if (hasWordId && hasAiWord) {
-            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE,
-                    "wordId와 aiRecommendedWord는 동시에 사용할 수 없습니다.");
-        }
+//        boolean hasWordId = request.getWordId() != null;
+//        boolean hasAiWord = request.getAiRecommendedWord() != null
+//                && !request.getAiRecommendedWord().isBlank();
+//
+//        if (!hasWordId && !hasAiWord) {
+//            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE,
+//                    "wordId 또는 aiRecommendedWord 중 하나는 필수입니다.");
+//        }
+//        if (hasWordId && hasAiWord) {
+//            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE,
+//                    "wordId와 aiRecommendedWord는 동시에 사용할 수 없습니다.");
+//        }
         if (request.getScenarioTitle() == null || request.getScenarioTitle().isBlank()) {
             throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "시나리오 제목은 필수입니다.");
         }
@@ -241,9 +241,17 @@ public class ChatRoomService {
              return mapAiRecommendedToResponse(chatRoom);
          }
 
-         // 둘 다 없으면 데이터 이상
-         log.warn("채팅방에 학습 단어 정보 없음. chatRoomId={}", chatRoomId);
-         throw new BusinessException(ErrorCode.WORD_NOT_FOUND);
+//         // 둘 다 없으면 데이터 이상
+//         log.warn("채팅방에 학습 단어 정보 없음. chatRoomId={}", chatRoomId);
+//         throw new BusinessException(ErrorCode.WORD_NOT_FOUND);
+
+         // CASE 3: 둘 다 없음 (임시 처리) - 빈 응답 반환
+         log.warn("채팅방에 학습 단어 정보 없음 (임시 허용). chatRoomId={}", chatRoomId);
+         return ChatRoomTargetWordResponse.builder()
+                 .wordId(null)
+                 .word(null)
+                 .meanings(new ArrayList<>())
+                 .build();
      }
 
      // CollectedWord -> ChatRoomTargetWordResponse 변환
