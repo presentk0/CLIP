@@ -166,6 +166,8 @@ export const apiFetch = async (endpoint, options = {}) => {
 
 
 
+
+
     // 기본 응답
     return { success: true };
   }
@@ -212,10 +214,6 @@ export const apiFetch = async (endpoint, options = {}) => {
 
         // 새 토큰 저장
         await saveAccessToken(newAccessToken);
-        // await chrome.runtime.sendMessage({
-        //   type: 'SET_AUTH',
-        //   accessToken: newAccessToken,
-        // });
 
         // 원래 요청 재시도
         response = await fetch(`${BASE_URL}${endpoint}`, {
@@ -258,7 +256,12 @@ export const apiFetch = async (endpoint, options = {}) => {
 
   // HTTP 에러 처리
   if (!response.ok) {
-    log.warn('HTTP 에러', endpoint, response.status, result);
+
+    // ai채팅방 이어하기 없는거는 경고창 없음
+    if (result?.error?.code !== "NO_RESUMABLE_CHAT_ROOM") {
+      log.warn('HTTP 에러', endpoint, response.status, result);
+    }
+
     throw new ApiError(
       result?.error?.message || `HTTP ${response.status} 에러`,
       result?.error?.code || `HTTP_${response.status}`,
