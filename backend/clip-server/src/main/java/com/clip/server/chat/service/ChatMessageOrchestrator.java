@@ -114,23 +114,23 @@ public class ChatMessageOrchestrator {
                 );
             }
 
-            //  9. AI 메시지 저장 + TTS (VOICE 모드일 때)
-            ChatMessage aiMessage;
+            //  9. AI 메시지 저장 + TTS(항상 생성)
             String aiAudioUrl = null;
-
-            if (request.getInputMode() == InputMode.VOICE) {
-                // 9-1. TTS 변환
+            try {
                 log.info("TTS 변환 시작. text={}", aiResult.getAiResponse());
                 byte[] aiAudioData = azureTtsClient.synthesize(
                         aiResult.getAiResponse(),
                         chatRoom.getAiGender().name()
                 );
-
-                // 9-2. S3 업로드 + 재생 URL 받기
                 aiAudioUrl = s3Service.uploadAiAudioAndGetUrl(aiAudioData, "audio/mpeg");
                 log.info("AI 음성 S3 업로드 완료. url={}", aiAudioUrl);
+            } catch (Exception e) {
+                log.warn("AI 응답 TTS 실패. 텍스트만 푸시합니다. chatRoomId={}", chatRoom.getId(), e);
+            }
 
-                // 9-3. AI 메시지 저장 (audioUrl 포함)
+            // 9-1. AI 메시지 저장(audioUrl 있으면 포함)
+            ChatMessage aiMessage;
+            if (aiAudioUrl != null) {
                 aiMessage = chatMessageService.saveAiMessageWithAudio(
                         chatRoom,
                         aiResult.getAiResponse(),
@@ -138,7 +138,6 @@ public class ChatMessageOrchestrator {
                         currentTurn + 1
                 );
             } else {
-                // TEXT 모드: 기존 로직
                 aiMessage = chatMessageService.saveAiMessage(
                         chatRoom,
                         aiResult.getAiResponse(),
@@ -150,7 +149,7 @@ public class ChatMessageOrchestrator {
             sendAiTextDone(userId, aiMessage.getId(), aiResult);
 
             //  10-1. VOICE 모드면 AI_AUDIO 푸시
-            if (request.getInputMode() == InputMode.VOICE && aiAudioUrl != null) {
+            if (aiAudioUrl != null) {
                 sendAiAudio(userId, aiMessage.getId(), aiAudioUrl);
             }
 

@@ -53,6 +53,7 @@ public class ChatMessageService {
                 .content(chatMessage.getContent())
                 .audioUrl(chatMessage.getAudioUrl())
                 .createdAt(chatMessage.getCreatedAt())
+                .turnNumber(chatMessage.getTurnNumber())
                 .build();
     }
 
