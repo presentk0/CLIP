@@ -212,4 +212,34 @@ public class S3Service {
 
         return path;
     }
+
+    /**
+     * S3 URL을 재생 가능한 Presigned GET URL로 변환
+     */
+    public String generatePresignedGetUrl(String audioUrl) {
+        if (audioUrl == null || audioUrl.isBlank()) {
+            return null;
+        }
+
+        try {
+            String objectKey = extractObjectKey(audioUrl);
+
+            GetObjectRequest getRequest = GetObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(objectKey)
+                    .build();
+
+            GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
+                    .signatureDuration(Duration.ofHours(1))
+                    .getObjectRequest(getRequest)
+                    .build();
+
+            PresignedGetObjectRequest presignedRequest = s3Presigner.presignGetObject(presignRequest);
+            return presignedRequest.url().toString();
+
+        } catch (Exception e) {
+            log.error("Presigned GET URL 생성 실패. audioUrl={}", audioUrl, e);
+            return audioUrl;
+        }
+    }
 }
