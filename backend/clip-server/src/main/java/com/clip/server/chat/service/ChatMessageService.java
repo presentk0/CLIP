@@ -27,6 +27,8 @@ public class ChatMessageService {
     private final ChatMessageRepository chatMessageRepository;
     private final S3Service s3Service;
 
+    private static final int MAX_TURN = 10; // AI 채팅 최대 턴
+
     public ChatMessageListResponse getMessage(Long userId, Long chatRoomId) {
         log.info("메시지 조회 요청. userId={}, chatRoomId={}", userId, chatRoomId);
 
@@ -50,6 +52,7 @@ public class ChatMessageService {
     // MessageDto 변환 메서드
     private ChatMessageListResponse.MessageDto mapToMessageDto(ChatMessage chatMessage) {
         String signedAudioUrl = s3Service.generatePresignedGetUrl(chatMessage.getAudioUrl());
+        int remainingTurn = MAX_TURN - chatMessage.getTurnNumber();
 
         return ChatMessageListResponse.MessageDto.builder()
                 .messageId(chatMessage.getId())
@@ -58,6 +61,7 @@ public class ChatMessageService {
                 .audioUrl(signedAudioUrl)
                 .createdAt(chatMessage.getCreatedAt())
                 .turnNumber(chatMessage.getTurnNumber())
+                .remainingTurn(remainingTurn)
                 .build();
     }
 
