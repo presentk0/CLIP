@@ -81,7 +81,7 @@ public class ChatRoomService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
         // 4. 단어 조회 + 소유권 검증
-        // ✅ 단어 타입 분기
+        //  단어 타입 분기
         ChatRoom.ChatRoomBuilder builder = ChatRoom.builder()
                 .user(user)
                 .scenarioTitle(request.getScenarioTitle())
@@ -193,6 +193,7 @@ public class ChatRoomService {
                 .scenarioSituation(room.getScenarioSituation())
                 .word(word)
                 .meanings(meanings)
+                .aiGender(room.getAiGender())
                 .build();
     }
 
