@@ -11,17 +11,22 @@ import { Spinner } from '../../components/Spinner/Spinner';
 function Button({
   variant = 'primary',
   size = 'medium',
-  // fullWidth = true 넓게 펼침
+  // fullWidth = true면 부모 너비 100% 차지
   // fullWidth = false 아무것도 안 붙임
   fullWidth = false,
   isLoading = false,
   children,
   className = '',
   disabled,
+  // 기본값 "button" (form 안에서 자동 submit 방지)
   type= "button",
+  // 나머지 props (onClick 등) 그대로 전달
   ...props
 }) {
   // true가 되는 값인 클래스 이름을 합치고 빈 문자열 ''같은 값 제거
+  // [.button, .primary, .medium, .fullWidth(조건부), 외부클래스]
+  // .filter(Boolean) -> 빈 문자열/undefined/null 제거
+  // .join(' ') → "button primary medium" 형태로 합침
   const classNames = [
     styles.button,
     styles[variant],
@@ -46,6 +51,7 @@ function Button({
   );
 }
 
+// React DevTools에서 컴포넌트 이름이 깔끔하게 보이도록 설정
 Button.displayName = 'Button';
 
 
@@ -54,19 +60,20 @@ Button.displayName = 'Button';
 export default function LoginPage() {
   // 코드로 페이지 이동
   const navigate = useNavigate();
-  // 현재 경로 정보 가져오기
+  // 현재 URL 정보 (이전 페이지가 어디였는지 알아내려고 사용)
   const location = useLocation();
+  // 인증 관련 함수 (백엔드에 토큰 보내고 유저 정보 받기)
   const { loginWithGoogle } = useAuth();
 
 
-  // const { needsOnboarding } = useAuth();
 
 
-
-
+  // 로딩 상태 (버튼 비활성화 + 스피너 표시용)
   const [isLoading, setIsLoading] = useState(false);
+  // 에러 메시지 (화면에 빨간 박스로 표시)
   const [error, setError] = useState('');
 
+  // 백엔드 에러 코드 -> 사용자에게 보여줄 한국어 메시지 매핑
   const SAFE_LOGIN_ERRORS = {
     'INVALID_TOKEN': '유효하지 않은 Google 토큰입니다',
     'UNAUTHORIZED': '인증에 실패했습니다',
@@ -76,29 +83,50 @@ export default function LoginPage() {
     'USER_NOT_FOUND': '사용자 정보를 찾을 수 없습니다',
   };
 
-  // 사용자가 원래 가려던 페이지(from)로 돌아갈 경로를 가져오기. 없으면 홈(/)으로
+
+  // 보호된 페이지 접근 시도 -> 로그인 페이지로 리다이렉트된 경우,
+  // 원래 가려던 경로(location.state.from)를 기억해서 로그인 후 복귀.
+  // 직접 로그인 페이지로 온 경우엔 홈('/')으로
   const from = location.state?.from?.pathname || '/';
 
 
 
   // Google 로그인
   const handleGoogleLogin = async () => {
+    // 이전 에러 초기화
     setError('');
+    // 로딩 시작 (버튼 잠금 + 스피너)
     setIsLoading(true);
 
-    // CLIENT_ID는 내 앱 식별표.
+    // CLIENT_ID는 내 앱 식별표(이건 공개해도 문제없음 대신 Client Secret은 클라이언트에 두면 안 됨).
+    // Google Cloud Console에서 발급받은 OAuth 클라이언트 ID
+    // Vite는 VITE_ 접두사가 붙은 변수만 클라이언트에 노출시킴
     const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
   try {
+    // OAuth 로그인의 흐름
+    // 1. 내 앱에서 Google에 사용자 로그인 시켜달라고 요청
+    // 2. Google에서 사용자에게 로그인 화면 보여줌
+    // 3. 사용자가 로그인 완료
+    // 4. Google에서 토큰을 결과 받을 주소(redirect URI)로 보냄
+
+    // 일반 웹사이트의 경우 redirect_uri = "https://myapp.com/auth/callback" 로 자기 도메인의 한 페이지를 결과 받는 곳으로 지정하지만 크롬 확장은 도메인이 없음
+    // getRedirectURL()을 쓰면 크롬이 확장 프로그램 전용 가상 주소를 만들어줌
+    // 크롬이 가짜 주소를 만들고, Google이 이 주소로 사용자를 보내려고 할 때 크롬이 중간에서 가로채서 내 확장 코드(launchWebAuthFlow의 콜백)로 결과를 전달
+
     // 리다이렉트 URI (Google Console에 등록한 것과 같아야 함) 가져오기
+    // 형태: https://<extension-id>.chromiumapp.org/
     // 크롬이 자동으로 만들어주는 확장프로그램 전용 주소
+    // Google이 로그인 후 이 주소로 결과를 보냄
+    // Google Console의 "승인된 리디렉션 URI"에 이 주소를 등록해놔야 함
     // 구글 로그인 끝나면 -> 구글이 이 주소로 사용자를 보냄 -> 크롬이 그 신호를 잡아서 우리 코드에 전달
     const redirectUri = chrome.identity.getRedirectURL();
     
-    // 보안 토큰 nonce 생성 (재사용 공격 방지)
-    // 매번 다른 랜덤 문자열 생성
+    // 보안 토큰 nonce 생성 (재사용/재전송 공격 방지용 일회용 랜덤 문자열 값)
+    // 요청 시 보낸 nonce와 응답에 담긴 nonce가 같아야 정상 응답으로 인정
     const nonce = crypto.randomUUID();
 
+    // Google에게 내 앱은 ${GOOGLE_CLIENT_ID}고, 결과는 ${redirectUri}로 보내줘
     // Google OAuth URL 만들기
     // encodeURIComponent는 URL에 못 들어가는 특수문자를 안전하게 변환해주는 함수 (예: : -> %3A)
     const authUrl = 

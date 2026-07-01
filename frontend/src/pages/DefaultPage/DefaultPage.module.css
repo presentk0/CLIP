@@ -519,7 +519,10 @@ flex-shrink: 0;
 
 .masteryTitle {
   display: flex;
-height: 40.042px;
+/* height: 40.042px; */
+min-height: 40.042px;
+
+
 flex-direction: column;
 justify-content: center;
 align-self: stretch;
@@ -536,7 +539,9 @@ letter-spacing: -0.5px;
 
 .masteryChannel {
   display: flex;
-height: 20.021px;
+/* height: 20.021px; */
+min-height: 20.021px;
+
 flex-direction: column;
 justify-content: center;
 align-self: stretch;
@@ -840,7 +845,9 @@ gap: 4px;
 
 .recommendedSectionTitle2 {
   display: flex;
-height: 32px;
+/* height: 32px; */
+min-height: 32px;
+
 flex-direction: column;
 justify-content: center;
 align-self: stretch;
@@ -857,7 +864,9 @@ letter-spacing: -0.5px;
 
 .recommendedSectionChannelName {
 display: flex;
-height: 16px;
+/* height: 16px; */
+
+min-height: 16px;
 flex-direction: column;
 justify-content: center;
 align-self: stretch;
@@ -969,7 +978,9 @@ align-items: flex-start;
 
 .smallVideoCardTitle {
 display: flex;
-height: 40.042px;
+/* height: 40.042px; */
+min-height: 40.042px;
+
 flex-direction: column;
 justify-content: center;
 align-self: stretch;
@@ -986,7 +997,9 @@ letter-spacing: -0.5px;
 
 .smallVideoCardChannel {
 display: flex;
-height: 20.021px;
+/* height: 20.021px; */
+
+min-height: 20.021px;
 flex-direction: column;
 justify-content: center;
 align-self: stretch;
