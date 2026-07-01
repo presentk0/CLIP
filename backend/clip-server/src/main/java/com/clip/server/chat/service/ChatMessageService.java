@@ -15,6 +15,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Slf4j
@@ -73,6 +74,7 @@ public class ChatMessageService {
             ChatRoom chatRoom,
             String content,
             String audioUrl,
+            BigDecimal pronunciationScore, // 발음 점수
             int turnNumber
     ) {
         ChatMessage message = ChatMessage.builder()
@@ -80,6 +82,7 @@ public class ChatMessageService {
                 .senderType(SenderType.USER)
                 .content(content)
                 .audioUrl(audioUrl)
+                .pronunciationScore(pronunciationScore)
                 .turnNumber(turnNumber)
                 .build();
 
