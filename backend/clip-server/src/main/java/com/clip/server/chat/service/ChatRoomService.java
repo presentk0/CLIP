@@ -3,6 +3,8 @@ package com.clip.server.chat.service;
 import com.clip.server.chat.dto.request.ChatRoomInitRequest;
 import com.clip.server.chat.dto.response.ChatRoomCompleteResponse;
 import com.clip.server.chat.dto.response.ChatRoomInitResponse;
+import com.clip.server.chat.dto.response.ChatRoomTargetWordResponse;
+import com.clip.server.chat.dto.response.ChatWordsResponse;
 import com.clip.server.chat.entity.ChatRoom;
 import com.clip.server.chat.entity.ChatRoomStatus;
 import com.clip.server.chat.repository.ChatMessageRepository;
@@ -12,12 +14,15 @@ import com.clip.server.common.exception.ErrorCode;
 import com.clip.server.user.entity.User;
 import com.clip.server.user.repository.UserRepository;
 import com.clip.server.word.entity.CollectedWord;
+import com.clip.server.word.entity.WordMeaning;
 import com.clip.server.word.repository.CollectedWordRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -33,7 +38,6 @@ public class ChatRoomService {
 
     /**
      * AI 채팅방 초기화 (새로 시작 or 이어하기)
-     *
      * - 사용자당 IN_PROGRESS 방은 최대 1개만 존재
      * - 새로 시작: 기존 IN_PROGRESS 방을 COMPLETED 처리 후 새 방 생성
      * - 이어하기: 기존 IN_PROGRESS 방 그대로 사용
@@ -77,36 +81,39 @@ public class ChatRoomService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
         // 4. 단어 조회 + 소유권 검증
-        CollectedWord word = collectedWordRepository.findById(request.getWordId())
-                .orElseThrow(() -> new BusinessException(ErrorCode.WORD_NOT_FOUND));
-
-        if (!word.getUser().getId().equals(userId)) {
-            throw new BusinessException(ErrorCode.WORD_NOT_OWNED);
-        }
-
-        // 5. 새 채팅방 생성
-        ChatRoom newRoom = ChatRoom.builder()
+        //  단어 타입 분기
+        ChatRoom.ChatRoomBuilder builder = ChatRoom.builder()
                 .user(user)
-                .word(word)
                 .scenarioTitle(request.getScenarioTitle())
                 .scenarioGoal(request.getScenarioGoal())
                 .scenarioSituation(request.getScenarioSituation())
-                .aiGender(request.getAiGender())
-                .build();
+                .aiGender(request.getAiGender());
 
-        ChatRoom saved = chatRoomRepository.save(newRoom);
+        if (request.getWordId() != null) {
+            CollectedWord word = collectedWordRepository.findById(request.getWordId())
+                    .orElseThrow(() -> new BusinessException(ErrorCode.WORD_NOT_FOUND));
+
+            if (!word.getUser().getId().equals(userId)) {
+                throw new BusinessException(ErrorCode.WORD_NOT_OWNED);
+            }
+            builder.word(word);
+            log.info("단어장 단어로 채팅방 생성. wordId={}, word={}", word.getId(), word.getWord());
+        } else {
+            String meaningsJoined = (request.getAiRecommendedMeanings() != null
+                    && !request.getAiRecommendedMeanings().isEmpty())
+                    ? String.join(",", request.getAiRecommendedMeanings())
+                    : null;
+
+            builder.aiRecommendedWord(request.getAiRecommendedWord())
+                    .aiRecommendedMeanings(meaningsJoined);
+            log.info("AI 추천 단어로 채팅방 생성. word={}", request.getAiRecommendedWord());
+        }
+
+        ChatRoom saved = chatRoomRepository.save(builder.build());
         log.info("새 채팅방 생성 완료. chatRoomId={}", saved.getId());
 
-        // 6. 응답 (시나리오 정보 포함)
-        return ChatRoomInitResponse.builder()
-                .chatRoomId(saved.getId())
-                .hasPreviousMessages(false)
-                .scenarioTitle(saved.getScenarioTitle())
-                .scenarioGoal(saved.getScenarioGoal())
-                .scenarioSituation(saved.getScenarioSituation())
-                .build();
+        return buildResponse(saved, false);
     }
-
 
     /**
      * 이어하기 처리
@@ -121,23 +128,26 @@ public class ChatRoomService {
         log.info("채팅방 이어하기. chatRoomId={}, hasPreviousMessages={}",
                 room.getId(), hasPreviousMessages);
 
-        // 이어하기 시에도 시나리오 정보 포함 → 클라이언트가 화면 새로고침해도 시나리오 박스 그릴 수 있음
-        return ChatRoomInitResponse.builder()
-                .chatRoomId(room.getId())
-                .hasPreviousMessages(hasPreviousMessages)
-                .scenarioTitle(room.getScenarioTitle())
-                .scenarioGoal(room.getScenarioGoal())
-                .scenarioSituation(room.getScenarioSituation())
-                .build();
+        return buildResponse(room, hasPreviousMessages);
     }
 
     /**
      * 새로 시작 시 필수 필드 검증
      */
     private void validateNewStartFields(ChatRoomInitRequest request) {
-        if (request.getWordId() == null) {
-            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "wordId는 필수입니다.");
-        }
+        //  wordId 또는 aiRecommendedWord 중 하나는 필수
+//        boolean hasWordId = request.getWordId() != null;
+//        boolean hasAiWord = request.getAiRecommendedWord() != null
+//                && !request.getAiRecommendedWord().isBlank();
+//
+//        if (!hasWordId && !hasAiWord) {
+//            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE,
+//                    "wordId 또는 aiRecommendedWord 중 하나는 필수입니다.");
+//        }
+//        if (hasWordId && hasAiWord) {
+//            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE,
+//                    "wordId와 aiRecommendedWord는 동시에 사용할 수 없습니다.");
+//        }
         if (request.getScenarioTitle() == null || request.getScenarioTitle().isBlank()) {
             throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "시나리오 제목은 필수입니다.");
         }
@@ -150,6 +160,41 @@ public class ChatRoomService {
         if (request.getAiGender() == null) {
             throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "AI 성별은 필수입니다.");
         }
+    }
+
+    /**
+     * 채팅방 정보 → 응답 DTO 변환
+     * 단어장 단어 / AI 추천 단어 모두 처리
+     */
+    private ChatRoomInitResponse buildResponse(ChatRoom room, boolean hasPreviousMessages) {
+        String word;
+        List<String> meanings;
+
+        if (room.getWord() != null) {
+            // 단어장 단어
+            word = room.getWord().getWord();
+            meanings = extractMeanings(room.getWord().getMeaningsByPos());
+        } else if (room.getAiRecommendedWord() != null) {
+            // AI 추천 단어
+            word = room.getAiRecommendedWord();
+            meanings = room.getAiRecommendedMeanings() != null
+                    ? List.of(room.getAiRecommendedMeanings().split(","))
+                    : List.of();
+        } else {
+            word = null;
+            meanings = List.of();
+        }
+
+        return ChatRoomInitResponse.builder()
+                .chatRoomId(room.getId())
+                .hasPreviousMessages(hasPreviousMessages)
+                .scenarioTitle(room.getScenarioTitle())
+                .scenarioGoal(room.getScenarioGoal())
+                .scenarioSituation(room.getScenarioSituation())
+                .word(word)
+                .meanings(meanings)
+                .aiGender(room.getAiGender())
+                .build();
     }
 
     @Transactional
@@ -173,6 +218,79 @@ public class ChatRoomService {
         return ChatRoomCompleteResponse.builder()
                 .chatRoomId(chatRoom.getId())
                 .completedAt(chatRoom.getUpdatedAt())
+                .build();
+    }
+
+    /**
+     * AI 채팅 선택 단어 조회
+     */
+     public ChatRoomTargetWordResponse getChatWord(Long userId, Long chatRoomId) {
+         log.info("AI 채팅 학습 단어 조회. userId={}, chatRoomId={}", userId, chatRoomId) ;
+
+         // 1. 채팅방 조회
+         ChatRoom chatRoom = chatRoomRepository.findByIdAndUserWithWord(chatRoomId, userId)
+                 .orElseThrow(()-> new BusinessException(ErrorCode.CHAT_ROOM_NOT_FOUND));
+
+
+         // CASE 1: 단어장 단어
+         if (chatRoom.getWord() != null) {
+             return mapToChatRoomTargetWordResponse(chatRoom.getWord());
+         }
+
+         // CASE 2: AI 추천 단어
+         if (chatRoom.getAiRecommendedWord() != null) {
+             return mapAiRecommendedToResponse(chatRoom);
+         }
+
+//         // 둘 다 없으면 데이터 이상
+//         log.warn("채팅방에 학습 단어 정보 없음. chatRoomId={}", chatRoomId);
+//         throw new BusinessException(ErrorCode.WORD_NOT_FOUND);
+
+         // CASE 3: 둘 다 없음 (임시 처리) - 빈 응답 반환
+         log.warn("채팅방에 학습 단어 정보 없음 (임시 허용). chatRoomId={}", chatRoomId);
+         return ChatRoomTargetWordResponse.builder()
+                 .wordId(null)
+                 .word(null)
+                 .meanings(new ArrayList<>())
+                 .build();
+     }
+
+     // CollectedWord -> ChatRoomTargetWordResponse 변환
+     private ChatRoomTargetWordResponse mapToChatRoomTargetWordResponse(CollectedWord word) {
+         return ChatRoomTargetWordResponse.builder()
+                 .wordId(word.getId())
+                 .word(word.getWord())
+                 .meanings(extractMeanings(word.getMeaningsByPos()))
+                 .build();
+     }
+
+     /**
+     * 품사별 의미를 단순 리스트로 변환    { partOfSpeech: "동사", meanings: ["기부하다", "기증하다"] } -> ["기부하다", "기증하다", "기부"]
+     */
+     private List<String> extractMeanings(List<WordMeaning> meaningsByPos) {
+         if(meaningsByPos == null || meaningsByPos.isEmpty()) {
+             return new ArrayList<>();
+         }
+
+         List<String> result = new ArrayList<>();
+         for(WordMeaning wm : meaningsByPos) {
+             if(wm.getMeanings() !=null) {
+                 result.addAll(wm.getMeanings());
+             }
+         }
+         return result;
+     }
+
+    // AI 추천 단어 → 응답 변환
+    private ChatRoomTargetWordResponse mapAiRecommendedToResponse(ChatRoom chatRoom) {
+        List<String> meanings = chatRoom.getAiRecommendedMeanings() != null
+                ? List.of(chatRoom.getAiRecommendedMeanings().split(","))
+                : new ArrayList<>();
+
+        return ChatRoomTargetWordResponse.builder()
+                .wordId(null)  // AI 추천 단어는 wordId 없음
+                .word(chatRoom.getAiRecommendedWord())
+                .meanings(meanings)
                 .build();
     }
 }

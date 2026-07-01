@@ -47,6 +47,15 @@ public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
             @Param("userId") Long userId
     );
 
+    // 사용자 채팅방 조회
+    @Query("SELECT cr FROM ChatRoom cr " +
+            "LEFT JOIN FETCH cr.word "+
+            "WHERE cr.id = :chatRoomId AND cr.user.id =:userId")
+    Optional<ChatRoom> findByIdAndUserWithWord(
+            @Param("chatRoomId") Long chatRoomId,
+            @Param("userId")Long userId);
+
+
     // ================= 관리자용 ============================
 
     // 특정 기간 내 상태별 방 개수 카운트 (인덱스: idx_user_status 활용)

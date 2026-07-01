@@ -8,12 +8,14 @@ import com.clip.server.chat.repository.ChatMessageRepository;
 import com.clip.server.chat.repository.ChatRoomRepository;
 import com.clip.server.common.exception.BusinessException;
 import com.clip.server.common.exception.ErrorCode;
+import com.clip.server.file.service.S3Service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Slf4j
@@ -24,6 +26,9 @@ public class ChatMessageService {
 
     private final ChatRoomRepository chatRoomRepository;
     private final ChatMessageRepository chatMessageRepository;
+    private final S3Service s3Service;
+
+    private static final int MAX_TURN = 10; // AI 채팅 최대 턴
 
     public ChatMessageListResponse getMessage(Long userId, Long chatRoomId) {
         log.info("메시지 조회 요청. userId={}, chatRoomId={}", userId, chatRoomId);
@@ -47,12 +52,17 @@ public class ChatMessageService {
 
     // MessageDto 변환 메서드
     private ChatMessageListResponse.MessageDto mapToMessageDto(ChatMessage chatMessage) {
+        String signedAudioUrl = s3Service.generatePresignedGetUrl(chatMessage.getAudioUrl());
+        int remainingTurn = MAX_TURN - chatMessage.getTurnNumber();
+
         return ChatMessageListResponse.MessageDto.builder()
                 .messageId(chatMessage.getId())
                 .senderType(chatMessage.getSenderType())
                 .content(chatMessage.getContent())
-                .audioUrl(chatMessage.getAudioUrl())
+                .audioUrl(signedAudioUrl)
                 .createdAt(chatMessage.getCreatedAt())
+                .turnNumber(chatMessage.getTurnNumber())
+                .remainingTurn(remainingTurn)
                 .build();
     }
 
@@ -64,6 +74,7 @@ public class ChatMessageService {
             ChatRoom chatRoom,
             String content,
             String audioUrl,
+            BigDecimal pronunciationScore, // 발음 점수
             int turnNumber
     ) {
         ChatMessage message = ChatMessage.builder()
@@ -71,6 +82,7 @@ public class ChatMessageService {
                 .senderType(SenderType.USER)
                 .content(content)
                 .audioUrl(audioUrl)
+                .pronunciationScore(pronunciationScore)
                 .turnNumber(turnNumber)
                 .build();
 

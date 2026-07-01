@@ -72,8 +72,39 @@ public interface CollectedWordRepository extends JpaRepository<CollectedWord, Lo
      */
     boolean existsByUserId(Long userId);
 
+    /**
+     * 마이페이지 단어장 조회 (검색/필터/정렬)
+     * 검색 범위: 단어(word) + 뜻(meaning)
+     */
+    @Query(value = """
+    SELECT * FROM collected_word
+    WHERE user_id = :userId
+      AND type = :wordType
+      AND (:todayStart IS NULL OR collected_at >= :todayStart)
+      AND (:keyword IS NULL 
+           OR LOWER(word) LIKE LOWER(CONCAT('%', :keyword, '%'))
+           OR LOWER(meaning) LIKE LOWER(CONCAT('%', :keyword, '%')))
+    """,
+            countQuery = """
+    SELECT COUNT(*) FROM collected_word
+    WHERE user_id = :userId
+      AND type = :wordType
+      AND (:todayStart IS NULL OR collected_at >= :todayStart)
+      AND (:keyword IS NULL 
+           OR LOWER(word) LIKE LOWER(CONCAT('%', :keyword, '%'))
+           OR LOWER(meaning) LIKE LOWER(CONCAT('%', :keyword, '%')))
+    """,
+            nativeQuery = true)
+    Page<CollectedWord> searchMyWords(
+            @Param("userId") Long userId,
+            @Param("wordType") String wordType,
+            @Param("todayStart") LocalDateTime todayStart,
+            @Param("keyword") String keyword,
+            Pageable pageable
+    );
 
-    // 관리자용
+
+    // ==================================== 관리자용 ======================================================
     @Query("SELECT new com.clip.server.admin.dashboard.stats.dto.response.UserVideoWordStatResponse(" +
             "u.id, u.name, v.videoId, v.title, COUNT(cw), " +
             "SUM(CASE WHEN cw.wordType = 'COLLECT' THEN 1 ELSE 0 END), " +
