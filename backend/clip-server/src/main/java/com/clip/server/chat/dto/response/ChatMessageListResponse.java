@@ -18,12 +18,11 @@ public class ChatMessageListResponse {
     public static class MessageDto {
 
         private Long messageId;
-
-        private SenderType senderType;
-
-        private String content;
-
-        private String audioUrl;
+        private SenderType senderType; // 메시지 주체
+        private String content; // 메시지 내용
+        private String audioUrl; // 오디오 URL
+        private Integer turnNumber; // 대화 턴
+        private Integer remainingTurn; // 남은 턴
 
         @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
         private LocalDateTime createdAt;

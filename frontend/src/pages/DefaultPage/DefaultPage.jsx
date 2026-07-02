@@ -480,6 +480,8 @@ function DefaultPage({ onMyPage }) {
     const fetchData = async () => {
       try {
         const result = await apiFetch('/users/me', { method: 'GET' });
+        // log.debug('/users/me 값', result);
+
         setUsersData(result.data);
       } catch (error) {
         log.debug('데이터 로딩 실패:', error);
@@ -488,6 +490,7 @@ function DefaultPage({ onMyPage }) {
 
     fetchData();
   }, []);
+
 
 
 
@@ -535,9 +538,11 @@ function DefaultPage({ onMyPage }) {
 // 디폴트 페이지의 AI 방 입장 버튼
 const onAiChatPage = async () => {
   if (isAiBlocked) return;
+
+
   // 버튼 비활성화
   setIsAiBlocked(true);
-
+  // log.debug('디폴트에서 채팅방 들어감');
 
 try {
   // 유저별 캐시 확인

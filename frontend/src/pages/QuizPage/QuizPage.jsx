@@ -21,7 +21,8 @@ import { saveUserData, loadUserData, removeUserData } from '../../utils/userStor
 // 렌더링해도 1번만 셔플 (비교값을 -0.5 ~ 0.5으로 설정)
 const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
 
-function QuizPage({ videoId, videoTitle, channelName, thumbnailUrl, duration }) {
+// function QuizPage({ videoId, videoTitle, channelName, thumbnailUrl, duration }) {
+function QuizPage({ videoId, videoTitle }) {
 
   // 현재 문제 번호 (0부터 시작)
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -262,7 +263,7 @@ stateRef.current = {
     // offsetWidth/offsetHeight = 패딩과 테두리를 포함한 실제 픽셀 크기
     const popupWidth = popupRef.current.offsetWidth;
     const popupHeight = popupRef.current.offsetHeight;
-    // 단어 중앙 X 좌표 (화면 기준)
+    // 단어 시작점 + (단어 너비의 절반) = 단어의 정중앙
     const wordCenter = wordRect.left + wordRect.width / 2;
 
     // 팝업 좌측 X 좌표 = 단어 중앙에 팝업 중앙을 맞춤
@@ -278,12 +279,27 @@ stateRef.current = {
     // .popup의 padding-left가 16이라서 .wrapper는 그만큼 안쪽에 있음
     const arrowLeft = wordCenter - popupLeft - 16;
 
+
+    // 단어 위에 표시할 때의 top 값 (기본 위치)
+    // 단어 위에 + 여백 10
+    const topAbove = wordRect.top - popupHeight - 10;
+
+    // 단어 아래에 표시할 때의 top 값 (반전 위치)
+    // wordRect.top + wordRect.height = 단어의 아래쪽 끝
+    const topBelow = wordRect.top + wordRect.height + 10;
+
+    // 위쪽 공간이 부족하면 (화면 위로 삐져나가면) 아래쪽으로 반전
+    const showBelow = topAbove < 10;  // 10px 여유 마진
+
+    const finalTop = showBelow ? topBelow : topAbove;
+
     // 최종 위치 state 업데이트, JSX에 반영됨
     setPopupPosition({
-      // 단어 위에 + 여백 10
-      top: wordRect.top - popupHeight - 10,
+      top: finalTop,
       left: popupLeft,
       arrowLeft,
+      // 화살표 방향 판단용
+      isBelow: showBelow
     });
 
     // 측정 완료
@@ -1564,11 +1580,11 @@ const handleExitFromSettlement = async (target = -1) => {
       {isSettlement ? (
         <SettlementPage 
         data={settlementData}
-        videoId={videoId}
-        videoTitle={videoTitle}
-        channelName={channelName}
-        duration={duration}
-        thumbnailUrl={thumbnailUrl}
+        // videoId={videoId}
+        // videoTitle={videoTitle}
+        // channelName={channelName}
+        // duration={duration}
+        // thumbnailUrl={thumbnailUrl}
         />
       ) : (
         <>
@@ -1713,15 +1729,16 @@ const handleExitFromSettlement = async (target = -1) => {
             </div>
 
 
-            {/* <div className={styles.information}>
+            <div className={styles.information}>
               <div className={styles.information2}>
                 <p className={styles.information3}>💡 함께 알아두면 좋은 표현</p>
               </div>
               <div className={styles.information4}>
-                <p className={styles.information5}>stop -ing : ~하는 것을 멈추다 (He stopped smoking. 그는 담배를 끊었다.)</p>
-                <p className={styles.information5}>stop to 동사원형 : ~하기 위해 멈추다 (He stopped to smoke. 그는 담배를 피우려고 멈췄다.)</p>
+                <p className={styles.information5}>{feedback?.relatedExpressions}</p>
+
+                {/* <p className={styles.information5}>stop to 동사원형 : ~하기 위해 멈추다 (He stopped to smoke. 그는 담배를 피우려고 멈췄다.)</p> */}
               </div>
-            </div> */}
+            </div>
 
 
             <div className={styles['quiz-s']}>
@@ -2116,7 +2133,10 @@ const handleExitFromSettlement = async (target = -1) => {
       }}
       >
         <div 
-        className={styles.wrapper}
+        // className={styles.wrapper}
+        className={`${styles.wrapper} ${
+          popupPosition.isBelow ? styles.wrapperBelow : ''
+        }`}
         style={{ 
           // 말풍선 꼬리 동적 위치로 이동
           // ::after 위치에만 적용되게 '--arrow-left' 사용

@@ -30,3 +30,66 @@
     transform: rotate(360deg);
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.test-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.70);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999; /* 충분히 높게 */
+}
+
+/* 로딩 컨텐츠 박스 */
+.test-loading {
+  display: inline-flex;
+  flex-direction: column; /* 스피너 위, 텍스트 아래 */
+  align-items: center;
+  gap: 1rem;
+  color: white; /* 어두운 배경에 대비 */
+}
+
+/* 스피너 - 크기 키움 */
+.test-spinner {
+  width: 3rem;   /* 48px */
+  height: 3rem;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: test-spin 0.6s linear infinite;
+}
+
+.test-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@keyframes test-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

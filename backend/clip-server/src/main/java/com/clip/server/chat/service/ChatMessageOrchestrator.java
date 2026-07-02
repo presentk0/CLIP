@@ -17,6 +17,8 @@ import com.clip.server.common.exception.BusinessException;
 import com.clip.server.common.exception.ErrorCode;
 import com.clip.server.file.service.S3Service;
 import com.clip.server.word.entity.WordMeaning;
+import lombok.Builder;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
@@ -25,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.clip.server.chat.dto.ai.HintCardData;
 import com.clip.server.word.entity.CollectedWord;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -60,7 +63,9 @@ public class ChatMessageOrchestrator {
             ChatRoom chatRoom = validateAndGetChatRoom(userId, request.getChatRoomId());
 
             // 2. 컨텐츠 추출 (TEXT/VOICE 분기)
-            String userContent = extractUserContent(request);
+            UserInput userInput = extractUserContent(request);
+            String userContent = userInput.getContent();
+            BigDecimal pronunciationScore = userInput.getPronunciationScore();
 
             // 3. 현재 턴
             int currentTurn = calculateCurrentTurn(chatRoom.getId());
@@ -76,7 +81,8 @@ public class ChatMessageOrchestrator {
                     chatRoom,
                     userContent,
                     request.getAudioUrl(),
-                    currentTurn + 1
+                    pronunciationScore,
+                    currentTurn+1
             );
 
             //  5-1. VOICE 모드면 USER_TEXT 푸시 (사용자에게 변환 결과 보여주기)
@@ -114,23 +120,23 @@ public class ChatMessageOrchestrator {
                 );
             }
 
-            //  9. AI 메시지 저장 + TTS (VOICE 모드일 때)
-            ChatMessage aiMessage;
+            //  9. AI 메시지 저장 + TTS(항상 생성)
             String aiAudioUrl = null;
-
-            if (request.getInputMode() == InputMode.VOICE) {
-                // 9-1. TTS 변환
+            try {
                 log.info("TTS 변환 시작. text={}", aiResult.getAiResponse());
                 byte[] aiAudioData = azureTtsClient.synthesize(
                         aiResult.getAiResponse(),
                         chatRoom.getAiGender().name()
                 );
-
-                // 9-2. S3 업로드 + 재생 URL 받기
                 aiAudioUrl = s3Service.uploadAiAudioAndGetUrl(aiAudioData, "audio/mpeg");
                 log.info("AI 음성 S3 업로드 완료. url={}", aiAudioUrl);
+            } catch (Exception e) {
+                log.warn("AI 응답 TTS 실패. 텍스트만 푸시합니다. chatRoomId={}", chatRoom.getId(), e);
+            }
 
-                // 9-3. AI 메시지 저장 (audioUrl 포함)
+            // 9-1. AI 메시지 저장(audioUrl 있으면 포함)
+            ChatMessage aiMessage;
+            if (aiAudioUrl != null) {
                 aiMessage = chatMessageService.saveAiMessageWithAudio(
                         chatRoom,
                         aiResult.getAiResponse(),
@@ -138,7 +144,6 @@ public class ChatMessageOrchestrator {
                         currentTurn + 1
                 );
             } else {
-                // TEXT 모드: 기존 로직
                 aiMessage = chatMessageService.saveAiMessage(
                         chatRoom,
                         aiResult.getAiResponse(),
@@ -150,7 +155,7 @@ public class ChatMessageOrchestrator {
             sendAiTextDone(userId, aiMessage.getId(), aiResult);
 
             //  10-1. VOICE 모드면 AI_AUDIO 푸시
-            if (request.getInputMode() == InputMode.VOICE && aiAudioUrl != null) {
+            if (aiAudioUrl != null) {
                 sendAiAudio(userId, aiMessage.getId(), aiAudioUrl);
             }
 
@@ -262,26 +267,44 @@ public class ChatMessageOrchestrator {
         return chatRoom;
     }
 
+    @Getter
+    @Builder
+    private static class UserInput {
+        private final String content;
+        private final BigDecimal pronunciationScore;  // TEXT 모드면 null
+    }
+
     /**
-     * 입력 모드에 따른 사용자 컨텐츠 추출
+     * 입력 모드에 따른 사용자 컨텐츠 추출 + 발음 점수 (VOICE 모드)
      */
-    private String extractUserContent(ChatMessageSendRequest request) {
+    private UserInput extractUserContent(ChatMessageSendRequest request) {
         if (request.getInputMode() == InputMode.TEXT) {
             if (request.getContent() == null || request.getContent().isBlank()) {
-                throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "TEXT 모드는 content가 필수입니다.");
+                throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE,
+                        "TEXT 모드는 content가 필수입니다.");
             }
-            return request.getContent();
+            return UserInput.builder()
+                    .content(request.getContent())
+                    .pronunciationScore(null)  // TEXT는 발음 점수 없음
+                    .build();
         } else {
-            // VOICE 모드: STT로 변환
+            // VOICE 모드: STT + 발음 평가
             if (request.getAudioUrl() == null || request.getAudioUrl().isBlank()) {
-                throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "VOICE 모드는 audioUrl이 필수입니다.");
+                throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE,
+                        "VOICE 모드는 audioUrl이 필수입니다.");
             }
 
-            log.info("STT 변환 시작. audioUrl={}", request.getAudioUrl());
-            String transcribed = azureSttClient.transcribe(request.getAudioUrl());
-            log.info("STT 변환 완료. text={}", transcribed);
+            log.info("STT + 발음 평가 시작. audioUrl={}", request.getAudioUrl());
+            AzureSttClient.SttResult sttResult = azureSttClient
+                    .transcribeWithPronunciation(request.getAudioUrl());
 
-            return transcribed;
+            log.info("STT + 발음 평가 완료. text={}, score={}",
+                    sttResult.getText(), sttResult.getPronunciationScore());
+
+            return UserInput.builder()
+                    .content(sttResult.getText())
+                    .pronunciationScore(sttResult.getPronunciationScore())
+                    .build();
         }
     }
 
@@ -451,7 +474,7 @@ public class ChatMessageOrchestrator {
     }
 
     /**
-     * 🆕 힌트 카드 제공 (사용자가 "예" 클릭 시)
+     *  힌트 카드 제공 (사용자가 "예" 클릭 시)
      */
     @Async("chatTaskExecutor")
     public void provideHintCard(Long userId, Long chatRoomId) {
