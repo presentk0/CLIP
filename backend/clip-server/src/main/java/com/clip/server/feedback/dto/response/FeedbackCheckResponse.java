@@ -7,5 +7,5 @@ import lombok.Getter;
 @Builder
 public class FeedbackCheckResponse {
 
-    private final Boolean isSubmitted; // 피드백 제출 여부
+    private final Boolean hasSubmittedFeedback; // 피드백 제출 여부
 }
