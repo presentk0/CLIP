@@ -257,8 +257,8 @@ export const apiFetch = async (endpoint, options = {}) => {
   // HTTP 에러 처리
   if (!response.ok) {
 
-    // ai채팅방 이어하기 없는거는 경고창 없음
-    if (result?.error?.code !== "NO_RESUMABLE_CHAT_ROOM") {
+    // ai채팅방 이어하기 없는거랑 서버에 저장된 영상 없을 때는 경고창 없음
+    if (result?.error?.code !== "NO_RESUMABLE_CHAT_ROOM" && result?.error?.code !== "VIDEO_NOT_FOUND") {
       log.warn('HTTP 에러', endpoint, response.status, result);
     }
 
