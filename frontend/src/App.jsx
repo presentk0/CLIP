@@ -26,7 +26,7 @@ import DifficultySelectPage from './pages/DifficultySelectPage/DifficultySelectP
 import { OnboardingProvider } from './contexts/OnboardingProvider';
 import FeedbackPage from './pages/FeedbackPage/FeedbackPage';
 import { loadUserData, removeUserData } from './utils/userStorage';
-
+import { useRef } from 'react';
 
 
 
@@ -62,7 +62,24 @@ function AppContent() {
   const [thumbnailUrl, setThumbnailUrl] = useState(0);
   // 영상 바뀌면 퀴즈페이지 언마운트
   const [resetKey, setResetKey] = useState(0);
+  // ai 채팅 다시하기
+  const [aiResetKey, setAiResetKey] = useState(0);
+  // 중복 클릭 방지 (리렌더링 없는 ref 사용)
+  const isResetting = useRef(false);
 
+  const handleAiReset = useCallback(() => {
+    if (isResetting.current) return;
+
+    isResetting.current = true;
+    setAiResetKey(prev => prev + 1);
+    // 쿼리 파라미터로 신호
+    navigate('/ai?fresh=true');
+
+    // 0.5초 후에 다시 클릭가능
+    setTimeout(() => {
+      isResetting.current = false;
+    }, 500);
+  }, [navigate]);
 
   // useCallback(의존성이 안 바뀌면 같은 함수 재사용)으로 감싸기
   // 영상 이동 시 퀴즈페이지 리셋 후 디폴트페이지로 이동
@@ -324,6 +341,8 @@ function AppContent() {
           element={
             <ProtectedRoute>
               <AiChatPage
+                handleAiReset={handleAiReset}
+                key={aiResetKey}
               />
             </ProtectedRoute>
           }

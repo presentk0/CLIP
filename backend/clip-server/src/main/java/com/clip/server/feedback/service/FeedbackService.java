@@ -58,7 +58,7 @@ public class FeedbackService {
         boolean isSubmitted = userFeedbackRepository.existsByUserId(userId);
 
         return FeedbackCheckResponse.builder()
-                .isSubmitted(isSubmitted)
+                .hasSubmittedFeedback(isSubmitted)
                 .build();
     }
 }

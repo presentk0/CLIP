@@ -1261,6 +1261,16 @@ gap: 6px;
   padding-bottom: 12px;
 }
 
+/* 아래로 반전됐을 때 꼬리 공간을 위로 */
+.wrapperBelow {
+  padding-bottom: 0;
+  padding-top: 12px;
+}
+
+
+
+
+
 /* 말풍선 본체 (둥근 박스) */
 .wrapper::before {
   content: '';
@@ -1305,9 +1315,24 @@ gap: 6px;
 
 
 
+/* 반전 시 말풍선 본체 위치 조정 */
+.wrapperBelow::before {
+  top: 12px;     /* 위쪽에 꼬리 공간 확보 */
+  bottom: 0;
+}
 
-
-
+/* 반전 시 말풍선 꼬리를 위쪽으로 */
+.wrapperBelow::after {
+  bottom: auto;
+  top: 0;
+  
+  /* 위/아래 테두리 뒤집기 */
+  border-top: none;
+  border-bottom: 14px solid #FBF8F1;  /* 위쪽을 가리킴 */
+  
+  /* 그림자 방향 반전 (위쪽 테두리 살짝 어둡게) */
+  filter: drop-shadow(0 -1px 0 #BDB4AB) drop-shadow(0 -2.749px 2.749px rgba(206, 210, 223, 0.16));
+}
 
 
 

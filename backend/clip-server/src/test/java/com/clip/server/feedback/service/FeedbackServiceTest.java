@@ -112,7 +112,7 @@ class FeedbackServiceTest {
 
             // then
             assertThat(response).isNotNull();
-            assertThat(response.getIsSubmitted()).isTrue();
+            assertThat(response.getHasSubmittedFeedback()).isTrue();
 
             verify(userRepository, times(1)).existsById(userId);
             verify(userFeedbackRepository, times(1)).existsByUserId(userId);
@@ -131,7 +131,7 @@ class FeedbackServiceTest {
 
             // then
             assertThat(response).isNotNull();
-            assertThat(response.getIsSubmitted()).isFalse();
+            assertThat(response.getHasSubmittedFeedback()).isFalse();
 
             verify(userRepository, times(1)).existsById(userId);
             verify(userFeedbackRepository, times(1)).existsByUserId(userId);

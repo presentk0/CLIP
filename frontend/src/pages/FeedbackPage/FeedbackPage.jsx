@@ -26,7 +26,11 @@ const FeedbackPage = () => {
 
   // 다음 페이지 이동 결정 함수
   const goToNext = () => {
-    navigate(returnTo);
+    if (typeof returnTo === 'number') {
+      navigate(returnTo);
+    } else {
+      navigate(returnTo, { replace: true });
+    }
   };
 
   // 그냥 나가기 (X 버튼)

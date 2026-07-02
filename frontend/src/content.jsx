@@ -60,7 +60,6 @@ let matchingQuizCount = 0;
 // 마지막 퀴즈가 나온 시점의 시청 시간
 let lastQuizTime = 0;
 
-
 // ========== 구간 반복 ==========
 // 구간 반복 시작 시간
 let loopStart = null;
@@ -532,6 +531,8 @@ async function handlePageChange() {
 
           quizSectionCount = progress.sectionCount || 1;
           matchingQuizCount = progress.matchingCount || 0;
+          totalWatchTime = progress.totalWatchTime || 0
+          lastQuizTime = progress.lastQuizTime || 0;
         }
       }
     } else {
@@ -1379,7 +1380,9 @@ async function startQuizSession() {
     // 영상과 유저에 맞게 섹션 저장
     await saveUserData(`quizProgress_${videoId}`, {
       sectionCount: quizSectionCount,
-      matchingCount: matchingQuizCount
+      matchingCount: matchingQuizCount,
+      totalWatchTime,
+      lastQuizTime,
     });
 
 
@@ -1443,7 +1446,9 @@ async function matchingQuiz() {
     // 영상과 유저에 맞게 진행도 저장
     await saveUserData(`quizProgress_${videoId}`, {
       sectionCount: quizSectionCount,
-      matchingCount: matchingQuizCount
+      matchingCount: matchingQuizCount,
+      totalWatchTime,
+      lastQuizTime,
     });
   
 
