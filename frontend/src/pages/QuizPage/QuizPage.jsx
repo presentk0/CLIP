@@ -147,7 +147,7 @@ stateRef.current = {
   videoId, sessionId, quizzes, currentIndex,
   correctCount, wrongCount, answers, isConfirmed, tempChoice,
   matchingSelectedWord, matchingSelectedMeaning,
-  matchingMatchedPairs, matchingShuffledMeanings, submittedQuizIds,
+  matchingMatchedPairs, matchingShuffledMeanings, submittedQuizIds, feedback
 };
 
 
@@ -1088,6 +1088,8 @@ stateRef.current = {
       });
       // 해당 유저의 저장된 진행 상황 삭제
       await removeUserData('quizState');
+      await removeUserData(`quizProgress_${videoId}`);
+      
       // 정산 데이터 저장
       setSettlementData(finalResult.data);
       // 정산 페이지 표시
@@ -1134,10 +1136,13 @@ stateRef.current = {
         setMatchingMatchedPairs(quizState.matchingMatchedPairs ?? []);
         setMatchingWrongPair(null);
         setSubmittedQuizIds(quizState.submittedQuizIds ?? []);
-        // 영상 일시정지 메시지 전송
-        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-          if (tabs[0]) chrome.tabs.sendMessage(tabs[0].id, { type: 'SET_QUIZ_MODE', active: true }).catch((error) => {log.debug('이거 에러22:', error)});
-        });
+        setFeedback(quizState.feedback ?? null);
+        // 영상 일시정지 메시지 전송 (퀴즈 값이 있어야 멈춤)
+        if (quizState.quizzes.length > 0) {
+          chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            if (tabs[0]) chrome.tabs.sendMessage(tabs[0].id, { type: 'SET_QUIZ_MODE', active: true }).catch((error) => {log.debug('영상 일시정지 에러', error);});
+          });
+        }
       }
 
       // 복원 완료 체크
@@ -1181,6 +1186,7 @@ stateRef.current = {
     setMatchingMatchedPairs([]);
     setMatchingWrongPair(null);
     setSubmittedQuizIds([]);
+    setFeedback(null);
 
     // 영상 일시정지 메시지 전송
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -1218,7 +1224,7 @@ useEffect(() => {
   currentIndex, correctCount, wrongCount, answers, isConfirmed,
   sessionId, tempChoice, isRestoring,
   matchingSelectedWord, matchingSelectedMeaning, matchingMatchedPairs,
-  submittedQuizIds
+  submittedQuizIds, feedback
   // videoId, quizzes 제외 (별도 처리)
 ]);
 
@@ -1321,6 +1327,8 @@ useEffect(() => {
           });
           // 해당 유저의 저장된 진행 상황 삭제
           await removeUserData('quizState');
+          await removeUserData(`quizProgress_${videoId}`);
+
           // 정산 페이지로 이동
           setSettlementData(finalResult.data);
           setIsSettlement(true);
@@ -1391,7 +1399,7 @@ useEffect(() => {
     if (exitModal === 'back') {
       navigate(-1);
     } else if (exitModal === 'mypage') {
-      navigate('/my');
+      navigate('/my', {replace: true});
     }
     // 모달 닫기
     setExitModal(null);
@@ -1436,7 +1444,7 @@ useEffect(() => {
     if (currentQuiz) {
       setExitModal('mypage');
     } else {
-      navigate('/my');
+      navigate('/my', {replace: true});
     }
   };
 
@@ -1463,6 +1471,7 @@ const handleExitFromSettlement = async (target = -1) => {
         // 설문 안 했음 → 설문 페이지로
         navigate('/feedback', { 
           state: { returnTo: target }
+          , replace: true
         });
         return;
       } else {
@@ -1476,13 +1485,13 @@ const handleExitFromSettlement = async (target = -1) => {
     if (target === -1) {
       navigate(-1);
     } else {
-      navigate(target);
+      navigate(target, {replace: true});
     }
   } catch (error) {
     log.debug('나가기 실패:', error);
     // 에러 나도 일단 이동
     if (target === -1) navigate(-1);
-    else navigate(target);
+    else navigate(target, {replace: true});
   } finally {
     setIsExiting(false);
   }
