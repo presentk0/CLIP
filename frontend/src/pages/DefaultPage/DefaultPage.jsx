@@ -8,7 +8,7 @@ import { openYoutubeVideo } from "../../utils/openInTab";
 import { log } from "../../utils/logger";
 
 import { saveUserData, loadUserData } from "../../utils/userStorage";
-
+import { TestSpinner } from "../../components/Spinner/Spinner";
 
 const BADGE_ICONS = {
   BRONZE: (<svg className={style.bronze} xmlns="http://www.w3.org/2000/svg" width="21" height="24" viewBox="0 0 21 24" fill="none">
@@ -598,6 +598,8 @@ try {
     // 전체 박스
     <div className={style.main}>
 
+      {/* ai 채팅 진입 시 로딩 */}
+      {isAiBlocked && <TestSpinner />}
 
       {/* 상단 */}
       <div className={style.top}>

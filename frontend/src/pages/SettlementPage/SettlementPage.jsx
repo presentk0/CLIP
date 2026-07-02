@@ -164,7 +164,6 @@ function formatDuration (duration) {
 function QuizResultCard({ data, currentBadge, videoId, videoTitle, videoDuration, channelName }) {
 
 
-
   const [wordCount, setWordCount] = useState(0);
   // 내 정보 조회 데이터 관리 (마스터리 뱃지 영상)
   const [usersData, setUsersData] = useState(null);
@@ -206,10 +205,6 @@ function QuizResultCard({ data, currentBadge, videoId, videoTitle, videoDuration
 
   const remainingCount = earnedExp > 0 ? Math.ceil((nextLevelExp - currentExp) / earnedExp) : 0;
 
-  // 퀴즈 풀이 후 정확도
-  // 오류 이거 다시 체크하기
-  // const accuracy = data?.accuracy ?? 0;
-  // log.debug('정확도 ()%를 달성하고 있어요.', accuracy);
 
 
 
@@ -420,7 +415,7 @@ function Recommendation() {
 
 
 
-function MessageBox() {
+function MessageBox({data}) {
   // 성장지표 관리
   const [growthData, setGrowthData] = useState(null);
   const { thisWeek = 0, lastWeek = 0 } = growthData?.weeklyAccuracy ?? {};
@@ -440,16 +435,18 @@ function MessageBox() {
     const fetchData = async () => {
       try {
         const growth = await apiFetch('/users/me/growth', { method: 'GET' });
-        setGrowthData(growth);
+        setGrowthData(growth.data);
       } catch (error) {
-        log.debug('성장지표 데이터 로딩 실패:', error);
+        log.debug('성장지표 데이터 로딩 실패', error);
       }
     };
     fetchData();
   }, []);
 
-  // 오류 다시 체크하기
-  // log.debug('growth1', growthData);
+
+  // 퀴즈 풀이 후 정확도
+  const accuracy = data?.accuracy ?? 0;
+
 
   return (
     <div className={styles.messageWrapper}>
@@ -490,7 +487,7 @@ function MessageBox() {
         {/* 텍스트 묶음 */}
         <div className={styles.messageText}>
           <p className={styles.message3}>알림!</p>
-          <p className={styles.message4}>정확도 {thisWeek}% 달성! {message}</p>
+          <p className={styles.message4}>정확도 {accuracy}% 달성! {message}</p>
         </div>
       </div>
     </div>
@@ -540,10 +537,15 @@ function SettlementPage({ data }) {
         마스터리 진행률
       </p>
       {/* {QuizResultCard(data, videoId, videoTitle, channelName, thumbnailUrl, duration)} */}
-      {QuizResultCard(data, ...usersData.ongoingMastery)}
-      {MessageBox()}
+      {/* {log.debug('값 확인용', data, usersData)} */}
+      {/* 오류 data값 확인해서 말풍선에 넣기 */}
+      {/* {QuizResultCard(data, usersData.ongoingMastery)} */}
+      <QuizResultCard data={data} currentBadge={usersData.ongoingMastery.currentBadge} videoId={usersData.ongoingMastery.videoId} videoTitle={usersData.ongoingMastery.videoTitle} videoDuration={usersData.ongoingMastery.videoDuration} channelName={usersData.ongoingMastery?.channelName} />
 
-      {Recommendation()}
+
+      <MessageBox />
+
+      <Recommendation data={data} />
 
     </div>
   );

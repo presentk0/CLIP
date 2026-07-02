@@ -20,7 +20,7 @@ import { loadUserData, saveUserData } from '../../utils/userStorage';
 // import frog2 from '../../imgs/image_809.png';
 // import { useSearchParams } from 'react-router-dom';
 import { openYoutubeVideo } from '../../utils/openInTab';
-
+import { TestSpinner } from '../../components/Spinner/Spinner';
 
 // JWT 토큰 만료 체크
 const isTokenExpired = (token) => {
@@ -181,7 +181,7 @@ function Header ({ handleAiReset, currentStep, onBack, onMyPage, onStartMessageR
   return (
     currentStep !== 'CHAT' ? (
       <div className={styles.head}>
-        <div className={styles.head2}>
+        <div className={styles.head2} style={currentStep === 'REPORT' ? { background: '#F5F3E7' } : {}}>
           <div className={styles.head3}>
             <button 
             onClick={onBack}
@@ -2293,7 +2293,10 @@ const handleError = ({ code, message }) => {
       // 자동 토큰 갱신이 실패한 경우
       if (!token) {
         log.debug('토큰 없음 - WebSocket 연결 중단');
-        navigate('/login');
+        navigate('/login', {
+          state: { from: '/ai' },
+          replace: true
+        });
         return;
       }
 
@@ -2320,7 +2323,10 @@ const handleError = ({ code, message }) => {
             if (!currentToken) {
               log.debug('갱신 실패 - 연결 중단');
               client.deactivate();
-              navigate('/login');
+              navigate('/login', {
+                state: { from: '/ai' },
+                replace: true
+              });
               return;
             }
           }
@@ -2596,7 +2602,9 @@ const handleError = ({ code, message }) => {
 
 // 녹음 데이터 수신
 useEffect(() => {
+  log.debug('여러번 찍히는지3');
   const handler = (message) => {
+    log.debug('어떤 메시지인지', message);
     if (message.type === 'RECORDING_STARTED') {
       setIsRecording(true);  // Recorder가 실제 시작하면 true
     }
@@ -2630,16 +2638,15 @@ const handleHome = async () => {
   try {
     // 로컬 스토리지에서 제출 여부 확인
     const feedback = await loadUserData('submittedFeedback');
-
     if (!feedback?.hasSubmittedFeedback) {
       // 로컬에 완료 기록이 없다면 서버에 한 번 더 확인
       const check = await apiFetch('/feedback/check', { method: 'GET' });
-      // log.debug('완료 기록 확인', check );
 
       if (!check.data.hasSubmittedFeedback) {
         // 설문조사 미제출 상태인 경우 설문조사 페이지로 이동 (완료 후 홈으로 가도록 returnTo 설정)
         navigate('/feedback', { 
           state: { returnTo: '/' }
+          , replace: true
         });
         return;
       } else {
@@ -2649,12 +2656,12 @@ const handleHome = async () => {
     }
 
     // 이미 설문을 완료한 유저라면 바로 홈으로 이동
-    navigate('/');
+    navigate('/', {replace: true});
 
   } catch (error) {
     log.debug('홈 이동 중 설문 여부 조회 실패:', error);
     // 에러 발생 시 사용자 경험을 위해 일단 홈으로 보내주는 안전장치(Fallback)
-    navigate('/');
+    navigate('/', {replace: true});
   }
 };
 
@@ -2806,9 +2813,9 @@ const handleHintAccept = (messageId) => {
 </div>
 
       {/* 메시지 인풋 입력 창 모달 떠 있을 때만 사라짐 */}
-      {!isReportOpen && (
+      {(!isReportOpen && step !== 'REPORT') && (
       <div className={styles['chat-input']}>
-        {step !== 'REPORT' && <ChatInput sendTextMessage={sendTextMessage} showToast={showToast} startRecording={startRecording} stopRecording={stopRecording} cancelRecording={cancelRecording} formatTime={formatTime} isWaiting={isWaiting} isRecording={isRecording} toast={toast} />}
+        {<ChatInput sendTextMessage={sendTextMessage} showToast={showToast} startRecording={startRecording} stopRecording={stopRecording} cancelRecording={cancelRecording} formatTime={formatTime} isWaiting={isWaiting} isRecording={isRecording} toast={toast} />}
         {/* <ChatInput sendTextMessage={sendTextMessage} showToast={showToast} startRecording={startRecording} stopRecording={stopRecording} cancelRecording={cancelRecording} formatTime={formatTime} isWaiting={isWaiting} isRecording={isRecording} toast={toast} /> */}
         {/* <div className={styles['chat-input2']}>
           <textarea 
@@ -3354,6 +3361,10 @@ export function AiChatPage ({ handleAiReset }) {
   // 신고 모드 (MESSAGE 또는 SCENARIO)
   const [reportMode, setReportMode] = useState(null);
 
+  // // 이어하기 먼저 나타나고 버튼 클릭해야 단어 조회하기
+  // const [isReady, setIsReady] = useState(false);
+  // const [hasPrevious, setHasPrevious] = useState(false);
+
   // // 다시하기 눌렀는지 여부 (복원 없음)
   // const [searchParams] = useSearchParams();
   // const isFresh = searchParams.get('fresh') === 'true';
@@ -3380,7 +3391,8 @@ const handleCloseReport = () => {
 
 const handleFetchReport = async () => {
   if (!chatData?.chatRoomId) return;
-  
+  if (isLoading) return;
+  setIsLoading(true);
   try {
     const response = await apiFetch(`/chats/rooms/${chatData.chatRoomId}/report`);
 
@@ -3391,6 +3403,8 @@ const handleFetchReport = async () => {
     }
   } catch (e) {
     log.debug('리포트 실패:', e);
+  } finally {
+    setIsLoading(false);
   }
 };
 
@@ -3444,7 +3458,7 @@ const handleFetchReport = async () => {
 
   const handleExit = () => {
     if (exitModal === 'back') navigate(-1);
-    else if (exitModal === 'mypage') navigate('/my');
+    else if (exitModal === 'mypage') navigate('/my', {replace: true});
     setExitModal(null);
   };
 
@@ -3462,11 +3476,13 @@ const handleBack = async () => {
 
       if (!feedback?.hasSubmittedFeedback) {
         const check = await apiFetch('/feedback/check', { method: 'GET' });
-        // log.debug('완료 기록 확인', check);
 
         if (!check.data.hasSubmittedFeedback) {
           // 미제출은 피드백 페이지로
-          navigate('/feedback', { state: { returnTo: -1 } });
+          navigate('/feedback', { 
+            state: { returnTo: -1 } 
+            , replace: true
+          });
           return;
         } else {
           // 서버는 제출됨 로컬 갱신
@@ -3503,17 +3519,20 @@ const handleMyPage = async () => {
         const check = await apiFetch('/feedback/check', { method: 'GET' });
 
         if (!check.data.hasSubmittedFeedback) {
-          navigate('/feedback', { state: { returnTo: '/my' } });
+          navigate('/feedback', { 
+            state: { returnTo: '/my' } 
+            , replace: true
+          });
           return;
         } else {
           await saveUserData('submittedFeedback', { hasSubmittedFeedback: true });
         }
       }
 
-      navigate('/my');
+      navigate('/my', {replace: true});
     } catch (error) {
       log.debug('설문 여부 조회 실패:', error);
-      navigate('/my');
+      navigate('/my', {replace: true});
     }
     return;
   }
@@ -3522,7 +3541,7 @@ const handleMyPage = async () => {
   if (isInProgress) {
     setExitModal('mypage');
   } else {
-    navigate('/my');
+    navigate('/my', {replace: true});
   }
 };
 
@@ -3677,6 +3696,7 @@ const passedData = location.state?.wordsData;
 
   // 진입 시 복원 할건지 확인
   useEffect(() => {
+    log.debug('여러번 찍히는지2');
     // 마운트 시점에 URL 직접 읽기
     const params = new URLSearchParams(window.location.search);
     const isFresh = params.get('fresh') === 'true';
@@ -3705,7 +3725,8 @@ const passedData = location.state?.wordsData;
             aiGender: null,
           }),
         });
-        
+
+
         if (res.success && res.data.hasPreviousMessages) {
           setPreviousChatInfo(res.data);
           setStep('CONTINUE_POPUP');
@@ -3768,9 +3789,9 @@ const passedData = location.state?.wordsData;
 
 
 
-
-
   useEffect(() => {
+    if (step !== 'WORD_SELECT') return;
+
     const init = async () => {
       let data = passedData;
 
@@ -3778,7 +3799,6 @@ const passedData = location.state?.wordsData;
       if (!data) {
         try {
           const response = await apiFetch('/chats/words', { method: 'GET' });
-
           // log.debug('처음 response', response);
 
           data = response.data;
@@ -3786,7 +3806,7 @@ const passedData = location.state?.wordsData;
           if (!data.hasWords) {
             // 단어 없으면 디폴트로 보내기
             alert(data.guideMessage || '수집된 단어가 없어요!');
-            navigate('/');
+            navigate('/', {replace: true});
             return;
           }
         } catch (error) {
@@ -3848,7 +3868,7 @@ const passedData = location.state?.wordsData;
     };
 
     init();
-  }, [navigate, passedData]);
+  }, [navigate, passedData, step]);
 
 
 
@@ -4030,11 +4050,14 @@ const passedData = location.state?.wordsData;
 
 
 
-
-
-
   return (
     <div className={`${styles.main} ${step === 'CHAT' || step === 'REPORT' ? styles['main-chat'] : ''}`}>
+      
+      {/* 로딩 */}
+      {/* {log.debug('단어 목록 값 확인용', words, isLoading)} */}
+      {(isLoading || (step === 'WORD_SELECT' && !words?.length)) && <TestSpinner />}
+      {/* {(isLoading || !words) && <TestSpinner />} */}
+      
       {<Header 
       handleAiReset={handleAiReset}
       currentStep={step} 
