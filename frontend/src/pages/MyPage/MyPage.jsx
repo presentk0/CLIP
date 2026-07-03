@@ -1,11 +1,11 @@
 import styles from './MyPage.module.css'
 import { useState, useEffect } from 'react';
 import { apiFetch } from '../../utils/api';
-import { Spinner } from '../../components/Spinner/Spinner';
+// import { Spinner } from '../../components/Spinner/Spinner';
 import { useNavigate } from 'react-router-dom';
 // import { useAuth } from '../../hooks/useAuth';
 import { log } from '../../utils/logger';
-
+import { TestSpinner } from '../../components/Spinner/Spinner';
 
 
 // import frog from '../../imgs/frog.png';
@@ -340,7 +340,7 @@ export function MyPage ({ onExitPage }) {
   // 데이터 준비 안 됐으면 일찍 return
   if (!dashboardData || !growthData) {
     return (
-      <Spinner />
+      <TestSpinner />
     );
   }
 
