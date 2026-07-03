@@ -29,7 +29,7 @@ public class VideoRecommendationService {
     private final LearningHistoryRepository learningHistoryRepository;
 
     private static final int CANDIDATE_LIMIT = 20;
-    private static final int RECOMMEND_LIMIT = 5;
+    private static final int RECOMMEND_LIMIT = 6;
 
     public VideoRecommendationResponse getRecommendedVideos(Long userId) {
 
