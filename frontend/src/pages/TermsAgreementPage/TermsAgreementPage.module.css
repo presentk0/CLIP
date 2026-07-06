@@ -124,7 +124,8 @@ align-self: stretch;
 display: flex;
 flex-direction: column;
 align-items: flex-start;
-gap: 308px;
+/* gap: 308px; */
+gap: 388px;
 align-self: stretch;
 }
 

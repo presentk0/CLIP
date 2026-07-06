@@ -84,7 +84,7 @@ line-height: normal;
 
 .main-box {
 width: 402px;
-height: 923px;
+/* height: 923px; */
 border-radius: 36px 36px 0 0;
 background: #FEFDF9;
 box-shadow: 0 4px 12px 0 rgba(158, 155, 137, 0.20);
@@ -93,7 +93,10 @@ box-shadow: 0 4px 12px 0 rgba(158, 155, 137, 0.20);
 display: flex;
   flex-direction: column;
   align-items: center;   /* 자식들 가로 중앙 정렬 */
-margin-top: 36px;
+
+
+  margin-top: auto;    /* 부모 컨테이너 하단, 스크롤하면 같이 움직임 */
+  /* margin-top: 36px;    최소 여백 (덮어씀) */
 }
 
 
@@ -786,4 +789,11 @@ letter-spacing: -0.5px;
   width: 29px;
   height: 32px;
   margin-bottom: -4px;
+}
+
+
+.sectionBadge {
+  position: absolute;
+  left: 4px;
+  top: 4px;
 }
