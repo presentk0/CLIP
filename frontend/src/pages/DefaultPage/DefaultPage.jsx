@@ -885,7 +885,7 @@ try {
 
 
         <div className={style.videoSection}>
-          <SectionBadgeCard { ...usersData.ongoingMastery }></SectionBadgeCard>
+          {(usersData.ongoingMastery.currentBadge && usersData.ongoingMastery.currentBadge.length > 0) ? <SectionBadgeCard { ...usersData.ongoingMastery }></SectionBadgeCard> : null }
 
           <div className={style.recommendedSection}>
 

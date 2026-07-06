@@ -75,9 +75,14 @@ function QuizPage({ videoId, videoTitle }) {
   const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
   // 단어 클릭 시점의 자막 정보 (단어 수집용)
   const [clickedSubtitle, setClickedSubtitle] = useState(null);
-  // 단어 수집 버튼 누름 여부
-  const [isCollected, setIsCollected] = useState(false);
+  // // 단어 수집 버튼 누름 여부
+  // const [isCollected, setIsCollected] = useState(false);
 
+  // 클릭한 단어 중복 실행 방지
+  const isProcessingRef = useRef(false);
+  
+  // 수집 여부 기억
+  const [buttonState, setButtonState] = useState('idle');
 
   // 퀴즈 이동 중복 클릭 방지
   const [isProcessing, setIsProcessing] = useState(false);
@@ -237,7 +242,7 @@ stateRef.current = {
   useEffect(() => {
     const fetchCollectedWords = async () => {
       try {
-        const response = await apiFetch('/words/my-collection?page=0&size=100', {
+        const response = await apiFetch('/words/my-collection?page=0&size=10', {
           method: 'GET'
         });
         if (response?.data?.words) {
@@ -408,6 +413,12 @@ stateRef.current = {
 
   // 단어 클릭 시 사전 팝업 열기
   const togglePin = async (e, word, wordFilter) => {
+    // ref로 중복클릭 즉시 방지
+    if (isProcessingRef.current) return;
+    isProcessingRef.current = true;
+
+    try {
+    
 
     // 다른 클릭 이벤트 막기
     e.stopPropagation();
@@ -419,8 +430,8 @@ stateRef.current = {
       setClickedSubtitle(null);
       setIsPositioned(false);
 
-      // 나중에 조회해서 이미 수집했는지 확인 후 대응하기 (오류)
-      setIsCollected(false);
+      // // 나중에 조회해서 이미 수집했는지 확인 후 대응하기 (오류)
+      // setIsCollected(false);
       // return 없으면 다른 단어 클릭 시 즉시 이동
     }
 
@@ -437,6 +448,7 @@ stateRef.current = {
       left: rect.left,
       top: rect.top,
       width: rect.width,
+      height: rect.height
     });
 
     // popupPosition 초기화 (측정 전)
@@ -444,26 +456,110 @@ stateRef.current = {
     setPopupPosition({ top: -9999, left: -9999, arrowLeft: 0 });
 
 
+// log.debug('찾을 단어:', word, typeof word, word.length);
+// log.debug('collectedWords:', collectedWords);
+// log.debug('각 단어 비교:', collectedWords.map(w => ({
+//   stored: w.word,
+//   storedLength: w.word?.length,
+//   target: word,
+//   match: w.word === word
+// })));
+
 
     // 서버에서 조회한 단어에서 찾기
     const collected = collectedWords.find(w => w.word === word);
+    
     if (collected) {
-      // 자막 문맥 품사로 골라서 표시
-    const filterKor = posKor[wordFilter] || wordFilter;
-    const target = collected.meaningsByPos.find(m => m.partOfSpeech === filterKor) || collected.meaningsByPos[0];
+      // 있는 정보 가져오기
+      if (collected.phonetic && collected.meaningsByPos?.length > 0) {
+        setDictionaryData({
+          word: collected.word,
+          phonetic: collected.phonetic,
+          partOfSpeech: collected.partOfSpeech || '',
+          meanings: collected.meanings,
+          meaningsByPos: collected.meaningsByPos,
+        });
+        setIsPinned(true);
+        return;
+      }
 
-      setDictionaryData({
-        word: collected.word,
-        phonetic: collected.phonetic,
-        // meaningsByPos에서 추출
-        partOfSpeech: target.partOfSpeech,
-        // meaningsByPos에서 추출
-        meanings: target.meanings,
-        // 전체 데이터 보관
-        meaningsByPos: collected.meaningsByPos,
-        // meaningTranslations: collected.translations,
-      });
-      setIsPinned(true);
+      // 정보 부족하면 사전 API로 보완
+        try {
+          const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
+          // 에러날 경우 기존 팝업 유지
+          if (!response.ok) {
+            return;
+          }
+          
+          const data = await response.json();
+          
+          // API 응답이 없거나, 데이터가 없으면 종료
+          if (!data || !data[0]) return;
+
+          // 상세 정보 만들기
+          // 모든 품사의 모든 뜻 추출
+          const allByPos = data[0].meanings.map(m => ({
+            partOfSpeech: m.partOfSpeech,
+            definitions: m.definitions.slice(0, 3).map(d => d.definition),
+          }));
+          
+          // 추출된 게 없으면 팝업 닫고 종료
+          if (allByPos.length === 0) {
+            setIsPinned(false);
+            setDictionaryData(null);
+            setClickedSubtitle(null);
+            setIsPositioned(false);
+            return;
+          }
+
+          // 모든 뜻을 한 배열로 합치기
+          const allDefinitions = allByPos.flatMap(m => m.definitions);
+          // 배열 전체 번역 요청
+          const translations = await fetchTranslation(word, allDefinitions);
+          
+          // 번역 결과를 품사별로 매칭
+          let cursor = 0;
+          const meaningsByPos = allByPos.map(m => {
+            const slice = translations.slice(cursor, cursor + m.definitions.length);
+            cursor += m.definitions.length;
+            return {
+              partOfSpeech: posKor[m.partOfSpeech] || m.partOfSpeech,
+              meanings: slice
+            };
+          });
+          
+          // 자막 문맥 품사 골라서 result에 담기
+          const filterKor = posKor[wordFilter] || wordFilter;
+          const target = meaningsByPos.find(m => m.partOfSpeech === filterKor) 
+            || meaningsByPos[0];
+          
+
+          const detail = {
+            word: word,
+            phonetic: data[0].phonetic || '',
+            audio: data[0].phonetics?.find(p => p.audio)?.audio || '',
+            partOfSpeech: target.partOfSpeech,
+            meanings: target.meanings,
+            meaningsByPos: meaningsByPos,
+          };
+          
+          // 팝업 업데이트
+          setDictionaryData(detail);
+          
+          // 서버에 저장된 단어 추가
+          setCollectedWords(prev => prev.map(w => 
+            w.word === word ? { ...w, ...detail } : w
+          ));
+
+          setIsPinned(true);  // 성공 시에만 열기
+        } catch (error) {
+          log.debug('사전 API 보완 실패', error);
+          setIsPinned(false);
+          setDictionaryData(null);
+          setClickedSubtitle(null);
+          setIsPositioned(false);
+        }
+
       return;
     }
 
@@ -481,14 +577,7 @@ stateRef.current = {
       // API 응답이 없거나, 데이터가 없으면 종료
       if (!data || !data[0]) return;
 
-
-        // // 자막과 일치하는 품사에 대한 정보만 가져오기 (구동사 혹은 일치하는게 없으면 해당 단어의 첫 번째 품사에 대한 정보만 가져오기)
-        // const meaning = data[0].meanings.find(m => m.partOfSpeech === wordFilter) || data[0].meanings[0];
-
-
-
         // 해당 품사의 목록 최대 3개 가져오기
-        // const def = meaning.definitions[0];
         const result = {
           word: word,
           // 발음 기호(품사는 있어도 발음이 없는 경우가 있음)
@@ -496,36 +585,7 @@ stateRef.current = {
           // 발음 음성
           audio: data[0].phonetics?.find(p => p.audio)?.audio || '',
           // 품사
-          // partOfSpeech: meaning.partOfSpeech,
           partOfSpeech: '',
-          // 영어 뜻 (최대 3개 배열)
-          // definition: def.definition,
-
-
-
-          // definitions: meaning.definitions.slice(0, 3).map(d => d.definition),
-
-
-
-          // 예문 (최대 3개 배열)
-          // example: def.example || '',
-
-
-          // examples: meaning.definitions.slice(0, 3).map(d => d.example || ''),
-
-
-
-          // 유의어
-          // synonyms: meaning.synonyms?.slice(0, 5) || [],
-          // 반의어
-          // antonyms: meaning.antonyms?.slice(0, 5) || [],
-          // 단어 번역 (최대 3개 배열)
-          // meaningTranslation: '',
-
-
-
-
-          // meaningTranslations: [],
           meanings: [],
           meaningsByPos: [],
         };
@@ -612,12 +672,90 @@ stateRef.current = {
         }]);
 
     } catch (error) {
-      log.debug('사전 조회 실패:', error);
+      if (error.status === 409 && error.code === 'WORD_ALREADY_COLLECTED') {
+        log.debug('이미 수집된 단어', error);
+
+        // 사전 API로 정보 채우기
+    try {
+      const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
+      const data = await response.json();
+      
+      const allByPos = data[0].meanings.map(m => ({
+        partOfSpeech: m.partOfSpeech,
+        definitions: m.definitions.slice(0, 3).map(d => d.definition),
+      }));
+      
+      if (allByPos.length === 0) {
+        setIsPinned(false);
+        setDictionaryData(null);
+        setClickedSubtitle(null);
+        setIsPositioned(false);
+        return;
+      }
+      
+      const allDefinitions = allByPos.flatMap(m => m.definitions);
+      const translations = await fetchTranslation(word, allDefinitions);
+      
+      let cursor = 0;
+      const meaningsByPos = allByPos.map(m => {
+        const slice = translations.slice(cursor, cursor + m.definitions.length);
+        cursor += m.definitions.length;
+        return {
+          partOfSpeech: posKor[m.partOfSpeech] || m.partOfSpeech,
+          meanings: slice
+        };
+      });
+      
+      const filterKor = posKor[wordFilter] || wordFilter;
+      const target = meaningsByPos.find(m => m.partOfSpeech === filterKor) 
+        || meaningsByPos[0];
+      
+      const detail = {
+        word: word,
+        phonetic: data[0].phonetic || '',
+        audio: data[0].phonetics?.find(p => p.audio)?.audio || '',
+        partOfSpeech: target.partOfSpeech,
+        meanings: target.meanings,
+        meaningsByPos: meaningsByPos,
+      };
+      
+      // 팝업 표시
+      setDictionaryData(detail);
+      setIsPinned(true);
+      
+      // 로컬에도 추가 (다음엔 안 걸림)
+      setCollectedWords(prev => {
+        if (prev.some(w => w.word === word)) return prev;
+        return [...prev, detail];
+      });
+      
+    } catch (e) {
+      log.debug('사전 조회 실패', e);
       setIsPinned(false);
       setDictionaryData(null);
       setClickedSubtitle(null);
       setIsPositioned(false);
+    }
+    
+    return;
+  } else {
+        log.error('사전 조회 실패', error);
+        setIsPinned(false);
+        setDictionaryData(null);
+        setClickedSubtitle(null);
+        setIsPositioned(false);
+      }
       return;
+    }
+    } catch(error) {
+      log.error('사전 팝업 실행 실패', error);
+      setIsPinned(false);
+      setDictionaryData(null);
+      setClickedSubtitle(null);
+      setIsPositioned(false);
+    } finally {
+
+      isProcessingRef.current = false;
     }
   };
 
@@ -626,16 +764,18 @@ stateRef.current = {
 
 
 
-
   // 사전 팝업 닫기
-  const closePopup = () => {
+  const closePopup = (e) => {
+
+    e.stopPropagation();
     setIsPinned(false);
     setDictionaryData(null);
     setClickedSubtitle(null);
     setIsPositioned(false);
 
-    // 나중에 조회해서 이미 수집했는지 확인 후 대응하기 (오류)
-    setIsCollected(false);
+    // // 나중에 조회해서 이미 수집했는지 확인 후 대응하기 (오류)
+    // setIsCollected(false);
+
   };
 
 
@@ -649,9 +789,28 @@ stateRef.current = {
   };
 
 
+  // 팝업 열릴 때 초기 상태 결정
+  useEffect(() => {
+    if (dictionaryData?.word) {
+      const alreadyCollected = collectedWords.find(w => 
+        w.word?.toLowerCase() === dictionaryData.word?.toLowerCase()
+      );
+      setButtonState(alreadyCollected ? 'collected' : 'idle');
+    }
+  }, [dictionaryData, collectedWords]);
 
   // 단어 수집 버튼
   const collectWord = async () => {
+    // 수집 완료하면 미실행
+    if (buttonState !== 'idle') return;
+
+    // 중복 클릭 막기
+    if (isProcessingRef.current) return;
+    isProcessingRef.current = true;
+
+    // UI 전달
+    setButtonState('processing');
+
 
     try {
       const collect = await apiFetch('/words/collect', {
@@ -685,11 +844,35 @@ stateRef.current = {
         // translation: clickedSubtitle.translation,
         meaningsByPos: dictionaryData.meaningsByPos,
       }]);
-      setIsCollected(true);
+      setButtonState('collected');
+
+
+      // setIsCollected(true);
     } catch (error) {
-      log.debug('단어 수집 실패:', error);
+      if (error.status === 409 && 
+        error.code === 'WORD_ALREADY_COLLECTED') {
+        // 이미 서버에 있음
+        setButtonState('collected');
+        log.debug('이미 수집된 단어', error);
+
+        // 로컬 캐시에 추가
+        setCollectedWords(prev => {
+          if (prev.some(w => w.word === dictionaryData.word)) return prev;
+          return [...prev, {
+            word: dictionaryData.word,
+            meanings: dictionaryData.meanings,
+          }];
+        });
+      } else {
+        // 다른 에러
+        setButtonState('idle');  // 재시도 가능
+        log.error('단어 수집 실패', error, error.status, error.code);
+      }
+    } finally {
+      isProcessingRef.current = false;
     }
   };
+
 
 
 
@@ -1572,14 +1755,20 @@ const handleExitFromSettlement = async (target = -1) => {
         </div>
 
 
-
+        {/* 말풍선 */}
         {quizzes && quizzes.length > 0 && (
         <div className={styles.balloon}>
           <div className={styles.balloon2}>
             <p className={styles['balloon2-t']}>
+              {settlementData && settlementData.length > 0 
+              ? settlementData
+              : <>
+                    {log.debug('settlementData', settlementData)}
                     {currentQuiz?.quizType === 'BLANK' && (!isConfirmed ? "방금 영상에서 나온 문장이에요. 이 자리에 어떤 단어가 들어갈까요?"  : feedback?.feedback)}
                     {currentQuiz?.quizType === 'OX' && (!isConfirmed ? "방금 영상에서 나온 문장이에요. 이 자리에 어떤 단어가 들어갈까요?" : feedback?.feedback)}
                     {currentQuiz?.quizType === 'MATCHING' && (!isConfirmed ? "방금 영상에서 나온 문장이에요. 이 자리에 어떤 단어가 들어갈까요?" : matchingMatchedPairs.length === quizzes.length ? "수고했어! 이제 결과를 볼까?" : "방금 영상에서 나온 문장이에요. 이 자리에 어떤 단어가 들어갈까요?")}
+              </>
+                }
             </p>
           </div>
         </div>
@@ -1587,14 +1776,11 @@ const handleExitFromSettlement = async (target = -1) => {
 
 {/* 정산 상태에 따라 분기, 오류 테스트 끝내고 !지우기 */}
       {isSettlement ? (
+        <>
         <SettlementPage 
         data={settlementData}
-        // videoId={videoId}
-        // videoTitle={videoTitle}
-        // channelName={channelName}
-        // duration={duration}
-        // thumbnailUrl={thumbnailUrl}
         />
+        </>
       ) : (
         <>
         <div className={styles.subtitles}>
@@ -2161,7 +2347,7 @@ const handleExitFromSettlement = async (target = -1) => {
                   <div className={styles.popup10}>
                     <div className={styles.popup11}>
                       <div className={styles.popup12}>
-                        {isCollected ? (
+                        {buttonState === 'collected' ? (
                           // 선택함
                           <svg className={styles.popup13} xmlns="http://www.w3.org/2000/svg" width="9" height="12" viewBox="0 0 9 12" fill="none">
                             <path d="M7.3 0.5H1.7C1.03726 0.5 0.5 1.03726 0.5 1.7V10.5686C0.5 11.2814 1.36171 11.6383 1.86568 11.1343L3.93431 9.06569C4.24673 8.75327 4.75327 8.75327 5.06569 9.06569L7.13431 11.1343C7.63829 11.6383 8.5 11.2814 8.5 10.5686V1.7C8.5 1.03726 7.96274 0.5 7.3 0.5Z" stroke="#BDB4AB"
@@ -2184,7 +2370,7 @@ const handleExitFromSettlement = async (target = -1) => {
 
 
                 <button 
-                onClick= {() => closePopup()}
+                onClick= {(e) => closePopup(e)}
                 className={styles.popup16}>
                   <div className={styles.popup17}>
                     <svg className={styles.popup18} xmlns="http://www.w3.org/2000/svg" width="9" height="9" viewBox="0 0 9 9" fill="none">
