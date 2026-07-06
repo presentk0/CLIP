@@ -9,6 +9,8 @@ import com.clip.server.chat.repository.ChatRoomRepository;
 import com.clip.server.common.exception.BusinessException;
 import com.clip.server.common.exception.ErrorCode;
 import com.clip.server.file.service.S3Service;
+import com.clip.server.user.entity.User;
+import com.clip.server.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -26,6 +28,8 @@ public class ChatMessageService {
 
     private final ChatRoomRepository chatRoomRepository;
     private final ChatMessageRepository chatMessageRepository;
+    private final UserRepository userRepository;
+
     private final S3Service s3Service;
 
     private static final int MAX_TURN = 10; // AI 채팅 최대 턴
@@ -36,15 +40,19 @@ public class ChatMessageService {
         // 1. 채팅방 존재+사용자 소유권 검증
         ChatRoom chatRoom = chatRoomRepository.findByIdAndUserId(chatRoomId, userId).orElseThrow(()->new BusinessException(ErrorCode.CHAT_ROOM_NOT_FOUND));
 
-        // 2. 메시지 조회
+        // 2. 사용자 조회(voiceConsentRead 확인용)
+        User user = userRepository.findById(userId).orElseThrow(()-> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        // 3. 메시지 조회
         List<ChatMessage> messages = chatMessageRepository.findByChatRoomIdOrderByCreatedAtAsc(chatRoomId);
 
-        // 3. DTO 변환
+        // 4. DTO 변환
         List<ChatMessageListResponse.MessageDto> messageDtos = messages.stream()
                 .map(this::mapToMessageDto)
                 .toList();
 
         return ChatMessageListResponse.builder()
+                .voiceConsentRead(Boolean.TRUE.equals(user.getVoiceConsentRead()))
                 .messages(messageDtos)
                 .build();
 
