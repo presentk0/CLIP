@@ -16,7 +16,7 @@ public interface VideoRepository extends JpaRepository<Video, String> {
      * 유저의 학습 목표와 절대 난이도가 일치하고, 이미 본 영상은 제외하여 추천 리스트를 가져옴
      */
     @Query("SELECT v FROM Video v " +
-            "WHERE v.learningGoal = :learningGoal " +
+            "WHERE (:learningGoal IS NULL OR v.learningGoal = :learningGoal) " +
             "AND v.difficultyLevel IN :recommendationRange " +
             "AND v.videoId NOT IN :watchedVideoIds")
     List<Video> findRecommendedVideos(
