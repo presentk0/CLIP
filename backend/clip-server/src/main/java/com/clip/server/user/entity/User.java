@@ -53,6 +53,9 @@ public class User {
     @Column(nullable = false)
     private Integer exp;
 
+    @Column(name = "voice_consent_read", nullable = false)
+    private Boolean voiceConsentRead = false; // 음성 팝업 동의 여부
+
     @CreatedDate
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -132,5 +135,12 @@ public class User {
 
         // 소수점 첫째 자리까지 반올림
         return Math.round(percentage * 10) / 10.0;
+    }
+
+    /**
+     * 음성 동의 팝업 확인 처리
+     */
+    public void markVoiceConsentRead() {
+        this.voiceConsentRead = true;
     }
 }

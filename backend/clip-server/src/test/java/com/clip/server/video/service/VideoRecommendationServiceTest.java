@@ -88,7 +88,7 @@ class VideoRecommendationServiceTest {
 
         // then
         assertThat(response).isNotNull();
-        assertThat(response.getRecommendations()).hasSize(5); // RECOMMEND_LIMIT(5) 컷팅 검증
+        assertThat(response.getRecommendations()).hasSize(6); // RECOMMEND_LIMIT(6) 컷팅 검증
         assertThat(response.getRecommendations().get(0).getRecommendationReason())
                 .contains("딱 맞는 영상이에요"); // generateReason 동적 문구 검증
 

@@ -118,19 +118,15 @@ const DIFFICULTY_LEVEL_MAP = {
 //   { value: 'ADVANCED', label: '상급자' },
 // ];
 
-// // 절대 난이도 레벨
-// const ABSOLUTE_LEVEL_MAP = {
-//   BEGINNER: 1,
-//   INTERMEDIATE: 2,
-//   ADVANCED: 3,
-// };
+// 절대 난이도 레벨
+const ABSOLUTE_LEVEL_MAP = {
+  BEGINNER: 1,
+  INTERMEDIATE: 2,
+  ADVANCED: 3,
+};
 
-
-// const MIN_LEVEL = 1;
-// const MAX_LEVEL = 3;
-
-
-
+const MIN_LEVEL = 1;
+const MAX_LEVEL = 3;
 
 
 
@@ -279,7 +275,7 @@ export function MyPage ({ onExitPage }) {
 
 
 
-  const [isInfor, setIsInfor] = useState(true);
+  // const [isInfor, setIsInfor] = useState(true);
   const [isGrowth, setIsGrowth] = useState(true);
   const [isObjectives, setIsObjectives] = useState(true);
   const [isDifficulty, setIsDifficulty] = useState(true);
@@ -287,6 +283,11 @@ export function MyPage ({ onExitPage }) {
 
 
   // const { needsOnboarding, completeOnboarding } = useAuth();
+
+
+  const [popupMessage, setPopupMessage] = useState('');
+
+
 
   const navigate = useNavigate();
 
@@ -455,7 +456,28 @@ const handleDifficultyChange = async (level) => {
 // };
 
 
-  // // 비활성화 체크 함수
+  // 비활성화 체크 함수
+const isOptionDisabled = (value) => {
+  const absolute = preferencesData?.absoluteLevel;
+  if (!absolute) {
+    return { disabled: true, reason: '' };
+  }
+  
+  const currentLevel = ABSOLUTE_LEVEL_MAP[absolute];
+  const offset = DIFFICULTY_LEVEL_MAP[value];
+  const targetLevel = currentLevel + offset;
+  
+  if (targetLevel < MIN_LEVEL) {
+    return { disabled: true, reason: '최소 레벨보다 낮습니다' };
+  }
+  if (targetLevel > MAX_LEVEL) {
+    return { disabled: true, reason: '최대 레벨을 초과합니다' };
+  }
+  
+  return { disabled: false, reason: '' };
+};
+
+
   // const isOptionDisabled = (optionValue) => {
   //   if (!selectedAbsolute) return false;  // 절대 난이도 선택 전엔 다 활성화
     
@@ -478,6 +500,13 @@ const handleHomeClick = () => {
 
   return (
     <div className={styles.container}>
+      {popupMessage && (
+
+        <p className={styles.popup}>{popupMessage}</p>
+
+            )}
+
+
       <div className={styles.header}>
         <div className={styles.top}>
           <div className={styles.top2}>
@@ -557,8 +586,8 @@ const handleHomeClick = () => {
 
 
 
-      {isInfor ? (
-      // {/* 레벨 카드 */}
+      {/* {isInfor ? ( */}
+      {/* 레벨 카드 */}
       <div className={styles['infor-card']}>
         {/* 레벨 박스 */}
         <div className={styles['infor-card2']}>
@@ -572,7 +601,13 @@ const handleHomeClick = () => {
 
             {/* 열고 닫기 버튼 */}
             <button
-            onClick={() => setIsInfor(false)}
+            // onClick={() => setIsInfor(false)}
+
+
+            // onClick={() => navigate('/voca')}
+
+
+
             className={styles['infor-card6']}>
               <svg 
               className={styles['infor-card7']}
@@ -695,92 +730,6 @@ const handleHomeClick = () => {
 
         </div>
       </div>
-) : (
-  // {/* 레벨 카드 */}
-      <div className={styles['infor-f']}>
-        {/* 레벨 박스 */}
-        <div className={styles['infor-card2']}>
-
-          {/* 레벨과 열고 닫기 */}
-          <div className={styles['infor-card3']}>
-
-            <div className={styles['infor-card4']}>
-              <p className={styles['infor-card5']}>Level</p>
-            </div>
-
-            {/* 열고 닫기 버튼 */}
-            <button
-            onClick={() => setIsInfor(true)}
-            className={styles['infor-card6']}>
-              <svg 
-              className={styles['infor-card7']}
-              xmlns="http://www.w3.org/2000/svg" 
-              width="13" 
-              height="8" 
-              viewBox="0 0 13 8" 
-              fill="none">
-                <path d="M0.75 0.75L6.375 6.375L12 0.75" stroke="#0F0D0E" stroke-width="1.5" stroke-linecap="round"/>
-              </svg>
-            </button>
-          </div>
-
-
-
-
-          {/* 경험치 바 */}
-          <div className={styles['infor-card8']}>
-            <div className={styles['infor-card9']}>
-              <div className={styles['infor-card10']}>
-                <div className={styles['infor-card11']}>
-
-
-
-                  <div className={styles['infor-card12']}>
-                    <p className={styles['infor-card13']}>
-                      LV.{levelInfo.currentLevel}
-                      </p>
-                  </div>
-
-
-
-
-
-
-
-
-                  <div className={styles['infor-card14']}>
-                    <p className={styles['infor-card15-l']}>
-                      {levelInfo.currentExp.toLocaleString()}
-
-                    </p>
-                    <span className={styles['infor-card15-r']}> | {levelInfo.nextLevelExp.toLocaleString()}</span>
-                  </div>
-                </div>
-
-                <div className={styles['infor-card16']}>
-                  {/* 전체 바 */}
-                  <div className={styles['infor-card17']}></div>
-
-                  {/* 진행 바 */}
-                  <div 
-                  className={styles['infor-card18']}
-                  style={{ width: `${levelInfo.progressPercentage}%` }}
-                  >
-                  </div>
-                  
-                </div>
-              </div>
-
-
-
-              <div className={styles['infor-card19']}>
-                <p className={styles['infor-card20']}>다음 레벨까지 {display}%남았어요!</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-)}
 
 
 
@@ -1076,13 +1025,22 @@ const handleHomeClick = () => {
 
 {DIFFICULTY_OPTIONS.map(({ value, label }) => {
     const isSelected = selectedDifficulty === value;
-
+    const { disabled, reason } = isOptionDisabled(value);
 
     return (
       <button
         key={value}
         type="button"
-        onClick={() => handleDifficultyChange(value)}
+        // onClick={() => handleDifficultyChange(value)}
+        onClick={() => {
+        if (disabled) {
+          setPopupMessage(reason);
+          return;
+        }
+        handleDifficultyChange(value);
+      }}
+
+
         className={isSelected 
           ? styles['difficulty-card9']     // 선택
           : styles['difficulty-card15-f']  // 미선택

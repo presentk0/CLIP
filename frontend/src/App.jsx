@@ -10,6 +10,7 @@ import SettlementPage from './pages/SettlementPage/SettlementPage';
 import LoginPage from './pages/LoginPage/LoginPage';
 import { MyPage } from './pages/MyPage/MyPage';
 import { AiChatPage } from './pages/AiChatPage/AiChatPage';
+import { VocabularyPage } from './pages/VocabularyPage/VocabularyPage';
 
 import ProtectedRoute from './components/ProtectedRoute';
 import { log } from './utils/logger';
@@ -34,7 +35,7 @@ import { useRef } from 'react';
 // 온보딩 체크용
 function RequireOnboarding({ children }) {
   const { needsOnboarding } = useAuth();
-  
+
   if (needsOnboarding) {
     // 약관 페이지로 보내기
     return <Navigate to="/onboarding/terms" replace />;
@@ -360,6 +361,16 @@ function AppContent() {
             <ProtectedRoute>
               <MyPage 
                 onExitPage={handleExit}
+              />
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/voca" 
+          element={
+            <ProtectedRoute>
+              < VocabularyPage
               />
             </ProtectedRoute>
           } 
