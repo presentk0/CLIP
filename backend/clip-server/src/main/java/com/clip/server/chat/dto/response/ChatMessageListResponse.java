@@ -11,6 +11,7 @@ import java.util.List;
 @Builder
 public class ChatMessageListResponse {
 
+    private Boolean voiceConsentRead; // 음성 팝업 동의 여부
     private List<MessageDto> messages;
 
     @Getter
