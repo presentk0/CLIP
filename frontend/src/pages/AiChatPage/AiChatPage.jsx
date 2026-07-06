@@ -20,7 +20,7 @@ import { loadUserData, saveUserData } from '../../utils/userStorage';
 // import frog2 from '../../imgs/image_809.png';
 // import { useSearchParams } from 'react-router-dom';
 import { openYoutubeVideo } from '../../utils/openInTab';
-
+import { TestSpinner } from '../../components/Spinner/Spinner';
 
 // JWT 토큰 만료 체크
 const isTokenExpired = (token) => {
@@ -181,7 +181,7 @@ function Header ({ handleAiReset, currentStep, onBack, onMyPage, onStartMessageR
   return (
     currentStep !== 'CHAT' ? (
       <div className={styles.head}>
-        <div className={styles.head2}>
+        <div className={styles.head2} style={currentStep === 'REPORT' ? { background: '#F5F3E7' } : {}}>
           <div className={styles.head3}>
             <button 
             onClick={onBack}
@@ -1640,14 +1640,14 @@ function ReportPage({ reportData, chatData }) {
 
 
 // 채팅방
-function ChatRoom ({ setChatData, chatData, progress, setProgress, setMessages, messages, onFetchReport, isSelectMode, onSelectMessage, isReportOpen, selectedTargetId, isMessage, reportData, step }) {
+function ChatRoom ({ setChatData, chatData, progress, setProgress, setMessages, messages, onFetchReport, isSelectMode, onSelectMessage, isReportOpen, selectedTargetId, isMessage, reportData, step, audioAllowed, setAudioAllowed }) {
 
-  // log.debug('정산에 필요한지 체크', reportData );
-  // const [voiceModeOn, setVoiceModeOn] = useState(false);
-  // const voiceModeOnRef = useRef(voiceModeOn);
-  // const isToggling = useRef(false);
+  const audioQueueRef = useRef([]);
+  const isPlayingRef = useRef(false);
+  const addToQueueRef = useRef(null);
 
-  // const [inputText, setInputText] = useState('');
+  const [showVoiceConsent, setShowVoiceConsent] = useState(false);
+
 
   const [isRecording, setIsRecording] = useState(false);
   const recorderWindowIdRef = useRef(null);
@@ -1685,6 +1685,37 @@ function ChatRoom ({ setChatData, chatData, progress, setProgress, setMessages, 
 
   const navigate = useNavigate();
 
+  // 매 렌더링마다 최신 함수 저장
+  addToQueueRef.current = (audioUrl) => {
+    audioQueueRef.current.push(audioUrl);
+    playNext();
+  };
+
+
+
+
+  const playNext = async () => {
+    if (isPlayingRef.current) return;
+    if (audioQueueRef.current.length === 0) return;
+    if (!audioAllowed) return;
+    
+    isPlayingRef.current = true;
+    const url = audioQueueRef.current.shift();
+    
+    try {
+      const audio = new Audio(url);
+      await new Promise((resolve, reject) => {
+        audio.onended = resolve;
+        audio.onerror = reject;
+        audio.play().catch(reject);
+      });
+    } catch (error) {
+      log.debug('재생 실패', error);
+    } finally {
+      isPlayingRef.current = false;
+      playNext();
+    }
+  };
 
 
 
@@ -2105,6 +2136,11 @@ const handleError = ({ code, message }) => {
             const found = prev.find(msg => msg.messageId === payload.messageId);
     
             if (found) {
+              // senderType이 AI일 때만 재생
+              if (found.senderType === 'AI' && payload.audioUrl) {
+                addToQueueRef.current?.(payload.audioUrl);
+              }
+
               // 메시지 있음 - audioUrl 추가
               return prev.map(msg => 
                 msg.messageId === payload.messageId
@@ -2113,18 +2149,21 @@ const handleError = ({ code, message }) => {
               );
             }
             
-                // messageId 매칭 안 되고 streaming도 없으면 임시 저장 필요
-    const hasStreaming = prev.some(msg => msg.streaming);
-    if (hasStreaming) {
-      return prev.map(msg => 
-        msg.streaming ? { ...msg, pendingAudioUrl: payload.audioUrl } : msg
-      );
-    }
-    
-    return prev;
-  });
-  setIsWaiting(false);
-  break;
+            // messageId 매칭 안 되고 streaming도 없으면 임시 저장 필요
+            const hasStreaming = prev.some(msg => msg.streaming);
+            if (hasStreaming) {
+              if (payload.audioUrl) {
+                addToQueueRef.current?.(payload.audioUrl);
+              }
+              return prev.map(msg => 
+                msg.streaming ? { ...msg, pendingAudioUrl: payload.audioUrl } : msg
+              );
+            }
+            
+            return prev;
+          });
+          setIsWaiting(false);
+          break;
     
     
         // ========== 턴 진행 상황 ==========
@@ -2255,6 +2294,12 @@ const handleError = ({ code, message }) => {
           if (response.success) {
             setMessages(response.data.messages);
 
+            if (response.data.voiceConsentRead === false) {
+              setShowVoiceConsent(true);  // 팝업 표시
+            } else {
+              setAudioAllowed(true);      // 이미 봤음
+            }
+
             // progress 복원
             if (response.data.progress) {
               setProgress(response.data.progress);
@@ -2293,7 +2338,10 @@ const handleError = ({ code, message }) => {
       // 자동 토큰 갱신이 실패한 경우
       if (!token) {
         log.debug('토큰 없음 - WebSocket 연결 중단');
-        navigate('/login');
+        navigate('/login', {
+          state: { from: '/ai' },
+          replace: true
+        });
         return;
       }
 
@@ -2320,7 +2368,10 @@ const handleError = ({ code, message }) => {
             if (!currentToken) {
               log.debug('갱신 실패 - 연결 중단');
               client.deactivate();
-              navigate('/login');
+              navigate('/login', {
+                state: { from: '/ai' },
+                replace: true
+              });
               return;
             }
           }
@@ -2360,7 +2411,7 @@ const handleError = ({ code, message }) => {
     // useRef는 의존성 배열에 안 넣어도 됨
     // navigate는 useNavigate()가 반환하는 함수인데, React Router 내부에서 stable reference로 만들어짐
     // 즉, 매 렌더링마다 새로 만들어지지 않아서 의존성에 추가해도 useEffect가 재실행되지 않음
-  }, [setChatData, chatRoomId, chatData?.hasPreviousMessages, setProgress, navigate, setMessages]);
+  }, [setChatData, chatRoomId, chatData?.hasPreviousMessages, setProgress, navigate, setMessages, setAudioAllowed, setShowVoiceConsent ]);
 
   // // AI 메시지 자동 재생 (음성 모드)
   // useEffect(() => {
@@ -2381,7 +2432,21 @@ const handleError = ({ code, message }) => {
   // }, [messages, voiceModeOn]);
 
 
-
+  // 팝업에서 동의 클릭 (unlockAudio과 다른 기능임)
+  const handleAudioConsent = async () => {
+    // 오디오 락 해제
+    const audio = new Audio();
+    audio.muted = true;
+    await audio.play().catch(() => {});
+  
+    setAudioAllowed(true);
+    setShowVoiceConsent(false);
+  
+    // 서버에 저장 (다음엔 안 뜨게)
+    await apiFetch('/users/me/voice-consent', {
+      method: 'PATCH',
+    });
+  };
 
   // 클릭한 메시지의 음성 재생
   const handleAiSound = (msg) => {
@@ -2596,7 +2661,9 @@ const handleError = ({ code, message }) => {
 
 // 녹음 데이터 수신
 useEffect(() => {
+  log.debug('여러번 찍히는지3');
   const handler = (message) => {
+    log.debug('어떤 메시지인지', message);
     if (message.type === 'RECORDING_STARTED') {
       setIsRecording(true);  // Recorder가 실제 시작하면 true
     }
@@ -2630,16 +2697,15 @@ const handleHome = async () => {
   try {
     // 로컬 스토리지에서 제출 여부 확인
     const feedback = await loadUserData('submittedFeedback');
-
     if (!feedback?.hasSubmittedFeedback) {
       // 로컬에 완료 기록이 없다면 서버에 한 번 더 확인
       const check = await apiFetch('/feedback/check', { method: 'GET' });
-      // log.debug('완료 기록 확인', check );
 
       if (!check.data.hasSubmittedFeedback) {
         // 설문조사 미제출 상태인 경우 설문조사 페이지로 이동 (완료 후 홈으로 가도록 returnTo 설정)
         navigate('/feedback', { 
           state: { returnTo: '/' }
+          , replace: true
         });
         return;
       } else {
@@ -2649,12 +2715,12 @@ const handleHome = async () => {
     }
 
     // 이미 설문을 완료한 유저라면 바로 홈으로 이동
-    navigate('/');
+    navigate('/', {replace: true});
 
   } catch (error) {
     log.debug('홈 이동 중 설문 여부 조회 실패:', error);
     // 에러 발생 시 사용자 경험을 위해 일단 홈으로 보내주는 안전장치(Fallback)
-    navigate('/');
+    navigate('/', {replace: true});
   }
 };
 
@@ -2694,6 +2760,15 @@ const handleHintAccept = (messageId) => {
 
   // 받은 메시지 화면에 그리기
   return (
+    <>
+      {/* 재생 동의 팝업 */}
+      {showVoiceConsent && (
+        <div className={styles.modal}>
+          <p>AI 음성을 자동 재생합니다</p>
+          <button onClick={handleAudioConsent}>확인</button>
+        </div>
+      )}
+
     <div className={styles['chat-page']}>
     <div className={styles['chat-messages']}
     ref={messagesContainerRef}
@@ -2806,9 +2881,9 @@ const handleHintAccept = (messageId) => {
 </div>
 
       {/* 메시지 인풋 입력 창 모달 떠 있을 때만 사라짐 */}
-      {!isReportOpen && (
+      {(!isReportOpen && step !== 'REPORT') && (
       <div className={styles['chat-input']}>
-        {step !== 'REPORT' && <ChatInput sendTextMessage={sendTextMessage} showToast={showToast} startRecording={startRecording} stopRecording={stopRecording} cancelRecording={cancelRecording} formatTime={formatTime} isWaiting={isWaiting} isRecording={isRecording} toast={toast} />}
+        {<ChatInput sendTextMessage={sendTextMessage} showToast={showToast} startRecording={startRecording} stopRecording={stopRecording} cancelRecording={cancelRecording} formatTime={formatTime} isWaiting={isWaiting} isRecording={isRecording} toast={toast} />}
         {/* <ChatInput sendTextMessage={sendTextMessage} showToast={showToast} startRecording={startRecording} stopRecording={stopRecording} cancelRecording={cancelRecording} formatTime={formatTime} isWaiting={isWaiting} isRecording={isRecording} toast={toast} /> */}
         {/* <div className={styles['chat-input2']}>
           <textarea 
@@ -2938,6 +3013,7 @@ const handleHintAccept = (messageId) => {
       </div>
       )}
     </div>
+    </>
   );
 }
 
@@ -3298,6 +3374,7 @@ const User = React.memo(function User({ msg, highlightWord, remainingTurn, messa
 // 에러 처음 진입 시 스테이트 리셋 하는거 넣기
 
 export function AiChatPage ({ handleAiReset }) {
+  const [audioAllowed, setAudioAllowed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [words, setWords] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -3354,6 +3431,10 @@ export function AiChatPage ({ handleAiReset }) {
   // 신고 모드 (MESSAGE 또는 SCENARIO)
   const [reportMode, setReportMode] = useState(null);
 
+  // // 이어하기 먼저 나타나고 버튼 클릭해야 단어 조회하기
+  // const [isReady, setIsReady] = useState(false);
+  // const [hasPrevious, setHasPrevious] = useState(false);
+
   // // 다시하기 눌렀는지 여부 (복원 없음)
   // const [searchParams] = useSearchParams();
   // const isFresh = searchParams.get('fresh') === 'true';
@@ -3380,7 +3461,8 @@ const handleCloseReport = () => {
 
 const handleFetchReport = async () => {
   if (!chatData?.chatRoomId) return;
-  
+  if (isLoading) return;
+  setIsLoading(true);
   try {
     const response = await apiFetch(`/chats/rooms/${chatData.chatRoomId}/report`);
 
@@ -3391,6 +3473,8 @@ const handleFetchReport = async () => {
     }
   } catch (e) {
     log.debug('리포트 실패:', e);
+  } finally {
+    setIsLoading(false);
   }
 };
 
@@ -3444,7 +3528,7 @@ const handleFetchReport = async () => {
 
   const handleExit = () => {
     if (exitModal === 'back') navigate(-1);
-    else if (exitModal === 'mypage') navigate('/my');
+    else if (exitModal === 'mypage') navigate('/my', {replace: true});
     setExitModal(null);
   };
 
@@ -3462,11 +3546,13 @@ const handleBack = async () => {
 
       if (!feedback?.hasSubmittedFeedback) {
         const check = await apiFetch('/feedback/check', { method: 'GET' });
-        // log.debug('완료 기록 확인', check);
 
         if (!check.data.hasSubmittedFeedback) {
           // 미제출은 피드백 페이지로
-          navigate('/feedback', { state: { returnTo: -1 } });
+          navigate('/feedback', { 
+            state: { returnTo: -1 } 
+            , replace: true
+          });
           return;
         } else {
           // 서버는 제출됨 로컬 갱신
@@ -3503,17 +3589,20 @@ const handleMyPage = async () => {
         const check = await apiFetch('/feedback/check', { method: 'GET' });
 
         if (!check.data.hasSubmittedFeedback) {
-          navigate('/feedback', { state: { returnTo: '/my' } });
+          navigate('/feedback', { 
+            state: { returnTo: '/my' } 
+            , replace: true
+          });
           return;
         } else {
           await saveUserData('submittedFeedback', { hasSubmittedFeedback: true });
         }
       }
 
-      navigate('/my');
+      navigate('/my', {replace: true});
     } catch (error) {
       log.debug('설문 여부 조회 실패:', error);
-      navigate('/my');
+      navigate('/my', {replace: true});
     }
     return;
   }
@@ -3522,7 +3611,7 @@ const handleMyPage = async () => {
   if (isInProgress) {
     setExitModal('mypage');
   } else {
-    navigate('/my');
+    navigate('/my', {replace: true});
   }
 };
 
@@ -3636,6 +3725,7 @@ const handleMyPage = async () => {
           //   aiGender: selectedVoice,
           // })
         });
+        log.debug('방 생성 받은 값', response);
           // log.debug('목소리 값 확인용', response);
         if (response.success) {
           setChatData(prev => ({ 
@@ -3674,6 +3764,21 @@ const handleMyPage = async () => {
 const location = useLocation();
 const passedData = location.state?.wordsData;
 
+// 오디오 락 해제
+  const unlockAudio = async () => {
+    try {
+      const audio = new Audio();
+      audio.muted = true;
+      await audio.play().catch(() => {});
+      setAudioAllowed(true);
+    } catch (error) {
+      log.debug('오디오 락 해제 실패', error);
+    }
+  };
+
+
+
+
 
   // 진입 시 복원 할건지 확인
   useEffect(() => {
@@ -3705,7 +3810,8 @@ const passedData = location.state?.wordsData;
             aiGender: null,
           }),
         });
-        
+
+
         if (res.success && res.data.hasPreviousMessages) {
           setPreviousChatInfo(res.data);
           setStep('CONTINUE_POPUP');
@@ -3723,7 +3829,7 @@ const passedData = location.state?.wordsData;
   const handleContinue = async () => {
     const chatRoomId = previousChatInfo.chatRoomId;
     const res = await apiFetch(`/chats/rooms/${chatRoomId}/messages`);
-    // log.debug('이어하기 받은 값', res, previousChatInfo);
+
     
     if (res.success) {
       setMessages(res.data.messages);
@@ -3748,12 +3854,16 @@ const passedData = location.state?.wordsData;
       scenarioSituation: previousChatInfo.scenarioSituation,
       hasPreviousMessages: true,
     });
+      // 오디오 락 해제
+      await unlockAudio();
       setStep('CHAT');
     }
   };
   
   // 새로 시작 (팝업에서)
-  const handleNewStart = () => {
+  const handleNewStart = async () => {
+    // 오디오 락 해제
+    await unlockAudio();
     setPreviousChatInfo(null);
     setStep('WORD_SELECT');
   };
@@ -3768,9 +3878,9 @@ const passedData = location.state?.wordsData;
 
 
 
-
-
   useEffect(() => {
+    if (step !== 'WORD_SELECT') return;
+
     const init = async () => {
       let data = passedData;
 
@@ -3778,7 +3888,6 @@ const passedData = location.state?.wordsData;
       if (!data) {
         try {
           const response = await apiFetch('/chats/words', { method: 'GET' });
-
           // log.debug('처음 response', response);
 
           data = response.data;
@@ -3786,7 +3895,7 @@ const passedData = location.state?.wordsData;
           if (!data.hasWords) {
             // 단어 없으면 디폴트로 보내기
             alert(data.guideMessage || '수집된 단어가 없어요!');
-            navigate('/');
+            navigate('/', {replace: true});
             return;
           }
         } catch (error) {
@@ -3848,7 +3957,7 @@ const passedData = location.state?.wordsData;
     };
 
     init();
-  }, [navigate, passedData]);
+  }, [navigate, passedData, step]);
 
 
 
@@ -4030,11 +4139,14 @@ const passedData = location.state?.wordsData;
 
 
 
-
-
-
   return (
     <div className={`${styles.main} ${step === 'CHAT' || step === 'REPORT' ? styles['main-chat'] : ''}`}>
+      
+      {/* 로딩 */}
+      {/* {log.debug('단어 목록 값 확인용', words, isLoading)} */}
+      {(isLoading || (step === 'WORD_SELECT' && !words?.length)) && <TestSpinner />}
+      {/* {(isLoading || !words) && <TestSpinner />} */}
+      
       {<Header 
       handleAiReset={handleAiReset}
       currentStep={step} 
@@ -4095,12 +4207,10 @@ const passedData = location.state?.wordsData;
       isReportOpen={showReportModal}
       selectedTargetId={selectedTargetId}
       isMessage={isMessage}
-
-
-
-
       reportData={reportData}
       step={step}
+      audioAllowed={audioAllowed}
+      setAudioAllowed={setAudioAllowed}
       />}
 
       {step !== 'CHAT' && step !== 'REPORT' && Next()}

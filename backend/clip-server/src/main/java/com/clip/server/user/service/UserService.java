@@ -297,4 +297,23 @@ public class UserService {
             default -> weeksAgo + "주 전";
         };
     }
+
+    // ==================== 음성 동의 팝업 확인 처리 ====================
+    @Transactional
+    public void markVoiceConsentRead(Long userId) {
+
+        User user = userRepository.findById(userId).orElseThrow(()->new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        // 이미 확인한 경우 스킵
+        if(Boolean.TRUE.equals(user.getVoiceConsentRead())) {
+            log.info("이미 음성 동의 팝업을 확인한 사용자. userId={}", userId);
+            return;
+        }
+
+        user.markVoiceConsentRead();
+        userRepository.save(user);
+
+        log.info("음성 동의 팝업 확인 저장.");
+    }
+
 }

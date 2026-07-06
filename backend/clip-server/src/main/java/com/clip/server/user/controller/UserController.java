@@ -8,9 +8,11 @@ import com.clip.server.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -48,6 +50,16 @@ public class UserController {
     ) {
         UserGrowthResponse response = userService.showGrowth(userId);
         return ApiResponse.success(response, "사용자 성장 지표가 성공적으로 조회되었습니다.");
+    }
+
+    @Operation(summary = "음성 동의 팝업 확인 처리")
+    @PatchMapping("/voice-content")
+    public ResponseEntity<ApiResponse<Void>> markVoiceConsentRead(
+            @AuthenticationPrincipal Long userId
+    ) {
+        userService.markVoiceConsentRead(userId);
+        return ResponseEntity.ok(
+                ApiResponse.success(null,"음성 동의 팝업 확인이 저장되었습니다."));
     }
 
 
