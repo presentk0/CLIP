@@ -238,8 +238,10 @@ function QuizResultCard({ data, currentBadge, videoId, videoTitle, videoDuration
           xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
             <path d="M0 12C0 5.37258 5.37258 0 12 0C18.6274 0 24 5.37258 24 12C24 18.6274 18.6274 24 12 24C5.37258 24 0 18.6274 0 12Z" fill="#D9D9D9"/>
           </svg> */}
+          <div className={styles.sectionBadge}>
+            {BADGE_ICONS[currentBadge] || null}
+          </div>
 
-          {BADGE_ICONS[currentBadge] || null}
         </div>
 
         <div className={styles['quiz-result-card7']}>
@@ -532,15 +534,21 @@ function SettlementPage({ data }) {
 
 
   return (
-    <div className={styles['main-box']}>
-      <p className={styles['mastery']}>
-        마스터리 진행률
-      </p>
+    <div className={styles['main-box']} style={(usersData.ongoingMastery.currentBadge && usersData.ongoingMastery.currentBadge.length > 0) ? { marginTop: '36px' } : undefined}>
+      {(usersData.ongoingMastery.currentBadge && usersData.ongoingMastery.currentBadge.length > 0) 
+      ? 
+        <>
+          <p className={styles['mastery']}>
+            마스터리 진행률
+          </p>
+          <QuizResultCard data={data} currentBadge={usersData.ongoingMastery.currentBadge} videoId={usersData.ongoingMastery.videoId} videoTitle={usersData.ongoingMastery.videoTitle} videoDuration={usersData.ongoingMastery.videoDuration} channelName={usersData.ongoingMastery?.channelName} /> 
+        </>
+      : null }
+
       {/* {QuizResultCard(data, videoId, videoTitle, channelName, thumbnailUrl, duration)} */}
-      {/* {log.debug('값 확인용', data, usersData)} */}
-      {/* 오류 data값 확인해서 말풍선에 넣기 */}
+
       {/* {QuizResultCard(data, usersData.ongoingMastery)} */}
-      <QuizResultCard data={data} currentBadge={usersData.ongoingMastery.currentBadge} videoId={usersData.ongoingMastery.videoId} videoTitle={usersData.ongoingMastery.videoTitle} videoDuration={usersData.ongoingMastery.videoDuration} channelName={usersData.ongoingMastery?.channelName} />
+      
 
 
       <MessageBox />

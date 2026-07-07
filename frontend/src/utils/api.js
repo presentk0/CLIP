@@ -253,12 +253,19 @@ export const apiFetch = async (endpoint, options = {}) => {
     }
   }
 
+  // 에러 예외
+  const IGNORED_CODES = [
+    "NO_RESUMABLE_CHAT_ROOM",
+    "VIDEO_NOT_FOUND",
+    "WORD_ALREADY_COLLECTED",
+  ];
 
   // HTTP 에러 처리
   if (!response.ok) {
 
-    // ai채팅방 이어하기 없는거랑 서버에 저장된 영상 없을 때는 경고창 없음
-    if (result?.error?.code !== "NO_RESUMABLE_CHAT_ROOM" && result?.error?.code !== "VIDEO_NOT_FOUND") {
+    // ai채팅방 이어하기 없는거랑 서버에 저장된 영상 없을 때 그리고 서버에 저장된 단어 있는데 전송한 경우는 경고창 없음
+    if (!IGNORED_CODES.includes(result?.error?.code)) {
+    // if (result?.error?.code !== "NO_RESUMABLE_CHAT_ROOM" && result?.error?.code !== "VIDEO_NOT_FOUND") {
       log.warn('HTTP 에러', endpoint, response.status, result);
     }
 

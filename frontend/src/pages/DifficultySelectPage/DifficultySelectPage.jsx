@@ -70,6 +70,7 @@ export default function DifficultySelectPage() {
   const { onboardingData, setDifficultyLevel, resetOnboarding } = useOnboarding();
 
   const [isLoading, setIsLoading] = useState(false);
+  const [popupMessage, setPopupMessage] = useState('');
   const [error, setError] = useState('');
 
   const selected = onboardingData.difficultyLevel;
@@ -89,6 +90,14 @@ export default function DifficultySelectPage() {
     }
   }, [needsOnboarding, onboardingData, navigate]);
 
+  useEffect(() => {
+    if (popupMessage) {
+      const timer = setTimeout(() => setPopupMessage(''), 2500);
+      return () => clearTimeout(timer);
+    }
+  }, [popupMessage]);
+
+
   // 절대 난이도 기준으로 비활성화 옵션 계산
   const isOptionDisabled = (offset) => {
     const absolute = onboardingData.absoluteLevel;
@@ -96,7 +105,17 @@ export default function DifficultySelectPage() {
 
     const currentLevel = ABSOLUTE_LEVEL_MAP[absolute];
     const targetLevel = currentLevel + offset;
-    return targetLevel < MIN_LEVEL || targetLevel > MAX_LEVEL;
+
+  if (targetLevel < MIN_LEVEL) {
+    return { disabled: true, reason: '최소 레벨보다 낮습니다' };
+  }
+  if (targetLevel > MAX_LEVEL) {
+    return { disabled: true, reason: '최대 레벨을 초과합니다' };
+  }
+  
+  return { disabled: false, reason: '' };
+
+    // return targetLevel < MIN_LEVEL || targetLevel > MAX_LEVEL;
   };
 
   const handleSelect = (value, disabled) => {
@@ -160,6 +179,15 @@ export default function DifficultySelectPage() {
 const handleBack = () => navigate('/onboarding/goal', { replace: true });
   return (
     <div className={styles.level}>
+      {popupMessage && (
+        <>
+
+          <p key={Date.now()} className={styles.popup}>{popupMessage}</p>
+
+        </>
+
+      )}
+
       <div className={styles.level2}>
         <div className={styles.level3}>
           <button 
@@ -211,14 +239,26 @@ const handleBack = () => navigate('/onboarding/goal', { replace: true });
     <div className={styles['difficulty-card8']}>
       {DIFFICULTY_OPTIONS.map(({ value, label, offset }) => {
         const isSelected = selected === value;
-        const disabled = isOptionDisabled(offset);
+        const { disabled, reason } = isOptionDisabled(offset);
+        // const disabled = isOptionDisabled(offset);
 
         return (
           <button
             key={value}
             type="button"
-            onClick={() => handleSelect(value, disabled)}
-            disabled={disabled}
+            // onClick={() => handleSelect(value, disabled)}
+
+
+
+            onClick={() => {
+              if (disabled) {
+                setPopupMessage(reason);  // 알림 표시
+                return;
+              }
+              handleSelect(value);  // 정상 선택
+            }}
+
+            // disabled={disabled}
             aria-pressed={isSelected}
             aria-disabled={disabled}
             className={isSelected 

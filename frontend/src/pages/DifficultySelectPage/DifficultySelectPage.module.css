@@ -1,14 +1,17 @@
-.level {
-/* display: inline-flex; */
-
+/* .level {
 display: flex;                
   width: 100%;                  
   min-height: 100vh; 
-
-
-
-
 padding: 80px 15px 52px 16px;
+flex-direction: column;
+justify-content: flex-end;
+align-items: center;
+background: #FEFDF9;
+} */
+
+.level {
+display: inline-flex;
+padding: 15px 15px 34px 16px;
 flex-direction: column;
 justify-content: flex-end;
 align-items: center;
@@ -130,7 +133,7 @@ display: flex;
 width: 371px;
 flex-direction: column;
 align-items: flex-start;
-gap: 232px;
+gap: 170px;
 }
 
 
@@ -387,3 +390,43 @@ flex-shrink: 0;
 aspect-ratio: 16/17;
 fill: #454440;
 }
+
+
+
+
+
+
+.popup {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  
+  max-width: 220px;
+  padding: 10px 12px;
+  background: #000;
+  border-radius: 10px;
+  
+  color: #FEFDF9;
+  font-family: Pretendard;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 130%;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -20px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+
+
+
