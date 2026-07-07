@@ -18,7 +18,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-@Slf4j
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/words")
@@ -47,13 +46,8 @@ public class WordController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "latest") String sort,
             @RequestParam(defaultValue = "all") String filter,
-            @RequestParam(required = false) String keyword,
-            HttpServletRequest request
+            @RequestParam(required = false) String keyword
     ) {
-        log.info("🔍 [my-collection] 요청 정보: userId={}, page={}, size={}, sort={}, filter={}, keyword={}, IP={}, UA={}",
-                userId, page, size, sort, filter, keyword,
-                request.getRemoteAddr(),
-                request.getHeader("User-Agent"));
 
         WordListResponse wordListResponse = wordService.getWords(userId,  page, size, sort, filter, keyword);
         return ApiResponse.success(wordListResponse,"단어장이 성공적으로 조회됐습니다.");
