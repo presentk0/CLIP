@@ -27,7 +27,7 @@ const MIN_LEVEL = 1;
 const MAX_LEVEL = 3;
 
 const VALID_DIFFICULTY = DIFFICULTY_OPTIONS.map((o) => o.value);
-const VALID_GOALS = ['DAILY', 'SELF_DEVELOPMENT'];
+const VALID_GOALS = ['TRAVEL', 'BUSINESS', 'SELF_DEVELOPMENT', 'EXAM', 'DAILY', 'NONE'];
 const VALID_ABSOLUTE = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'];
 
 const SAFE_ERRORS = {
@@ -115,7 +115,6 @@ export default function DifficultySelectPage() {
   
   return { disabled: false, reason: '' };
 
-    // return targetLevel < MIN_LEVEL || targetLevel > MAX_LEVEL;
   };
 
   const handleSelect = (value, disabled) => {
@@ -129,7 +128,6 @@ export default function DifficultySelectPage() {
     if (isLoading) return;
 
     const { learningGoal, difficultyLevel, absoluteLevel } = onboardingData;
-
     // 보안: 최종 검증 (조작된 상태 차단)
     if (!VALID_GOALS.includes(learningGoal)) {
       setError('학습 목표를 다시 선택해주세요');

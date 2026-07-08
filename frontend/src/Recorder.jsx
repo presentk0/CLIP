@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { log } from './utils/logger';
 import { sendMessage } from './utils/messageHelper';
+import { Toast } from './contexts/Toast';
 
 function Recorder() {
   // const [isRecording, setIsRecording] = useState(false);
@@ -14,6 +15,15 @@ function Recorder() {
   const streamRef = useRef(null);
   const isCancelledRef = useRef(false);
   const [copied, setCopied] = useState(false);
+
+  // 팝업 메시지
+  const [popupMessage, setPopupMessage] = useState('');
+  const [popupCount, setPopupCount] = useState(0);
+
+  const showPopup = (msg) => {
+    setPopupMessage(msg);
+    setPopupCount(prev => prev + 1);
+  };
 
   useEffect(() => {
   let stream;
@@ -191,7 +201,7 @@ const handleCopy = async () => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      alert('복사 실패. 직접 입력해주세요.');
+      showPopup('복사 실패. 직접 입력해주세요.');
     }
   };
 
@@ -300,6 +310,13 @@ const styles = {
   if (error) {
     return (
       <div style={styles.overlay}>
+        {popupMessage && 
+        <Toast 
+          message={popupMessage}
+          count={popupCount}
+          onClose={() => setPopupMessage('')}
+        />}
+
         <div style={styles.modal}>
           <h2 style={styles.title}>
             마이크 권한이 필요해요

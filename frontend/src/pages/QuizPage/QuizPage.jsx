@@ -2,11 +2,7 @@
 
 import nlp from 'compromise';
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
-// import frog from '../../imgs/image_710.png';
-// import frog1 from '../../imgs/image_712.png';
 import { apiFetch } from '../../utils/api';
-// import bulb from '../../imgs/image_62.png';
-// import frog2 from '../../imgs/image_750.png';
 import { log } from '../../utils/logger';
 import styles from './QuizPage.module.css';
 import frog3 from '../../imgs/image_809.png';
@@ -21,7 +17,6 @@ import { saveUserData, loadUserData, removeUserData } from '../../utils/userStor
 // 렌더링해도 1번만 셔플 (비교값을 -0.5 ~ 0.5으로 설정)
 const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
 
-// function QuizPage({ videoId, videoTitle, channelName, thumbnailUrl, duration }) {
 function QuizPage({ videoId, videoTitle }) {
 
   // 현재 문제 번호 (0부터 시작)
@@ -75,8 +70,6 @@ function QuizPage({ videoId, videoTitle }) {
   const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
   // 단어 클릭 시점의 자막 정보 (단어 수집용)
   const [clickedSubtitle, setClickedSubtitle] = useState(null);
-  // // 단어 수집 버튼 누름 여부
-  // const [isCollected, setIsCollected] = useState(false);
 
   // 클릭한 단어 중복 실행 방지
   const isProcessingRef = useRef(false);
@@ -159,21 +152,6 @@ stateRef.current = {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   // content.jsx에서 자막 수신
   useEffect(() => {
     const handleSubtitleMessage = (message) => {
@@ -185,7 +163,6 @@ stateRef.current = {
         const sorted = message.subtitles.sort((a, b) => a.startTime - b.startTime);
         setSubtitles(sorted);
         setSubtitleIndex(0);
-        // setCurrentSubtitle(sorted[0]);
       }
 
       // 새 자막 도착
@@ -211,8 +188,6 @@ stateRef.current = {
             // 배열은 그대로
             return prev;
           }
-
-        // if (prev.some(s => s.text === message.text)) return prev;
 
           // 새 자막이면 추가하고 그 위치를 현재로 설정
           const newList = [...prev, newSubtitle].sort((a, b) => a.startTime - b.startTime);
@@ -1763,10 +1738,9 @@ const handleExitFromSettlement = async (target = -1) => {
               {settlementData && settlementData.length > 0 
               ? settlementData
               : <>
-                    {log.debug('settlementData', settlementData)}
-                    {currentQuiz?.quizType === 'BLANK' && (!isConfirmed ? "방금 영상에서 나온 문장이에요. 이 자리에 어떤 단어가 들어갈까요?"  : feedback?.feedback)}
-                    {currentQuiz?.quizType === 'OX' && (!isConfirmed ? "방금 영상에서 나온 문장이에요. 이 자리에 어떤 단어가 들어갈까요?" : feedback?.feedback)}
-                    {currentQuiz?.quizType === 'MATCHING' && (!isConfirmed ? "방금 영상에서 나온 문장이에요. 이 자리에 어떤 단어가 들어갈까요?" : matchingMatchedPairs.length === quizzes.length ? "수고했어! 이제 결과를 볼까?" : "방금 영상에서 나온 문장이에요. 이 자리에 어떤 단어가 들어갈까요?")}
+                    {currentQuiz?.quizType === 'BLANK' && (!isConfirmed ? "이 자리에 어떤 단어가 들어갈까요?"  : feedback?.feedback)}
+                    {currentQuiz?.quizType === 'OX' && (!isConfirmed ? "맞으면 O, 아니면 X예요." : feedback?.feedback)}
+                    {currentQuiz?.quizType === 'MATCHING' && (!isConfirmed ? "오늘 영상 속 단어! 같이 정리해봐요" : matchingMatchedPairs.length === quizzes.length ? "수고했어! 이제 결과를 볼까?" : "방금 영상에서 나온 문장이에요. 이 자리에 어떤 단어가 들어갈까요?")}
               </>
                 }
             </p>
