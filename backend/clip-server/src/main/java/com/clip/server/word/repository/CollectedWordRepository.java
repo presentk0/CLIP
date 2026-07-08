@@ -79,7 +79,7 @@ public interface CollectedWordRepository extends JpaRepository<CollectedWord, Lo
     @Query(value = """
     SELECT * FROM collected_word
     WHERE user_id = :userId
-      AND type = :wordType
+      AND `type` = :wordType
       AND (:todayStart IS NULL OR collected_at >= :todayStart)
       AND (:keyword IS NULL 
            OR LOWER(word) LIKE LOWER(CONCAT('%', :keyword, '%'))
@@ -88,7 +88,7 @@ public interface CollectedWordRepository extends JpaRepository<CollectedWord, Lo
             countQuery = """
     SELECT COUNT(*) FROM collected_word
     WHERE user_id = :userId
-      AND type = :wordType
+      AND `type` = :wordType
       AND (:todayStart IS NULL OR collected_at >= :todayStart)
       AND (:keyword IS NULL 
            OR LOWER(word) LIKE LOWER(CONCAT('%', :keyword, '%'))

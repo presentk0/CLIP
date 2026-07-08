@@ -6,6 +6,7 @@ import { log } from '../../utils/logger';
 import frog from '../../imgs/image_809.png';
 import { useLocation } from 'react-router-dom';
 import { saveUserData } from '../../utils/userStorage';
+import { Toast } from '../../contexts/Toast';
 
 const SCORE_LABELS = {
   1: '어색했다',
@@ -20,6 +21,15 @@ const FeedbackPage = () => {
   const [goodPoint, setGoodPoint] = useState('');
   const [improvePoint, setImprovePoint] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // 팝업 메시지
+  const [popupMessage, setPopupMessage] = useState('');
+  const [popupCount, setPopupCount] = useState(0);
+
+  const showPopup = (msg) => {
+    setPopupMessage(msg);
+    setPopupCount(prev => prev + 1);
+  };
 
   // 어디로 가야 할지 받기
   const returnTo = location.state?.returnTo ?? '/';
@@ -41,15 +51,17 @@ const FeedbackPage = () => {
   // 제출하고 나가기
   const handleSubmit = async () => {
     if (score === 0) {
-      alert('만족도를 선택해주세요.');
+      showPopup('만족도를 선택해주세요.');
       return;
     }
   if (!goodPoint.trim()) {
-    alert('가장 좋았던 점을 입력해주세요.');
+
+    showPopup('가장 좋았던 점을 입력해주세요.');
     return;
   }
   if (!improvePoint.trim()) {
-    alert('가장 불편했던 점을 입력해주세요.');
+
+    showPopup('가장 불편했던 점을 입력해주세요.');
     return;
   }
     try {
@@ -69,12 +81,12 @@ const FeedbackPage = () => {
         log.debug('로컬 저장 실패 (무시 가능)', saveError);
       }
 
-
-      alert(result?.message || '소중한 의견 감사합니다!');
+      showPopup(result?.message || '소중한 의견 감사합니다!');
       goToNext();
     } catch (error) {
-      log.debug('피드백 제출 실패:', error);
-      alert(error.message || '제출에 실패했습니다.');
+      log.debug('피드백 제출 실패', error);
+      showPopup(error.message || '제출에 실패했습니다.');
+
     } finally {
       setIsSubmitting(false);
     }
@@ -82,6 +94,13 @@ const FeedbackPage = () => {
 
   return (
   <div className={styles.container}>
+    {popupMessage && 
+    <Toast 
+      message={popupMessage}
+      count={popupCount}
+      onClose={() => setPopupMessage('')}
+    />}
+
     <button className={styles.closeBtn} onClick={handleClose}>x</button>
 
     <div className={styles.frog1}>
