@@ -52,16 +52,4 @@ public class UserController {
         return ApiResponse.success(response, "사용자 성장 지표가 성공적으로 조회되었습니다.");
     }
 
-    @Operation(summary = "음성 동의 팝업 확인 처리")
-    @PatchMapping("/voice-content")
-    public ResponseEntity<ApiResponse<Void>> markVoiceConsentRead(
-            @AuthenticationPrincipal Long userId
-    ) {
-        userService.markVoiceConsentRead(userId);
-        return ResponseEntity.ok(
-                ApiResponse.success(null,"음성 동의 팝업 확인이 저장되었습니다."));
-    }
-
-
-
 }
