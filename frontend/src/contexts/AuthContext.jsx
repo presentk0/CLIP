@@ -112,7 +112,12 @@ export function AuthProvider({ children }) {
         });
 
       } catch (error) {
-        log.error('인증 초기화 실패', error);
+          // 비로그인 상태는 정상처리 (로그 스킵)
+          if (error.status === 404 || error.status === 401) {
+            log.debug('비로그인 상태');
+          } else {
+            log.error('인증 초기화 실패', error);
+          }
       } finally {
         setIsLoading(false);
       }
