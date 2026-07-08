@@ -2409,13 +2409,13 @@ const handleError = ({ code, message }) => {
       setShowVoiceConsent(false);
 
       // 서버에 저장 (다음엔 안 뜨게)
-      await apiFetch('/users/me/voice-consent', {
-        method: 'PATCH',
-      });
-      // await apiFetch('/users/me/ui-state', {
+      // await apiFetch('/users/me/voice-consent', {
       //   method: 'PATCH',
-      //   body: JSON.stringify({ voiceConsentRead: true }),
       // });
+      await apiFetch('/users/me/ui-state', {
+        method: 'PATCH',
+        body: JSON.stringify({ voiceConsentRead: true }),
+      });
     } catch (error) {
       log.debug('서버에 저장 실패', error);
     } finally {
