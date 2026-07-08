@@ -275,7 +275,7 @@ function UserAvatar({ imageUrl, name }) {
 
 
 function SectionBadgeCard({ currentBadge, videoId, videoTitle, videoDuration, channelName }) {
-// function SectionBadgeCard({ videoId, videoTitle, videoDuration, channelName }) {
+  if (!currentBadge) return null;
 
   // 썸네일 클릭 시 메인 탭에서 유튜브 영상 열기
   const handleClick = (e) => {
@@ -762,7 +762,7 @@ try {
 
 
         <div className={style.videoSection}>
-          {(usersData.ongoingMastery.currentBadge && usersData.ongoingMastery.currentBadge.length > 0) ? <SectionBadgeCard { ...usersData.ongoingMastery }></SectionBadgeCard> : null }
+          {usersData?.ongoingMastery?.currentBadge ? <SectionBadgeCard { ...usersData.ongoingMastery }></SectionBadgeCard> : null }
 
           <div className={style.recommendedSection}>
 

@@ -53,7 +53,7 @@ public class SecurityConfig {
                                     "/api/auth/**",
                                     "/api/admin/auth/login",
                                     "/health",
-                                    "/ws-chat/**"
+                                    "/ws-chat/**", "/ws-voice-test.html"
                             ).permitAll();
 
                     // 2. Swagger 프로필별 조건부 분기
