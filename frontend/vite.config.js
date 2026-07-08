@@ -22,7 +22,6 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: {
       input: {
         sidepanel: 'sidepanel.html',
-        // permission: 'permission.html',
         recorder: 'recorder.html',
       }
     }

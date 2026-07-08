@@ -9,6 +9,7 @@ import { log } from "../../utils/logger";
 
 import { saveUserData, loadUserData } from "../../utils/userStorage";
 import { TestSpinner } from "../../components/Spinner/Spinner";
+import { Toast } from "../../contexts/Toast";
 
 const BADGE_ICONS = {
   BRONZE: (<svg className={style.bronze} xmlns="http://www.w3.org/2000/svg" width="21" height="24" viewBox="0 0 21 24" fill="none">
@@ -456,9 +457,6 @@ function DefaultPage({ onMyPage }) {
   const [usersData, setUsersData] = useState(null);
 
 
-  // 칭호 박스 열고 닫기
-  const [isBadge, setIsBadge] = useState(false);
-
 
 
   // 추천 영상 관리, 나중에 다시 넣기
@@ -472,7 +470,14 @@ function DefaultPage({ onMyPage }) {
   const [isAiBlocked, setIsAiBlocked] = useState(false);
 
 
+  // 팝업 메시지
+  const [popupMessage, setPopupMessage] = useState('');
+  const [popupCount, setPopupCount] = useState(0);
 
+  const showPopup = (msg) => {
+    setPopupMessage(msg);
+    setPopupCount(prev => prev + 1);
+  };
 
 
   // 컴포넌트 mount 시 내 정보 조회 API 호출
@@ -557,7 +562,9 @@ try {
 
   // false면 API 호출 없이 바로 차단 (나중에 단어 삭제 생기면 전부 삭제됐을 때 false로 되돌리는것도 필요함)
   if (hasWords === false) {
-    alert('수집된 단어가 없습니다!');
+    showPopup('수집된 단어가 없습니다!');
+
+    
     return;
   }
 
@@ -571,7 +578,7 @@ try {
     // await setHasWordsCache(res.data.hasWords);
 
     if (!res.data.hasWords) {
-      alert(res.data.guideMessage || '수집된 단어가 없습니다!');
+      showPopup(res.data.guideMessage || '수집된 단어가 없습니다!');
       return;
     }
 
@@ -579,9 +586,11 @@ try {
     navigate('/ai', { state: { wordsData: res.data } });
     
   } catch (error) {
+    showPopup('단어 조회에 실패했습니다');
     log.debug('단어 조회 실패', error);
   }
 } catch (error) {
+  showPopup('AI 채팅방 입장에 실패했습니다');
   log.debug('ai 방 입장 실패', error)
 } finally {
   // 버튼 활성화
@@ -600,6 +609,13 @@ try {
 
       {/* ai 채팅 진입 시 로딩 */}
       {isAiBlocked && <TestSpinner />}
+
+      {popupMessage && 
+      <Toast 
+        message={popupMessage}
+        count={popupCount}
+        onClose={() => setPopupMessage('')}
+      />}
 
       {/* 상단 */}
       <div className={style.top}>
@@ -644,126 +660,7 @@ try {
       {/* 전체 내용 */}
       <div className={style.container}>
 
-{isBadge ? (
-        // {/* 칭호칸 열린 유저 프로필 */}
-        <div className={style['userProfile-t']}>
-
-          {/* 프로필 박스 */}
-          <div className={style.userProfileBox}>
-          
-            {/* 유저 정보 박스 */}
-            <div className={style.userInfo}>
-
-              {/* 유저 프로필 이미지 */}
-              <div>
-                <UserAvatar 
-                  imageUrl={usersData?.profileImageUrl}
-                  name={usersData?.name}
-                />
-              </div>
-
-              {/* 유저 정보 박스 */}
-              <div className={style.userText}>
-
-                {/* 유저 이름 박스 */}
-                <div className={style.userNameRow}>
-                  <div className={style.userNameBox}>
-                    <p className={style.userName}>
-                      {usersData?.name}
-                    </p>
-                  </div>
-
-                  {/* 님 */}
-                  <div className={style.userNameSuffixBox}>
-                    <p className={style.userNameSuffix}>
-                      님
-                    </p>
-                  </div>
-                </div>
-
-                {/* 이메일 박스 */}
-                <div className={style.userEmailBox}>
-                  {/* 이메일 */}
-                  <p className={style.userEmail}>
-                    {truncateEmail(usersData?.email, 15)}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* 로그아웃 박스 */}
-            <div className={style.logoutButton}>
-              <button 
-              onClick={handleLogout}
-              className={style.logoutButtonInner}
-              >
-                <div className={style.logoutIcon}>
-                  <p className={style.logoutText}>
-                    로그아웃
-                  </p>
-                </div>
-              </button>
-            </div>
-
-            {/* 칭호칸 열고 닫기 */}
-            <button 
-            onClick={() => setIsBadge(false)}
-            className={style.logoutButtonBg}>
-              {/* 버튼 아이콘? */}
-              <svg
-                className={style.logoutButtonIcon}
-                xmlns="http://www.w3.org/2000/svg"
-                width="13"
-                height="8"
-                viewBox="0 0 13 8"
-                fill="none"
-              >
-                <path 
-                  d="M0.75 0.75L6.375 6.375L12 0.75" 
-                  stroke="#0F0D0E"
-                  stroke-width="1.5"
-                  stroke-linecap="round"
-                />
-              </svg>
-            </button>
-          </div>
-
-          {/* 레벨 카드 전체 */}
-          <div className={style.levelCard}>
-            <div className={style.levelCardInner}>
-              <div className={style.levelProgress}>
-                <div className={style.levelInfoRow}>
-                  <div className={style.levelLabel}>
-                    <p className={style.levelLabelText}>
-                      LV.{usersData.level}
-                    </p>
-                  </div>
-
-                  <div className={style.levelExp}>
-                    <p className={style.levelExpTextLeft}>{usersData.exp.toLocaleString()}</p>
-                    <span className={style.levelExpTextRight}> | {usersData.nextLevelExp.toLocaleString()}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className={style.levelBar}>
-                <div className={style.levelBarTrack}></div>
-                <div 
-                className={style.levelBarFill}
-                style={{ width: `${usersData.progressPercentage}%` }}
-                ></div>
-              </div>
-            </div>
-
-            <div className={style.levelMessage}>
-              <p className={style.levelMessageText}>
-                다음 레벨까지 {display}%남았어요!
-              </p>
-            </div>
-          </div>
-        </div>
-) : (
-        // {/* 유저 프로필 */}
+        {/* 유저 프로필 */}
         <div className={style.userProfile}>
 
           {/* 프로필 박스 */}
@@ -823,27 +720,7 @@ try {
               </button>
             </div>
 
-            {/* 칭호칸 열고 닫기 */}
-            <button 
-            onClick={() => setIsBadge(true)}
-            className={style.logoutButtonBg}>
-              {/* 버튼 아이콘? */}
-              <svg
-                className={style.logoutButtonIcon}
-                xmlns="http://www.w3.org/2000/svg"
-                width="13"
-                height="8"
-                viewBox="0 0 13 8"
-                fill="none"
-              >
-                <path 
-                  d="M0.75 0.75L6.375 6.375L12 0.75" 
-                  stroke="#0F0D0E"
-                  stroke-width="1.5"
-                  stroke-linecap="round"
-                />
-              </svg>
-            </button>
+
           </div>
 
           {/* 레벨 카드 전체 */}
@@ -880,7 +757,7 @@ try {
             </div>
           </div>
         </div>
-)}
+
 
 
 
