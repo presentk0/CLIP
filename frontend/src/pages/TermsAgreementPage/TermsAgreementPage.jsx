@@ -34,7 +34,7 @@ export default function TermsAgreementPage() {
     setAgreements({ age: next, terms: next, privacy: next });
   };
 
-  // 외부 링크 안전하게 열기 (보안: 화이트리스트)
+  // 외부 링크 안전하게 열기 (보안 화이트리스트)
   const openExternalLink = (url) => {
     const allowedUrls = [TERMS_URL, PRIVACY_URL];
     if (!allowedUrls.includes(url)) {
@@ -58,7 +58,6 @@ export default function TermsAgreementPage() {
   const handleBack = () => navigate('/login', { replace: true });
 
   return (
-    // <div>
     <div className={styles.agreement}>
       <div className={styles.agreement2}>
         <div className={styles.agreement3}>
@@ -255,82 +254,5 @@ export default function TermsAgreementPage() {
         </div>
       </div>
     </div>
-
-
-
-
-
-
-
-
-
-
-
-//       <h1>서비스 가입을 위해 이용약관에 동의해주세요</h1>
-
-//       <ul>
-//         <li>
-//           <button
-//             type="button"
-//             onClick={() => toggleOne('age')}
-//             aria-pressed={agreements.age}
-//           >
-//             {agreements.age ? '✓' : '○'} 만 14세 이상입니다 (필수)
-//           </button>
-//         </li>
-
-//         <li>
-//   <button
-//     type="button"
-//     onClick={() => {
-//       // 처음 동의하려는 거면 링크 강제로 열기
-//       if (!hasViewed.terms && !agreements.terms) {
-//         openExternalLink(TERMS_URL);
-//         setHasViewed((prev) => ({ ...prev, terms: true }));
-//       }
-//       toggleOne('terms');
-//     }}
-//     aria-pressed={agreements.terms}
-//   >
-//     {agreements.terms ? '✓' : '○'} 서비스 이용약관 동의 (필수)
-//   </button>
-// </li>
-
-//         <li>
-//   <button
-//     type="button"
-//     onClick={() => {
-//       // 처음 동의하려는 거면 링크 강제로 열기
-//       if (!hasViewed.privacy && !agreements.privacy) {
-//         openExternalLink(PRIVACY_URL);
-//         setHasViewed((prev) => ({ ...prev, privacy: true }));
-//       }
-//       toggleOne('privacy');
-//     }}
-//     aria-pressed={agreements.privacy}
-//   >
-//     {agreements.privacy ? '✓' : '○'} 개인정보 처리방침 동의 (필수)
-//   </button>
-// </li>
-//       </ul>
-
-//       <hr />
-
-//       <button
-//         type="button"
-//         onClick={toggleAll}
-//         aria-pressed={allAgreed}
-//       >
-//         {allAgreed ? '✓' : '○'} 모든 약관에 동의합니다
-//       </button>
-
-//       <button
-//         type="button"
-//         onClick={handleConfirm}
-//         disabled={!allAgreed}
-//       >
-//         확인
-//       </button>
-//     </div>
   );
 }

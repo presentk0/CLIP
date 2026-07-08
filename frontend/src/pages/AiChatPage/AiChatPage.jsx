@@ -22,6 +22,11 @@ import { loadUserData, saveUserData } from '../../utils/userStorage';
 import { openYoutubeVideo } from '../../utils/openInTab';
 import { TestSpinner } from '../../components/Spinner/Spinner';
 
+import { Toast } from '../../contexts/Toast';
+
+// 무음 재생용
+const SILENT_MP3 = 'data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQxAADB8AhSmxhIIEVCSiJrDCQBTcu3UrAIwUdkRgQbFAZC1CQEwTJ9mjRvBA4UOLD8nKVOWfh+UlK3z/177OXrfOdKl7pyn3Xf//FJAhCQIQiIRVX///v////lQZ0P9pmviQBZW9NIQEUYcQlIhqRoYUEBEQMkYgQ0BAg';
+
 // JWT 토큰 만료 체크
 const isTokenExpired = (token) => {
   if (!token) return true;
@@ -47,14 +52,14 @@ const refreshAccessToken = async () => {
     });
     
     if (!res.ok) {
-      log.debug('refresh 응답 실패', res.status);
+      log.debug('refresh 응답 실패');
       return null;
     }
 
     const data = await res.json();
 
     if (!data.success) {
-      log.debug('refresh 데이터 실패', data);
+      log.debug('refresh 데이터 실패');
       return null;
     }
 
@@ -115,6 +120,38 @@ function ContinuePopup({ info, onContinue, onNewStart }) {
 
 
 
+function ConsentPopup({ handleAudioConsent, handleAudioReject }) {
+  return (
+      <>
+      {/* 어두워지기 */}
+      <div className={styles['exit-overlay']}></div>
+      
+      <div className={styles.exit}>
+        <div className={styles.exit2}>
+          <p className={styles.exit3}>AI 음성 자동 재생을 허용하시겠어요?</p>
+          <div className={styles.exit4}>
+            <p className={styles.exit5}>AI가 대답할 때마다 음성으로 들려드려요. 한 번 동의 하면 앞으로 자동으로 적용돼요!</p>
+          </div>
+        </div>
+
+
+        <div className={styles.exit6}>
+          <button 
+          className={styles.exit7}
+          onClick={handleAudioConsent}>
+            <p className={styles.exit8}>허용할게요</p>
+          </button>
+          <button 
+          className={styles.exit9}
+          onClick={handleAudioReject}
+          >
+            <p className={styles.exit10}>내가 원할 때만 들을게요</p>
+          </button>
+        </div>
+      </div>
+      </>
+  );
+}
 
 
 
@@ -323,7 +360,7 @@ function SeeMore ({ onStartMessageReport, onStartScenarioReport, handleAiReset }
 }
 
 
-function Reports ({mode, chatData, targetId, onClose}) {
+function Reports ({mode, chatData, targetId, onClose, showPopup}) {
   const [isReports, setIsReports] = useState(false);
   const [inputReports, setInputReports] = useState('');
   const chatRoomId = chatData?.chatRoomId;
@@ -335,7 +372,8 @@ function Reports ({mode, chatData, targetId, onClose}) {
   // 산고 전송
   const handleSubmit = async() => {
     if (!inputReports.trim()) {
-      alert('신고 내용을 입력해주세요.');
+      showPopup('신고 내용을 입력해주세요.');
+
       return;
     }
 
@@ -353,7 +391,8 @@ function Reports ({mode, chatData, targetId, onClose}) {
       });
 
       if (result.success) {
-        alert('신고가 접수되었습니다.');
+        showPopup('신고가 접수되었습니다.');
+
         setInputReports('');
         onClose();
       }
@@ -1648,6 +1687,8 @@ function ChatRoom ({ setChatData, chatData, progress, setProgress, setMessages, 
 
   const [showVoiceConsent, setShowVoiceConsent] = useState(false);
 
+  // 동의 중복클릭 방지
+  const [isConsenting, setIsConsenting] = useState(false);
 
   const [isRecording, setIsRecording] = useState(false);
   const recorderWindowIdRef = useRef(null);
@@ -1663,7 +1704,6 @@ function ChatRoom ({ setChatData, chatData, progress, setProgress, setMessages, 
 
   const chatRoomId = chatData?.chatRoomId;
 
-  // const [isWaiting, setIsWaiting] = useState(false);
   // 첫 진입 시 AI 첫 메시지 대기
   const [isWaiting, setIsWaiting] = useState(!chatData.hasPreviousMessages);
 
@@ -1672,16 +1712,6 @@ function ChatRoom ({ setChatData, chatData, progress, setProgress, setMessages, 
   const progressRef = useRef(progress);
 
   const messagesContainerRef = useRef(null);
-
-  // // 녹음 시간
-  // const [recordingTime, setRecordingTime] = useState(0); 
-
-
-  // // 녹음 시작 시간 추적
-  // const startTimeRef = useRef(null);
-  // // 녹음 현재 시간 추적
-  // const rafRef = useRef(null);
-  // const lastUpdateRef = useRef(0);
 
   const navigate = useNavigate();
 
@@ -1733,30 +1763,6 @@ const showToast = (message, type = 'info') => {
   };
 
 
-  // // 녹음 시간 추적
-  // useEffect(() => {
-  //   if (!isRecording) return;
-    
-  //   const startTime = Date.now();
-  //   let lastSecond = 0;
-  //   let rafId;
-    
-  //   const tick = () => {
-  //     const elapsed = Math.floor((Date.now() - startTime) / 1000);
-  //     if (elapsed !== lastSecond) {
-  //       lastSecond = elapsed;
-  //       setRecordingTime(elapsed);
-  //     }
-  //     rafId = requestAnimationFrame(tick);
-  //   };
-    
-  //   rafId = requestAnimationFrame(tick);
-    
-  //   return () => {
-  //     if (rafId) cancelAnimationFrame(rafId);
-  //   };
-  // }, [isRecording]);
-
 
   // 녹음 시작
   const startRecording = () => {
@@ -1769,18 +1775,14 @@ const showToast = (message, type = 'info') => {
     }, (window) => {
       recorderWindowIdRef.current = window.id;
     });
-    // setIsRecording(true);
   };
 
   // 녹음 정지
   const stopRecording = () => {
-    // log.debug('녹음 정지');
     chrome.runtime.sendMessage({
       type: 'STOP_RECORDING',
     });
 
-    // setIsRecording(false);
-    // setRecordingTime(0);  // 시간 초기화
   };
 
 
@@ -1790,7 +1792,6 @@ const showToast = (message, type = 'info') => {
 
   // 녹음 취소 (음성 -> 텍스트 모드)
   const cancelRecording = () => {
-    // log.debug('녹음 취소');
     chrome.runtime.sendMessage({
       type: 'CANCEL_RECORDING',
     });
@@ -1802,7 +1803,6 @@ const showToast = (message, type = 'info') => {
     }
 
     setIsRecording(false);
-    // setRecordingTime(0);  // 시간 초기화
   };
 
 
@@ -1812,7 +1812,6 @@ useEffect(() => {
     if (windowId === recorderWindowIdRef.current) {
       recorderWindowIdRef.current = null;
       setIsRecording(false);
-      // setRecordingTime(0);
     }
   };
 
@@ -1842,19 +1841,6 @@ useEffect(() => {
 
 
 
-
-// const toggleVoiceMode = () => {
-//   if (isToggling.current) return;  // 광클 차단
-//   isToggling.current = true;
-  
-//   setVoiceModeOn(prev => !prev);
-  
-//   setTimeout(() => {
-//     isToggling.current = false;
-//   }, 500);  // 0.5초 동안 추가 클릭 무시
-// };
-
-
 const scrollToBottom = () => {
   const container = messagesContainerRef.current;
   if (!container) return;
@@ -1865,13 +1851,6 @@ const scrollToBottom = () => {
     behavior: 'smooth',
   });
 };
-
-
-
-  // // voiceModeOn이 바뀔 때마다 ref 동기화
-  // useEffect(() => {
-  //   voiceModeOnRef.current = voiceModeOn;
-  // }, [voiceModeOn]);
 
 
   // progress 바뀔 때마다 ref 업데이트
@@ -1935,10 +1914,6 @@ const handleError = ({ code, message }) => {
 
   // 에러 발생 시 항상 대기 해제
   setIsWaiting(false);
-  // log.debug(`[${code}]`, message);
-  
-
-
 
 
   switch (code) {
@@ -2285,19 +2260,19 @@ const handleError = ({ code, message }) => {
             apiFetch(`/chats/rooms/${chatRoomId}/word`),
           ]);
 
-
-          // const response = await apiFetch(`/chats/rooms/${chatRoomId}/messages`);
-
           // 이미 언마운트됐으면 중단
           if (cancelled) return;
 
           if (response.success) {
             setMessages(response.data.messages);
 
-            if (response.data.voiceConsentRead === false) {
-              setShowVoiceConsent(true);  // 팝업 표시
+            // 이어하기는 서버 값으로 자동 재생 판단
+            if (response.data.voiceConsentRead === true) {
+              // 이미 동의함 자동재생 ON
+              setAudioAllowed(true);
             } else {
-              setAudioAllowed(true);      // 이미 봤음
+              // 미동의 팝업
+              setShowVoiceConsent(true);
             }
 
             // progress 복원
@@ -2317,6 +2292,9 @@ const handleError = ({ code, message }) => {
         } catch (e) {
           log.debug('메시지 로딩 실패:', e);
         }
+      } else {
+        // 새로하기는 무조건 팝업
+        setShowVoiceConsent(true);
       }
 
 
@@ -2349,7 +2327,6 @@ const handleError = ({ code, message }) => {
 
       // STOMP 연결 (실시간)
       client = new Client({
-        // brokerURL: `${import.meta.env.VITE_WS_URL}`,
 
         // 서버가 SockJS 사용함
         // SockJS는 HTTP(S) 사용함
@@ -2413,45 +2390,45 @@ const handleError = ({ code, message }) => {
     // 즉, 매 렌더링마다 새로 만들어지지 않아서 의존성에 추가해도 useEffect가 재실행되지 않음
   }, [setChatData, chatRoomId, chatData?.hasPreviousMessages, setProgress, navigate, setMessages, setAudioAllowed, setShowVoiceConsent ]);
 
-  // // AI 메시지 자동 재생 (음성 모드)
-  // useEffect(() => {
-  //   if (!voiceModeOn) return;
-    
-  //   const lastMsg = messages[messages.length - 1];
-  //   if (lastMsg?.senderType !== 'AI') return;
-    
-  //   if (lastMsg.audioUrl) {
-  //     const audio = new Audio(lastMsg.audioUrl);
-  //     audio.play().catch(e => log.debug('재생 실패:', e));
-  //   } else {
-  //     const utterance = new SpeechSynthesisUtterance(lastMsg.content);
-  //     utterance.lang = 'en-US';
-  //     speechSynthesis.speak(utterance);
-  //   }
-    
-  // }, [messages, voiceModeOn]);
-
 
   // 팝업에서 동의 클릭 (unlockAudio과 다른 기능임)
   const handleAudioConsent = async () => {
-    // 오디오 락 해제
-    const audio = new Audio();
-    audio.muted = true;
-    await audio.play().catch(() => {});
-  
-    setAudioAllowed(true);
-    setShowVoiceConsent(false);
-  
-    // 서버에 저장 (다음엔 안 뜨게)
-    await apiFetch('/users/me/voice-consent', {
-      method: 'PATCH',
-    });
+    if (isConsenting) return;
+    setIsConsenting(true);
+
+    try {
+      // 오디오 락 해제
+      const audio = new Audio(SILENT_MP3);
+      audio.muted = true;
+      audio.volume = 0;
+      const p = audio.play();
+      if (p !== undefined) {
+        await p.catch((e) => log.debug('play 에러:', e));
+      }
+      setAudioAllowed(true);
+      setShowVoiceConsent(false);
+
+      // 서버에 저장 (다음엔 안 뜨게)
+      await apiFetch('/users/me/voice-content', {
+        method: 'PATCH',
+      });
+    } catch (error) {
+      log.debug('서버에 저장 실패', error);
+    } finally {
+      setIsConsenting(false);
+    }
+  };
+
+
+  // 자동 재생 거절
+  // 서버에는 저장 안 함 (다음 접속 시 다시 팝업 뜸)
+  const handleAudioReject = async () => {
+    setAudioAllowed(false);       // 자동재생 OFF
+    setShowVoiceConsent(false);   // 팝업 닫기
   };
 
   // 클릭한 메시지의 음성 재생
   const handleAiSound = (msg) => {
-    // log.debug('음성 확인', msg);
-    // if (!voiceModeOn) return;
 
     if (!msg || (msg.senderType !== 'AI' && msg.senderType !== 'USER')) return;
 
@@ -2486,21 +2463,11 @@ const handleError = ({ code, message }) => {
       // 목소리 살짝 다를 수 있음
       const voices = speechSynthesis.getVoices();
 
-    //   log.debug('TTS 디버그', {
-    //   aiGender: chatData?.aiGender,           // 성별 값 확인
-    //   voicesCount: voices.length,             // 목소리 개수
-    //   allVoices: voices.map(v => v.name),     // 사용 가능한 목소리들
-    // });
 
       utterance.voice = chatData.aiGender === 'MALE'
       ? voices.find(v => v.name === 'Google UK English Male')
       : voices.find(v => v.name === 'Google US English');
 
-//       log.debug(' 선택된 목소리', {
-//   target: chatData?.aiGender === 'MALE' ? 'Google UK English Male' : 'Google US English',
-//   found: utterance.voice?.name,        //  targetVoice → utterance.voice
-//   isNull: !utterance.voice,            //  이것도!
-// });
 
 
       speechSynthesis.speak(utterance);
@@ -2528,25 +2495,6 @@ const handleError = ({ code, message }) => {
     if (isWaiting) return;
     if (!clientRef.current?.connected) return;
 
-    // const text = inputText.trim();
-
-    // // 한글 차단
-    // // 가-힣: 완성형 한글
-    // // ㄱ-ㅎ: 자음
-    // // ㅏ-ㅣ: 모음
-    // if (/[가-힣ㄱ-ㅎㅏ-ㅣ]/.test(text)) {
-    //   showToast('영어로 입력해주세요', 'warning');
-    //   setInputText(''); // input 비우기
-    //   return;
-    // }
-
-    // // 영문/숫자 없이 특수문자만 있는 경우 차단
-    // // 알파벳 또는 숫자가 하나라도 있는지 확인
-    // if (!/[a-zA-Z0-9]/.test(text)) {
-    //   showToast('의미 있는 내용을 입력해주세요', 'warning');
-    //   setInputText(''); // input 비우기
-    //   return;
-    // }
 
     // 클라이언트에서 사용자 메시지 즉시 추가 (낙관적 업데이트)
     setMessages(prev => [...prev, {
@@ -2573,27 +2521,6 @@ const handleError = ({ code, message }) => {
 
 
 
-
-// // 녹음 시작
-// const startRecording = () => {
-//   chrome.windows.create({
-//     url: chrome.runtime.getURL('recorder.html'),
-//     type: 'popup',
-//     width: 360,
-//     height: 320,
-//   });
-//   setIsRecording(true);
-// };
-
-// // 녹음 정지 (팝업창에서 처리하니 상태만)
-// const stopRecording = () => {
-//   setIsRecording(false);
-// };
-
-
-
-
-
   // ========== 사용자 음성 녹음 전송 ==========
   // TDZ(Temporal Dead Zone) 때문에 선언 전에 useEffect로 접근하면 에러
   const uploadAndSend = useCallback(async (audioBlob) => {
@@ -2607,13 +2534,11 @@ const handleError = ({ code, message }) => {
     if (!chatRoomId) return;
     try {
       // presigned URL 받기
-      // const fileName = `audio_${Date.now()}.wav`;
       const fileName = `audio_${Date.now()}.webm`;
       const presignRes = await apiFetch('/files/audio/presigned-url', {
         method: 'POST',
         body: JSON.stringify({
           fileName,
-          // contentType: 'audio/wav'
           contentType: 'audio/webm',
         })
       });
@@ -2630,7 +2555,6 @@ const handleError = ({ code, message }) => {
       // S3에 직접 업로드 (5분 안에)
       const uploadRes = await fetch(presignedUrl, {
         method: 'PUT',
-        // headers: { 'Content-Type': 'audio/wav' },
         headers: { 'Content-Type': 'audio/webm' },
         body: audioBlob
       });
@@ -2661,9 +2585,9 @@ const handleError = ({ code, message }) => {
 
 // 녹음 데이터 수신
 useEffect(() => {
-  log.debug('여러번 찍히는지3');
+
   const handler = (message) => {
-    log.debug('어떤 메시지인지', message);
+
     if (message.type === 'RECORDING_STARTED') {
       setIsRecording(true);  // Recorder가 실제 시작하면 true
     }
@@ -2678,7 +2602,6 @@ useEffect(() => {
     if (message.type === 'RECORDING_ERROR') {
       showToast(`녹음 실패 ${message.error}`, 'error');
       setIsRecording(false);
-      // setRecordingTime(0);
       recorderWindowIdRef.current = null;
     }
   };
@@ -2763,10 +2686,10 @@ const handleHintAccept = (messageId) => {
     <>
       {/* 재생 동의 팝업 */}
       {showVoiceConsent && (
-        <div className={styles.modal}>
-          <p>AI 음성을 자동 재생합니다</p>
-          <button onClick={handleAudioConsent}>확인</button>
-        </div>
+        <ConsentPopup 
+        handleAudioConsent={handleAudioConsent}
+        handleAudioReject={handleAudioReject}
+        />
       )}
 
     <div className={styles['chat-page']}>
@@ -2804,8 +2727,6 @@ const handleHintAccept = (messageId) => {
 
         <div className={styles['chat-ai3']}>
           <div className={styles['chat-ai5']}>[시나리오 : {chatData.scenarioTitle}]</div>
-          {/* <div className={styles['chat-ai5']}>{chatData.scenarioGoal}</div>
-          <div className={styles['chat-ai5']}>{chatData.scenarioSituation}</div> */}
         </div>
 
 
@@ -2834,7 +2755,6 @@ const handleHintAccept = (messageId) => {
           return (
             // 값이 겹치는거 같아 일단 미사용
           // msg.senderType === 'REPORT'?
-          // <ReportBubble key={msg.messageId} message={msg} /> : 
           msg.senderType === 'HINT_OFFER'? <HintOffer key={msg.messageId} message={msg} handleHintAccept={handleHintAccept} handleHintReject={handleHintReject} />
             : msg.senderType === 'HINT_CARD'? <HintCard key={msg.messageId} message={msg} />
         
@@ -2884,132 +2804,6 @@ const handleHintAccept = (messageId) => {
       {(!isReportOpen && step !== 'REPORT') && (
       <div className={styles['chat-input']}>
         {<ChatInput sendTextMessage={sendTextMessage} showToast={showToast} startRecording={startRecording} stopRecording={stopRecording} cancelRecording={cancelRecording} formatTime={formatTime} isWaiting={isWaiting} isRecording={isRecording} toast={toast} />}
-        {/* <ChatInput sendTextMessage={sendTextMessage} showToast={showToast} startRecording={startRecording} stopRecording={stopRecording} cancelRecording={cancelRecording} formatTime={formatTime} isWaiting={isWaiting} isRecording={isRecording} toast={toast} /> */}
-        {/* <div className={styles['chat-input2']}>
-          <textarea 
-          className={styles['chat-input3']}
-          value={inputText}
-          onChange={(e) => setInputText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              sendTextMessage();
-            }
-          }}
-          placeholder={
-            isRecording 
-            ? '편하게 말해보세요' 
-            : toast 
-              ? toast.message 
-              : '메세지 입력'
-          }
-          maxLength={250}
-          disabled={isWaiting || isRecording}
-          >
-          </textarea>
-        </div> */}
-
-        {/* <div className={styles['chat-input4']}>
-          <div className={styles['chat-input5']}>
-            {isRecording ? (
-              // 음성모드
-              <>
-                텍스트 모드로 전환
-                <button className={styles['chat-change3']}
-                onClick={() => cancelRecording()}
-                disabled={isWaiting}
-                >
-                  <svg 
-                  className={styles['chat-change4']}
-                  xmlns="http://www.w3.org/2000/svg" width="13" height="16" viewBox="0 0 13 16" fill="none">
-                    <path d="M11.5536 6.31641C11.9925 6.36462 12.3095 6.75923 12.2616 7.19824C12.1653 8.08089 11.7446 9.35571 10.7899 10.4229C9.93662 11.3767 8.67914 12.1357 6.93253 12.3145V14.4004H8.88858C9.33022 14.4006 9.68839 14.7585 9.68839 15.2002C9.68828 15.6418 9.33015 15.9998 8.88858 16H3.37686C2.93535 15.9997 2.57716 15.6417 2.57706 15.2002C2.57706 14.7586 2.93529 14.4007 3.37686 14.4004H5.33292V12.3145C3.58665 12.1356 2.32976 11.3765 1.47647 10.4229C0.521883 9.35573 0.101168 8.08089 0.00479101 7.19824C-0.0431171 6.75908 0.273677 6.36442 0.712799 6.31641C1.15193 6.26853 1.54663 6.58531 1.59463 7.02441C1.66001 7.62323 1.96715 8.57101 2.66885 9.35547C3.34697 10.1134 4.4237 10.7558 6.13272 10.7559C7.84194 10.7558 8.91942 10.1135 9.59756 9.35547C10.2992 8.57104 10.6054 7.62319 10.6708 7.02441C10.7188 6.58526 11.1144 6.2685 11.5536 6.31641ZM6.13272 0C7.60548 0 8.79971 1.19423 8.79971 2.66699V6.22266C8.79948 7.69522 7.60533 8.88867 6.13272 8.88867C4.66022 8.88854 3.46694 7.69513 3.46671 6.22266V2.66699C3.46671 1.19432 4.66007 0.000133481 6.13272 0Z" fill="#454440"/>
-                  </svg>
-                </button>
-
-                <div className={styles['chat-recording']}>
-                  <p className={styles['chat-recording2']}>
-                    {formatTime(recordingTime)}
-                  </p>
-                </div>
-              </>
-            ) : (
-              // 텍스트 모드
-              <>
-                음성 모드로 전환
-                <button className={styles['chat-change']}
-                onClick={() => startRecording()}
-                disabled={isWaiting}
-                >
-                  
-                  <svg 
-                  className={styles['chat-change2']}
-                  xmlns="http://www.w3.org/2000/svg" width="20" height="13" viewBox="0 0 20 13" fill="none">
-                    <path d="M17.2727 0H2.72727C1.22104 0 0 1.22104 0 2.72727V10C0 11.5063 1.22104 12.7273 2.72727 12.7273H17.2727C18.779 12.7273 20 11.5063 20 10V2.72727C20 1.22104 18.779 0 17.2727 0Z" fill="#454440"/>
-                    <path d="M2.72754 8.18159C3.22947 8.18169 3.6366 8.58889 3.63672 9.09079C3.63672 9.59289 3.22955 9.99989 2.72754 9.99999C2.22546 9.99999 1.81836 9.59289 1.81836 9.09079C1.81848 8.58889 2.22553 8.18159 2.72754 8.18159ZM14.5459 8.18159C15.0478 8.18179 15.455 8.58899 15.4551 9.09079C15.4551 9.59279 15.0478 9.99979 14.5459 9.99999H5.45508C4.953 9.99999 4.5459 9.59289 4.5459 9.09079C4.54602 8.58889 4.95307 8.18159 5.45508 8.18159H14.5459ZM17.2725 8.18159C17.7745 8.18159 18.1815 8.58889 18.1817 9.09079C18.1817 9.59289 17.7746 9.99999 17.2725 9.99999C16.7706 9.99979 16.3633 9.59279 16.3633 9.09079C16.3634 8.58899 16.7707 8.18189 17.2725 8.18159ZM4.5459 5.45509C5.04766 5.45529 5.45481 5.86149 5.45508 6.36329C5.45508 6.86529 5.04782 7.27229 4.5459 7.27249C4.04382 7.27249 3.63672 6.86539 3.63672 6.36329C3.63698 5.86139 4.04398 5.45509 4.5459 5.45509ZM8.18168 5.45509C8.68358 5.45509 9.09058 5.86139 9.09078 6.36329C9.09078 6.86539 8.68368 7.27249 8.18168 7.27249C7.6797 7.27229 7.27246 6.86529 7.27246 6.36329C7.27272 5.86149 7.67986 5.45519 8.18168 5.45509ZM11.8184 5.45509C12.3203 5.45509 12.7273 5.86149 12.7276 6.36329C12.7276 6.86529 12.3204 7.27239 11.8184 7.27249C11.3163 7.27249 10.9092 6.86539 10.9092 6.36329C10.9095 5.86139 11.3165 5.45509 11.8184 5.45509ZM15.4551 5.45509C15.9568 5.45529 16.363 5.86159 16.3633 6.36329C16.3633 6.86519 15.957 7.27219 15.4551 7.27249C14.953 7.27249 14.5459 6.86539 14.5459 6.36329C14.5462 5.86139 14.9532 5.45509 15.4551 5.45509ZM2.72754 2.72754C3.22957 2.72759 3.63672 3.13467 3.63672 3.63672C3.63667 4.13872 3.22954 4.54589 2.72754 4.54589C2.22549 4.54589 1.8184 4.13875 1.81836 3.63672C1.81836 3.13464 2.22546 2.72754 2.72754 2.72754ZM6.36328 2.72754C6.86535 2.72754 7.27246 3.13464 7.27246 3.63672C7.27234 4.13869 6.86528 4.54589 6.36328 4.54589C5.86149 4.54559 5.45519 4.13853 5.45508 3.63672C5.45508 3.1348 5.86142 2.7278 6.36328 2.72754ZM9.99998 2.72754C10.5021 2.72754 10.9092 3.13464 10.9092 3.63672C10.9091 4.13869 10.502 4.54589 9.99998 4.54589C9.49808 4.54579 9.09098 4.13865 9.09078 3.63672C9.09078 3.13468 9.49798 2.7276 9.99998 2.72754ZM13.6367 2.72754C14.1387 2.72766 14.5459 3.13472 14.5459 3.63672C14.5458 4.13861 14.1386 4.54579 13.6367 4.54589C13.1347 4.54589 12.7277 4.13869 12.7276 3.63672C12.7276 3.13464 13.1347 2.72754 13.6367 2.72754ZM17.2725 2.72754C17.7746 2.72754 18.1817 3.13464 18.1817 3.63672C18.1815 4.13869 17.7745 4.54589 17.2725 4.54589C16.7707 4.54569 16.3634 4.13856 16.3633 3.63672C16.3633 3.13477 16.7706 2.72775 17.2725 2.72754Z" fill="white"/>
-                  </svg>
-                </button>
-
-                <div className={styles['chat-input7']}>
-                  <p className={styles['chat-input8']}>
-                    {inputText.length}
-                    <span className={styles['chat-input9']}>/250자</span>
-                  </p>
-                </div>
-              </>
-            )}
-          </div>
-
-          <div className={styles['chat-input10']}>
-
-
-            {isRecording ? (
-              // 녹음 정지 + 음성 전송 버튼
-              <button 
-          className={styles.send}
-          onClick={() => stopRecording()}
-          disabled={isWaiting}
-        >
-          <div className={styles.send2}>
-            <svg 
-            className={styles.send3}
-            xmlns="http://www.w3.org/2000/svg" width="22" height="16" viewBox="0 0 22 16" fill="none">
-  <path d="M2 7C2 6.44772 1.55228 6 1 6C0.447715 6 0 6.44772 0 7V9C0 9.55228 0.447715 10 1 10C1.55228 10 2 9.55228 2 9V7Z" fill="#454440"/>
-  <path d="M6 5C6 4.44772 5.55228 4 5 4C4.44772 4 4 4.44772 4 5V11C4 11.5523 4.44772 12 5 12C5.55228 12 6 11.5523 6 11V5Z" fill="#454440"/>
-  <path d="M10 2.85714C10 2.38376 9.55228 2 9 2C8.44772 2 8 2.38376 8 2.85714V13.1429C8 13.6162 8.44772 14 9 14C9.55228 14 10 13.6162 10 13.1429V2.85714Z" fill="#454440"/>
-  <path d="M14 4.8C14 4.35817 13.5523 4 13 4C12.4477 4 12 4.35817 12 4.8V11.2C12 11.6418 12.4477 12 13 12C13.5523 12 14 11.6418 14 11.2V4.8Z" fill="#454440"/>
-  <path d="M18 0.888889C18 0.397969 17.5523 0 17 0C16.4477 0 16 0.397969 16 0.888889V15.1111C16 15.602 16.4477 16 17 16C17.5523 16 18 15.602 18 15.1111V0.888889Z" fill="#454440"/>
-  <path d="M22 5C22 4.44772 21.5523 4 21 4C20.4477 4 20 4.44772 20 5V11C20 11.5523 20.4477 12 21 12C21.5523 12 22 11.5523 22 11V5Z" fill="#454440"/>
-</svg>
-          </div>
-
-          <div className={styles.send4}>
-            <div className={styles.send5}>
-              <svg 
-              className={styles.send6}
-              xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none">
-  <path d="M4.15818 0.579287C4.93062 -0.193096 6.18356 -0.193096 6.95589 0.579287L10.8246 4.44795C11.2106 4.83421 11.2107 5.46117 10.8246 5.84734C10.4385 6.23291 9.81234 6.23291 9.42627 5.84734L6.77344 2.73865V11.0111C6.77324 11.5571 6.33061 12 5.78453 12C5.23846 11.9998 4.79573 11.5571 4.79563 11.0111V2.73865L1.68787 5.84734C1.30178 6.23282 0.675554 6.23291 0.289506 5.84734C-0.0965911 5.46117 -0.0964131 4.83421 0.289506 4.44795L4.15818 0.579287Z" fill="#FEFDF9"/>
-</svg>
-            </div>
-          </div>
-        </button>
-            ) : (
-              <button 
-          onClick={() => sendTextMessage()}
-          disabled={isWaiting || !inputText.trim()}
-        >
-          <div className={styles.send4}>
-            <div className={styles.send5}>
-              <svg 
-              className={styles.send6}
-              xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none">
-                <path d="M4.15818 0.579287C4.93062 -0.193096 6.18356 -0.193096 6.95589 0.579287L10.8246 4.44795C11.2106 4.83421 11.2107 5.46117 10.8246 5.84734C10.4385 6.23291 9.81234 6.23291 9.42627 5.84734L6.77344 2.73865V11.0111C6.77324 11.5571 6.33061 12 5.78453 12C5.23846 11.9998 4.79573 11.5571 4.79563 11.0111V2.73865L1.68787 5.84734C1.30178 6.23282 0.675554 6.23291 0.289506 5.84734C-0.0965911 5.46117 -0.0964131 4.83421 0.289506 4.44795L4.15818 0.579287Z" fill="#FEFDF9"/>
-              </svg>
-            </div>
-          </div>
-        </button>
-            )}
-          </div>
-        </div> */}
       </div>
       )}
     </div>
@@ -3315,7 +3109,6 @@ const AI = React.memo(function AI({ msg, highlightWord, isFirst, isMessage, onSe
 
 // User 말풍선
 const User = React.memo(function User({ msg, highlightWord, remainingTurn, message, onPlaySound, turnNumber }) {
-  // log.debug('유저 메시지', message);
 
   // const turn = turnNumber ?? remainingTurn;
   const turn = turnNumber !== undefined 
@@ -3431,13 +3224,15 @@ export function AiChatPage ({ handleAiReset }) {
   // 신고 모드 (MESSAGE 또는 SCENARIO)
   const [reportMode, setReportMode] = useState(null);
 
-  // // 이어하기 먼저 나타나고 버튼 클릭해야 단어 조회하기
-  // const [isReady, setIsReady] = useState(false);
-  // const [hasPrevious, setHasPrevious] = useState(false);
+  // 팝업 메시지
+  const [popupMessage, setPopupMessage] = useState('');
+  const [popupCount, setPopupCount] = useState(0);
 
-  // // 다시하기 눌렀는지 여부 (복원 없음)
-  // const [searchParams] = useSearchParams();
-  // const isFresh = searchParams.get('fresh') === 'true';
+  const showPopup = (msg) => {
+    setPopupMessage(msg);
+    setPopupCount(prev => prev + 1);
+  };
+
 
   // 대화 신고 선택 완료 처리용
   const handleSelectMessage = (messageId) => {
@@ -3466,7 +3261,6 @@ const handleFetchReport = async () => {
   try {
     const response = await apiFetch(`/chats/rooms/${chatData.chatRoomId}/report`);
 
-    // log.debug('정산 값', response);
     if (response.success) {
       setReportData(response.data);
       setStep('REPORT');  // 화면 전환
@@ -3487,56 +3281,11 @@ const handleFetchReport = async () => {
     && progress?.currentTurn > 0 
     && !progress?.isCompleted;
 
-
-
-//   // step별로 뒤로 갈 곳을 명시
-//   const stepBackMap = {
-//       // 첫 단계는 페이지 떠남
-//   'WORD_SELECT': null,           
-//   'SCENARIO_SELECT': 'WORD_SELECT',
-//   'VOICE_SELECT': 'SCENARIO_SELECT',
-//   'CHAT': 'VOICE_SELECT',
-//   'REPORT': null  // 별도 처리
-// };
-
-
-  // // 뒤로가기
-  // const handleBack = () => {
-  //   if (step === 'REPORT') {
-  //     navigate('/feedback', { state: { returnTo: -1 } });
-  //     return;
-  //   }
-  //   if (isInProgress) {
-  //     setExitModal('back');
-  //   } else {
-  //     navigate(-1);
-  //   }
-  // };
-
-  // // 마이페이지
-  // const handleMyPage = () => {
-  //   if (step === 'REPORT') {
-  //     navigate('/feedback', { state: { returnTo: '/my' } });
-  //     return;
-  //   }
-  //   if (isInProgress) {
-  //     setExitModal('mypage');
-  //   } else {
-  //     navigate('/my');
-  //   }
-  // };
-
   const handleExit = () => {
     if (exitModal === 'back') navigate(-1);
     else if (exitModal === 'mypage') navigate('/my', {replace: true});
     setExitModal(null);
   };
-
-
-
-
-
-
 
 const handleBack = async () => {
   // REPORT 단계 처리
@@ -3616,22 +3365,14 @@ const handleMyPage = async () => {
 };
 
 
-
-
-
-
-
   // 최대 3단계 까지
   const handleNext = async () => {
     if (isLoading) return;
     setIsLoading(true);
 
-    // log.debug('다음버튼 누름');
     try {
     if (step === 'WORD_SELECT') {
-          // log.debug('다음버튼 누름1', words);
       const word = words[currentIndex];
-      // log.debug('word', word);
 
 
       try {
@@ -3639,8 +3380,6 @@ const handleMyPage = async () => {
         const response = await apiFetch(`/chats/scenarios?word=${encodeURIComponent(word.word)}`, {
           method: 'GET'
         });
-
-        // log.debug('response', response);
 
         if (response.success) {
 
@@ -3659,7 +3398,6 @@ const handleMyPage = async () => {
       }
 
     } else if (step === 'SCENARIO_SELECT') {
-          // log.debug('다음버튼 누름2');
       const selectedObj = scenarios.find(s => s.scenarioId === selectedScenario);
 
 
@@ -3680,7 +3418,6 @@ const handleMyPage = async () => {
       }));
       setStep('VOICE_SELECT');
     } else if (step === 'VOICE_SELECT') {
-          // log.debug('다음버튼 누름3', chatData.wordId, chatData.scenarioTitle, chatData.scenarioGoal, chatData.scenarioSituation, selectedVoice );
 
           const body = chatData.wordId 
           ? {
@@ -3711,22 +3448,7 @@ const handleMyPage = async () => {
         const response = await apiFetch('/chats/rooms', {
           method: 'POST',
           body: JSON.stringify(body),
-          // body: JSON.stringify({
-          //   // 새로 시작
-          //   isNewStart: true,
-          //   wordId: chatData.wordId,
-          //   scenarioTitle: chatData.scenarioTitle,
-          //   // selectedScenario: chatData.selectedScenario,
-
-          //   scenarioGoal: chatData.scenarioGoal,
-          //   scenarioSituation: chatData.scenarioSituation,
-
-          //   // selectedScenario: chatData.scenarioDescription,
-          //   aiGender: selectedVoice,
-          // })
         });
-        log.debug('방 생성 받은 값', response);
-          // log.debug('목소리 값 확인용', response);
         if (response.success) {
           setChatData(prev => ({ 
             ...prev, 
@@ -3764,17 +3486,6 @@ const handleMyPage = async () => {
 const location = useLocation();
 const passedData = location.state?.wordsData;
 
-// 오디오 락 해제
-  const unlockAudio = async () => {
-    try {
-      const audio = new Audio();
-      audio.muted = true;
-      await audio.play().catch(() => {});
-      setAudioAllowed(true);
-    } catch (error) {
-      log.debug('오디오 락 해제 실패', error);
-    }
-  };
 
 
 
@@ -3827,7 +3538,10 @@ const passedData = location.state?.wordsData;
   
   // 이어하기
   const handleContinue = async () => {
-    const chatRoomId = previousChatInfo.chatRoomId;
+    if (isLoading) return;
+    setIsLoading(true);
+    try {
+      const chatRoomId = previousChatInfo.chatRoomId;
     const res = await apiFetch(`/chats/rooms/${chatRoomId}/messages`);
 
     
@@ -3845,7 +3559,6 @@ const passedData = location.state?.wordsData;
     // chatData에 이전 정보 모두 포함
     setChatData({
       chatRoomId,
-      // word: previousChatInfo.targetWord,  // 이전 응답에서 받은 값
       word: previousChatInfo.word,
       meanings: previousChatInfo.meanings,
       wordId: previousChatInfo.wordId,
@@ -3854,18 +3567,28 @@ const passedData = location.state?.wordsData;
       scenarioSituation: previousChatInfo.scenarioSituation,
       hasPreviousMessages: true,
     });
-      // 오디오 락 해제
-      await unlockAudio();
       setStep('CHAT');
+    }
+    } catch (error) {
+      log.debug('이어하기 실패', error);
+    } finally {
+      setIsLoading(false);
     }
   };
   
   // 새로 시작 (팝업에서)
   const handleNewStart = async () => {
-    // 오디오 락 해제
-    await unlockAudio();
-    setPreviousChatInfo(null);
-    setStep('WORD_SELECT');
+    if (isLoading) return;
+    setIsLoading(true);
+
+    try {
+      setPreviousChatInfo(null);
+      setStep('WORD_SELECT');
+    } catch (error) {
+      log.debug('새로 시작 실패', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
 
@@ -3888,13 +3611,12 @@ const passedData = location.state?.wordsData;
       if (!data) {
         try {
           const response = await apiFetch('/chats/words', { method: 'GET' });
-          // log.debug('처음 response', response);
 
           data = response.data;
 
           if (!data.hasWords) {
             // 단어 없으면 디폴트로 보내기
-            alert(data.guideMessage || '수집된 단어가 없어요!');
+            showPopup(data.guideMessage || '수집된 단어가 없어요!');
             navigate('/', {replace: true});
             return;
           }
@@ -4143,10 +3865,15 @@ const passedData = location.state?.wordsData;
     <div className={`${styles.main} ${step === 'CHAT' || step === 'REPORT' ? styles['main-chat'] : ''}`}>
       
       {/* 로딩 */}
-      {/* {log.debug('단어 목록 값 확인용', words, isLoading)} */}
       {(isLoading || (step === 'WORD_SELECT' && !words?.length)) && <TestSpinner />}
-      {/* {(isLoading || !words) && <TestSpinner />} */}
-      
+
+      {popupMessage && 
+        <Toast 
+          message={popupMessage}
+          count={popupCount}
+          onClose={() => setPopupMessage('')}
+        />}
+
       {<Header 
       handleAiReset={handleAiReset}
       currentStep={step} 
@@ -4215,13 +3942,6 @@ const passedData = location.state?.wordsData;
 
       {step !== 'CHAT' && step !== 'REPORT' && Next()}
 
-      {/* {step === 'REPORT' && (
-        <ReportPage 
-          reportData={reportData}
-          chatData={chatData}
-        />
-      )} */}
-
       {/* 신고 모달 */}
       {showReportModal && (
         <Reports 
@@ -4230,6 +3950,7 @@ const passedData = location.state?.wordsData;
           targetId={selectedTargetId}
           chatData={chatData}
           onClose={handleCloseReport}
+          showPopup={showPopup}
         />
       )}
 

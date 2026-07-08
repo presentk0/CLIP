@@ -6,10 +6,9 @@ import { useNavigate } from 'react-router-dom';
 // import { useAuth } from '../../hooks/useAuth';
 import { log } from '../../utils/logger';
 import { TestSpinner } from '../../components/Spinner/Spinner';
+import { loadUserData } from '../../utils/userStorage';
+import { Toast } from '../../contexts/Toast';
 
-
-// import frog from '../../imgs/frog.png';
-// import frog2 from '../../imgs/frog2.png';
 
 
 
@@ -127,9 +126,6 @@ const ABSOLUTE_LEVEL_MAP = {
 
 const MIN_LEVEL = 1;
 const MAX_LEVEL = 3;
-
-
-
 
 
 
@@ -285,8 +281,18 @@ export function MyPage ({ onExitPage }) {
   // const { needsOnboarding, completeOnboarding } = useAuth();
 
 
-  const [popupMessage, setPopupMessage] = useState('');
 
+  // 단어장 입장 중복 클릭 막기
+  const [isAiBlocked, setIsAiBlocked] = useState(false);
+
+  // 팝업 메시지
+  const [popupMessage, setPopupMessage] = useState('');
+  const [popupCount, setPopupCount] = useState(0);
+
+  const showPopup = (msg) => {
+    setPopupMessage(msg);
+    setPopupCount(prev => prev + 1);
+  };
 
 
   const navigate = useNavigate();
@@ -365,39 +371,48 @@ const isDirty =
 
 
 
+// 마이 페이지의 단어장 입장 버튼
+const onVocaPage = async () => {
+  if (isAiBlocked) return;
+
+  // 버튼 비활성화
+  setIsAiBlocked(true);
+
+
+  try {
+    // 유저별 캐시 확인
+    const hasWords = await loadUserData('hasWords');
+
+    // false면 API 호출 없이 바로 차단 (나중에 단어 삭제 생기면 전부 삭제됐을 때 false로 되돌리는것도 필요함)
+    if (hasWords === false) {
+      showPopup('수집된 단어가 없습니다!')
+
+      return;
+    }
+    navigate('/voca');
+  } catch (error) {
+    log.debug('단어장 입장 실패', error)
+  } finally {
+    // 버튼 활성화
+    setIsAiBlocked(false);
+  }
+};
+
+
+
 const handleSave = async () => {
 
   // 둘 다 선택했는지 검증
   if (!selectedGoal || !selectedDifficulty) {
-    alert('학습 목표와 상대 난이도를 모두 선택해주세요');
+    showPopup('학습 목표와 상대 난이도를 모두 선택해주세요');
     return;
   }
 
   try {
 
-    // if (needsOnboarding) {
-
-    //   // 신규 유저 POST onboarding
-    //   await apiFetch('/preferences/onboarding', {
-    //     method: 'POST',
-    //     body: JSON.stringify({ 
-    //       learningGoal: selectedGoal, 
-    //       difficultyLevel: selectedDifficulty,
-    //       absoluteLevel: selectedAbsolute,
-    //     }),
-    //   });
-
-    //   completeOnboarding();
-
-    //   alert('온보딩 저장 (임시):', { selectedGoal, selectedDifficulty, selectedAbsolute });
-    //   // 디폴트 페이지로
-    //   navigate('/');
-
-    // } else {
-
       if (!isDirty) {
+        showPopup('변경된 내용이 없습니다');
 
-        alert('변경된 내용이 없습니다');
         return;
       }
 
@@ -412,9 +427,10 @@ const handleSave = async () => {
         }),
       });
       // 새 원본으로 갱신
-      setPreferencesData(res.data);  
-      alert('저장되었습니다!');
-    // }
+      setPreferencesData(res.data);
+      showPopup('저장되었습니다!');
+
+
   } catch (error) {
     log.debug('저장 실패:', error);
   }
@@ -500,11 +516,13 @@ const handleHomeClick = () => {
 
   return (
     <div className={styles.container}>
-      {popupMessage && (
 
-        <p className={styles.popup}>{popupMessage}</p>
-
-            )}
+      {popupMessage && 
+      <Toast 
+        message={popupMessage}
+        count={popupCount}
+        onClose={() => setPopupMessage('')}
+      />}
 
 
       <div className={styles.header}>
@@ -604,7 +622,7 @@ const handleHomeClick = () => {
             // onClick={() => setIsInfor(false)}
 
 
-            // onClick={() => navigate('/voca')}
+            onClick={() => onVocaPage()}
 
 
 
@@ -1034,7 +1052,8 @@ const handleHomeClick = () => {
         // onClick={() => handleDifficultyChange(value)}
         onClick={() => {
         if (disabled) {
-          setPopupMessage(reason);
+          showPopup(reason);
+
           return;
         }
         handleDifficultyChange(value);

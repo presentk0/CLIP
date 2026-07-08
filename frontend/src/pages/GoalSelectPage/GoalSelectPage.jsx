@@ -4,19 +4,6 @@ import { useAuth } from '../../hooks/useAuth';
 import { useOnboarding } from '../../hooks/useOnboarding';
 
 import styles from './GoalSelectPage.module.css';
-// import frog from '../../imgs/frog.png';
-// import frog2 from '../../imgs/frog2.png';
-
-
-// const GOAL_OPTIONS = [
-//   { value: 'TRAVEL',           label: '여행',     enabled: false },
-//   { value: 'BUSINESS',         label: '비즈니스', enabled: false },
-//   { value: 'SELF_DEVELOPMENT', label: '자기계발', enabled: true  },
-//   { value: 'EXAM',             label: '영어시험', enabled: false },
-//   { value: 'DAILY',            label: '일상',     enabled: true  },
-//   { value: 'NONE',             label: '없음',     enabled: false },
-// ];
-
 
 
 
