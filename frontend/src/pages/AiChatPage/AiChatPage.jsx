@@ -17,11 +17,9 @@ import React from 'react';
 import { Spinner } from '../../components/Spinner/Spinner';
 import frog from '../../imgs/ChatGPT_Image_2026_4_29_11_38_54.png';
 import { loadUserData, saveUserData } from '../../utils/userStorage';
-// import frog2 from '../../imgs/image_809.png';
-// import { useSearchParams } from 'react-router-dom';
 import { openYoutubeVideo } from '../../utils/openInTab';
 import { TestSpinner } from '../../components/Spinner/Spinner';
-
+import { removeUserData } from '../../utils/userStorage';
 import { Toast } from '../../contexts/Toast';
 
 // 무음 재생용
@@ -1257,15 +1255,15 @@ function Recommendation() {
 
     fetchData();
   }, []);
-
   return (
+    recommendedData && (
   <div className={styles['recommendation-card']}>
     <div className={styles['recommendation-card2']}>
       <div className={styles['recommendation-card3']}>
         <div className={styles['recommendation-card4']}>
           <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 23 23" fill="none">
-  <path d="M11.6471 0.41721C17.744 0.417582 22.6862 5.36163 22.6862 11.4592C22.6858 17.5565 17.7438 22.4994 11.6471 22.4997C5.55012 22.4997 0.606941 17.5567 0.606581 11.4592C0.606581 11.1755 0.618045 10.8936 0.640273 10.6155C0.665945 10.2954 0.940283 10.0573 1.26137 10.0573C1.64929 10.0577 1.94593 10.4012 1.91908 10.7883C1.90366 11.0097 1.89564 11.2339 1.89564 11.4592C1.896 16.8453 6.26146 21.2107 11.6471 21.2107C17.0324 21.2103 21.3967 16.8451 21.3971 11.4592C21.3971 6.07304 17.0327 1.70665 11.6471 1.70627C11.422 1.70627 11.1975 1.71454 10.9762 1.72971C10.589 1.75601 10.2453 1.45871 10.2453 1.07053C10.2454 0.749618 10.4835 0.476337 10.8034 0.450901C11.0815 0.428973 11.3635 0.41721 11.6471 0.41721ZM13.736 15.1404H12.3239L11.7086 13.321H8.93861L8.32777 15.1404H6.91566L9.50697 7.77951H11.1344L13.736 15.1404ZM15.9318 15.1404H14.6105V7.77951H15.9318V15.1404ZM9.29457 12.2531H11.3527L10.3507 9.28537H10.2907L9.29457 12.2531ZM4.4767 0.311741C4.54544 -0.0972571 5.13007 -0.106529 5.21205 0.300022L5.27943 0.635472C5.68492 2.64634 7.33556 4.16964 9.37221 4.41477C9.7578 4.46151 9.80116 5.00459 9.42787 5.11203L8.96058 5.2468C7.10696 5.77891 5.68432 7.26854 5.23842 9.14475L5.21937 9.21946C5.12358 9.62014 4.54946 9.60923 4.46937 9.20481C4.09333 7.30606 2.6786 5.78225 0.813124 5.26584L0.260878 5.11203C-0.115769 5.00773 -0.0731594 4.46129 0.315077 4.41623C2.41283 4.17267 4.09713 2.57156 4.4474 0.488987L4.4767 0.311741Z" fill="#7F7569"/>
-</svg>
+            <path d="M11.6471 0.41721C17.744 0.417582 22.6862 5.36163 22.6862 11.4592C22.6858 17.5565 17.7438 22.4994 11.6471 22.4997C5.55012 22.4997 0.606941 17.5567 0.606581 11.4592C0.606581 11.1755 0.618045 10.8936 0.640273 10.6155C0.665945 10.2954 0.940283 10.0573 1.26137 10.0573C1.64929 10.0577 1.94593 10.4012 1.91908 10.7883C1.90366 11.0097 1.89564 11.2339 1.89564 11.4592C1.896 16.8453 6.26146 21.2107 11.6471 21.2107C17.0324 21.2103 21.3967 16.8451 21.3971 11.4592C21.3971 6.07304 17.0327 1.70665 11.6471 1.70627C11.422 1.70627 11.1975 1.71454 10.9762 1.72971C10.589 1.75601 10.2453 1.45871 10.2453 1.07053C10.2454 0.749618 10.4835 0.476337 10.8034 0.450901C11.0815 0.428973 11.3635 0.41721 11.6471 0.41721ZM13.736 15.1404H12.3239L11.7086 13.321H8.93861L8.32777 15.1404H6.91566L9.50697 7.77951H11.1344L13.736 15.1404ZM15.9318 15.1404H14.6105V7.77951H15.9318V15.1404ZM9.29457 12.2531H11.3527L10.3507 9.28537H10.2907L9.29457 12.2531ZM4.4767 0.311741C4.54544 -0.0972571 5.13007 -0.106529 5.21205 0.300022L5.27943 0.635472C5.68492 2.64634 7.33556 4.16964 9.37221 4.41477C9.7578 4.46151 9.80116 5.00459 9.42787 5.11203L8.96058 5.2468C7.10696 5.77891 5.68432 7.26854 5.23842 9.14475L5.21937 9.21946C5.12358 9.62014 4.54946 9.60923 4.46937 9.20481C4.09333 7.30606 2.6786 5.78225 0.813124 5.26584L0.260878 5.11203C-0.115769 5.00773 -0.0731594 4.46129 0.315077 4.41623C2.41283 4.17267 4.09713 2.57156 4.4474 0.488987L4.4767 0.311741Z" fill="#7F7569"/>
+          </svg>
         </div>
         <div className={styles['recommendation-card5']}>
           <p className={styles['recommendation-card6']}>이런 영상은 어때요?</p>
@@ -1279,53 +1277,83 @@ function Recommendation() {
     </div>
 
 
-    <a 
-    className={styles['recommendation-card9']}
-    href={`https://youtube.com/watch?v=${recommendedData?.videoId}`}
-    onClick={handleClick}
-    rel="noopener noreferrer"
-    >
-      <div className={styles['recommendation-card10']}>
-        <div className={styles['recommendation-card11']}>
+    <article className={styles.recommendedSectionBox3}>
+      <a 
+      className={styles.recommendedSectionLink}
+      href={`https://youtube.com/watch?v=${recommendedData?.videoId}`}
+      onClick={handleClick}
+      rel="noopener noreferrer"
+      >
+        {/* 썸네일 */}
+        <div className={styles.recommendedSectionThumbnail}>
           <img 
-          className={styles['quiz-result-thumbnail']}
-          src={`https://img.youtube.com/vi/${recommendedData?.videoId}/maxresdefault.jpg`}
-          alt={`${recommendedData?.title} 영상 썸네일`}
+          src={`https://img.youtube.com/vi/${recommendedData?.videoId}/maxresdefault.jpg`} 
+          alt={`${recommendedData?.title} 영상 썸네일`} 
+          // 고화질 실패하면 저화질로
           onError={(e) => {
-            e.target.src = `https://img.youtube.com/vi/${recommendedData?.videoId}/hqdefault.jpg`;
+              e.target.src = `https://img.youtube.com/vi/${recommendedData?.videoId}/hqdefault.jpg`;
           }}
           />
-          <div className={styles['recommendation-card12']}>
-            <div className={styles['recommendation-card13']}>
-              <p className={styles['recommendation-card14']}>
-                {recommendedData?.duration}
-              </p>
-            </div>
+
+          <div className={styles.recommendedSectionDuration}>
+            <p className={styles.recommendedSectionDuration3}>{formatDuration(recommendedData?.duration)}</p>
           </div>
         </div>
 
-
-
-
-        <div className={styles['recommendation-card15']}>
-          <div className={styles['recommendation-card16']}></div>
-            <div className={styles['recommendation-card17']}>
-              <p className={styles['recommendation-card18']}>{recommendedData?.title}</p>
-              <p className={styles['recommendation-card19']}>{recommendedData?.channelName}</p>
-            </div>
-          
+        {/* 영상 정보 */}
+        <div className={styles.recommendedSectionInfo}>
+          {/* 채널 정보 (프로필 없음 오류) */}
+          <img
+            className={styles.recommendedSectionChannel}
+            src={recommendedData?.thumbnailUrl}
+            alt={`${recommendedData?.channelName} 프로필`}
+          />
+          <div className={styles.recommendedSectionTitle}>
+            <h3 className={styles.recommendedSectionTitle2}>{recommendedData?.title}</h3>
+            <span className={styles.recommendedSectionChannelName}>{recommendedData?.channelName}</span>
+          </div>
         </div>
-      </div>
-    </a>
+      </a>
+    </article>
   </div>
+    )
   )
 }
 
+function formatDuration (duration) {
+  if (duration == null) return '00:00';
+
+  let totalSeconds;
+
+  if (typeof duration === 'number') {
+    // 863 같은 숫자 (초 단위)
+    totalSeconds = duration;
+  } else if (typeof duration === 'string') {
+    if (duration.includes(':')) {
+      // "07:57" 같이 이미 포맷된 문자열
+      return duration;
+    }
+    // "863" 같은 문자열 숫자
+    totalSeconds = parseInt(duration, 10);
+  }
+
+  if (isNaN(totalSeconds)) return '00:00';
+
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  const pad = (n) => String(n).padStart(2, '0');
+
+  return hours > 0
+    ? `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`
+    : `${pad(minutes)}:${pad(seconds)}`;
+};
 
 // 최종정산 페이지
-function ReportPage({ reportData, chatData }) {
-  // log.debug('최종 정산 값', reportData, chatData);
-// function ReportBubble({ message }) {
+function ReportPage({ reportData, chatData, handleAiSound }) {
+
+
   if (!reportData || !chatData ) return null;
   const { 
   overall, 
@@ -1503,7 +1531,7 @@ function ReportPage({ reportData, chatData }) {
                     </div>
 
                     <div className={styles.reportPage64}>
-                      <p className={styles.reportPage65}>1111</p>
+                      <p className={styles.reportPage65}>{pronunciationScore?.weakSentences?.[0]?.original}</p>
                     </div>
                   </div>
                 </div>
@@ -1512,7 +1540,7 @@ function ReportPage({ reportData, chatData }) {
               <div className={styles.reportPage66}>
                 <div className={styles.reportPage67}>
                   <div className={styles.reportPage68}>
-                    <p className={styles.reportPage69}>2222</p>
+                    <p className={styles.reportPage69}>{pronunciationScore?.weakSentences?.[0]?.issue}</p>
                   </div>
                 </div>
               </div>
@@ -1528,8 +1556,15 @@ function ReportPage({ reportData, chatData }) {
   <path d="M19.3325 11.9951C19.3325 10.044 18.3976 8.12945 16.6577 6.68798C16.275 6.37085 16.222 5.80361 16.5391 5.42089C16.8562 5.03823 17.4234 4.98515 17.8061 5.30224C19.908 7.04369 21.1313 9.44557 21.1313 11.9951C21.1313 14.5446 19.908 16.9465 17.8061 18.688C17.4234 19.0051 16.8562 18.952 16.5391 18.5693C16.222 18.1866 16.275 17.6194 16.6577 17.3022C18.3976 15.8608 19.3325 13.9462 19.3325 11.9951Z" fill="#01CF8A"/>
 </svg>
               </div>
-
-              <p className={styles.reportPage73}>모범 발음 듣기</p>
+              
+              <button 
+              className={styles.reportPage73}
+              onClick={() => handleAiSound({ 
+                senderType: 'AI', 
+                audioUrl: pronunciationScore?.weakSentences?.[0]?.modelAudioUrl
+              })}>
+                모범 발음 듣기
+              </button>
             </div>
           </div>
         </div>
@@ -1683,7 +1718,13 @@ function ChatRoom ({ setChatData, chatData, progress, setProgress, setMessages, 
 
   const audioQueueRef = useRef([]);
   const isPlayingRef = useRef(false);
+
+  // 큐에 추가하는 함수 저장
   const addToQueueRef = useRef(null);
+
+  // 매 렌더링마다 최신 오디오 재생 함수 갱신해서 저장
+  const playNextRef = useRef(null);
+
 
   const [showVoiceConsent, setShowVoiceConsent] = useState(false);
 
@@ -1715,38 +1756,62 @@ function ChatRoom ({ setChatData, chatData, progress, setProgress, setMessages, 
 
   const navigate = useNavigate();
 
-  // 매 렌더링마다 최신 함수 저장
-  addToQueueRef.current = (audioUrl) => {
-    audioQueueRef.current.push(audioUrl);
-    playNext();
-  };
 
+  // 렌더링될 때마다 이 코드 실행
+  // playNextRef.current가 항상 최신 audioAllowed 값을 가진 함수로 갱신
+  // 이렇게 하면 useEffect가 playNextRef만 참조하니까 audioAllowed를 의존성에 뺄 수 있음 (useRef로 만든 값은 변경돼도 리렌더링 안 해서 의존성에 안 넣어도 됨)
+  playNextRef.current = async () => {
 
+  if (!audioAllowed) {
 
+    return;
+  }
 
-  const playNext = async () => {
+    // 이미 재생 중이면 스킵
     if (isPlayingRef.current) return;
+     // 큐가 비어있으면 스킵
     if (audioQueueRef.current.length === 0) return;
+    // 유저가 아직 허용 안 했으면 스킵 (큐에는 남아있음)
     if (!audioAllowed) return;
-    
+  
+    // 재생 시작 플래그
     isPlayingRef.current = true;
+    // 큐에서 첫 오디오 URL 꺼내기 (shift = 앞에서 빼기, 시간도 없고 어차피 많이 쌓이는거 아니니까 이거 씀)
     const url = audioQueueRef.current.shift();
-    
+  
     try {
+      // 오디오 재생용 JS 객체(HTMLAudioElement) 생성
       const audio = new Audio(url);
+
+      // 재생 중인 오디오가 끝날 때까지 다음 오디오가 재생되지 않게 처리
+      // HTMLAudioElement에서 audio.play()가 Promise를 반환(await로 기다릴 수 있음)해서 재생 시작 여부를 알 수 있음
+      // HTMLAudioElement에서 재생 완료는 audio.onended = ...; 이벤트로만 알 수 있음 (Promise 없어서 await로 못 기다림)
+      // new Promise((resolve, reject) => {를 사용해서 이 안의 코드를 즉시 실행시키고 Promise 값의 성공 실패 유무를 설정하기
+      // new Promise 안에는 언젠가 resolve 또는 reject를 호출할 코드가 있어야 함
+      // 3개 중에서 먼저 실행된 것만 실행
       await new Promise((resolve, reject) => {
+        // 재생 끝나면 onended 이벤트 발생해서 resolve() 호출 (Promise를 성공시킴)
         audio.onended = resolve;
+        // 에러 발생 시 onerror 이벤트 발생해서 reject() 호출 (Promise를 실패시킴)
         audio.onerror = reject;
+        // 재생 시작
         audio.play().catch(reject);
       });
     } catch (error) {
       log.debug('재생 실패', error);
     } finally {
+      // 재생 끝났으니 플래그 해제
       isPlayingRef.current = false;
-      playNext();
+      // 다음 오디오 이어서 재생 (ref로 자기 자신 재호출)
+      playNextRef.current?.();
     }
   };
 
+  // 큐에 오디오 추가 후 재생 시도
+  addToQueueRef.current = (audioUrl) => {
+    audioQueueRef.current.push(audioUrl);
+    playNextRef.current?.();
+  };
 
 
 const showToast = (message, type = 'info') => {
@@ -1837,7 +1902,12 @@ useEffect(() => {
 
 
 
-
+  // 동의했을 때 감지해서 대기 큐 재생
+  useEffect(() => {
+    if (audioAllowed) {
+      playNextRef.current?.();
+    }
+  }, [audioAllowed]);
 
 
 
@@ -2250,7 +2320,7 @@ const handleError = ({ code, message }) => {
     // CHAT 화면 진입 시 이어가기면 과거 메시지 조회
     // 과거 메시지 fetch 도중 새 메시지가 웹소켓으로 오면 꼬일 수 있으니 같은 유즈이펙트 공유
     const init = async () => {
-
+      const rejected = await loadUserData('voiceRejected');
       // 과거 메시지 먼저 조회
       if (chatData.hasPreviousMessages) {
         try {
@@ -2266,12 +2336,12 @@ const handleError = ({ code, message }) => {
           if (response.success) {
             setMessages(response.data.messages);
 
-            // 이어하기는 서버 값으로 자동 재생 판단
-            if (response.data.voiceConsentRead === true) {
-              // 이미 동의함 자동재생 ON
+            // 저장소로 미동의 여부 확인
+            if (rejected === true) {
+              setShowVoiceConsent(true);
+            } else if (response.data.voiceConsentRead === true) {
               setAudioAllowed(true);
             } else {
-              // 미동의 팝업
               setShowVoiceConsent(true);
             }
 
@@ -2293,8 +2363,10 @@ const handleError = ({ code, message }) => {
           log.debug('메시지 로딩 실패:', e);
         }
       } else {
-        // 새로하기는 무조건 팝업
-        setShowVoiceConsent(true);
+        // 새로하기
+        if (rejected !== true) {
+          setShowVoiceConsent(true);
+        }
       }
 
 
@@ -2407,11 +2479,10 @@ const handleError = ({ code, message }) => {
       }
       setAudioAllowed(true);
       setShowVoiceConsent(false);
+      // 허용 시 거절 기록 삭제
+      await removeUserData('voiceRejected');
 
       // 서버에 저장 (다음엔 안 뜨게)
-      // await apiFetch('/users/me/voice-consent', {
-      //   method: 'PATCH',
-      // });
       await apiFetch('/users/me/ui-state', {
         method: 'PATCH',
         body: JSON.stringify({ voiceConsentRead: true }),
@@ -2427,8 +2498,10 @@ const handleError = ({ code, message }) => {
   // 자동 재생 거절
   // 서버에는 저장 안 함 (다음 접속 시 다시 팝업 뜸)
   const handleAudioReject = async () => {
+    await saveUserData('voiceRejected', true);
     setAudioAllowed(false);       // 자동재생 OFF
     setShowVoiceConsent(false);   // 팝업 닫기
+    audioQueueRef.current = [];
   };
 
   // 클릭한 메시지의 음성 재생
@@ -2714,6 +2787,7 @@ const handleHintAccept = (messageId) => {
         <ReportPage 
           reportData={reportData}
           chatData={chatData}
+          handleAiSound={handleAiSound}
         />
       ) : (
 
@@ -3268,6 +3342,8 @@ const handleFetchReport = async () => {
     if (response.success) {
       setReportData(response.data);
       setStep('REPORT');  // 화면 전환
+      // 정산 시 거절 기록 삭제
+      await removeUserData('voiceRejected');
     }
   } catch (e) {
     log.debug('리포트 실패:', e);
@@ -3586,6 +3662,8 @@ const passedData = location.state?.wordsData;
     setIsLoading(true);
 
     try {
+      // 거절 기록 삭제
+      await removeUserData('voiceRejected');
       setPreviousChatInfo(null);
       setStep('WORD_SELECT');
     } catch (error) {
