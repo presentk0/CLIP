@@ -267,10 +267,15 @@ function UserAvatar({ imageUrl, name }) {
 
 
 
-function TutorialPopup({setShowTutorial}) {
+function TutorialPopup({setShowTutorial, setIsAiBlocked, isAiBlocked}) {
   // 지금 보기
   const handleTutorialConfirm = async () => {
+    if (isAiBlocked) return;
+    // 버튼 비활성화
+    setIsAiBlocked(true);
+
     try {
+
       await apiFetch('/users/me/ui-state', { 
         method: 'PATCH',
         body: JSON.stringify({ tutorialCompleted: true }),
@@ -280,17 +285,35 @@ function TutorialPopup({setShowTutorial}) {
       openExternalLink(TUTORIAL_URL);
     } catch (error) {
       log.debug('튜토리얼 여부 전송 실패', error);
+      setShowTutorial(false);
+    } finally {
+      // 버튼 활성화
+      setIsAiBlocked(false);
     }
   };
   
 
   // 나중에 보기
   const handleTutorialSkip = async () => {
-    await apiFetch('/users/me/ui-state', {
-      method: 'PATCH',
-      body: JSON.stringify({ tutorialCompleted: true }),
-    });
-    setShowTutorial(false);
+    if (isAiBlocked) return;
+    // 버튼 비활성화
+    setIsAiBlocked(true);
+
+
+    try {
+      await apiFetch('/users/me/ui-state', {
+        method: 'PATCH',
+        body: JSON.stringify({ tutorialCompleted: true }),
+      });
+
+      setShowTutorial(false);
+    } catch (error) {
+      log.debug('튜토리얼 스킵 전송 실패', error);
+      setShowTutorial(false);
+    } finally {
+      // 버튼 활성화
+      setIsAiBlocked(false);
+    }
   };
 
   // 튜토리얼 이동
@@ -704,7 +727,7 @@ try {
         onClose={() => setPopupMessage('')}
       />}
 
-      {showTutorial && <TutorialPopup setShowTutorial={setShowTutorial} />}
+      {showTutorial && <TutorialPopup setShowTutorial={setShowTutorial} setIsAiBlocked={setIsAiBlocked} isAiBlocked={isAiBlocked} />}
 
       {/* 상단 */}
       <div className={style.top}>
