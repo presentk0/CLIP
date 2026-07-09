@@ -1,5 +1,6 @@
 package com.clip.server.chat.service;
 
+import com.clip.server.ai.client.AzureTtsClient;
 import com.clip.server.chat.client.ChatReportAiClient;
 import com.clip.server.chat.dto.ai.AiReportEvaluation;
 import com.clip.server.chat.dto.response.ChatReportResponse;
@@ -11,11 +12,13 @@ import com.clip.server.chat.repository.ChatRoomRepository;
 import com.clip.server.common.exception.BusinessException;
 import com.clip.server.common.exception.ErrorCode;
 import com.clip.server.chat.entity.UserWeakness;
+import com.clip.server.file.service.S3Service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import com.clip.server.chat.entity.AiGender;
 
 import java.math.BigDecimal;
 import java.time.Duration;
@@ -32,6 +35,8 @@ public class ChatReportService {
     private final ChatMessageRepository chatMessageRepository;
     private final UserWeaknessService userWeaknessService;
     private final ChatReportAiClient chatReportAiClient;
+    private final AzureTtsClient azureTtsClient;
+    private final S3Service s3Service;
 
     /**
      * 대화 리포트 생성
@@ -57,9 +62,9 @@ public class ChatReportService {
         ChatReportResponse.Summary summary = buildSummary(chatRoom, allMessages);
         ChatReportResponse.WordUsage wordUsage = buildWordUsage(chatRoom, allMessages);
         ChatReportResponse.PronunciationScore pronunciationScore =
-                buildPronunciationScore(allMessages);
+                buildPronunciationScore(chatRoom,allMessages);
         ChatReportResponse.ExpressionNaturalness expressionNaturalness =
-                buildExpressionNaturalness(allMessages);
+                buildExpressionNaturalness(chatRoom,allMessages);
 
         // 5. LLM 종합 평가
         AiReportEvaluation aiEval = chatReportAiClient.evaluate(
@@ -76,7 +81,6 @@ public class ChatReportService {
         ChatReportResponse.WeaknessAnalysis weaknessAnalysis =
                 buildWeaknessAnalysis(weaknesses);
 
-        // 7. 응답 조립
         // 7. 응답 조립
         return ChatReportResponse.builder()
                 .chatRoomId(chatRoomId)
@@ -179,6 +183,7 @@ public class ChatReportService {
      * ③ PronunciationScore 빌드 - 발음 평가 (음성 모드 한정)
      */
     private ChatReportResponse.PronunciationScore buildPronunciationScore(
+            ChatRoom chatRoom,
             List<ChatMessage> allMessages
     ) {
         // 사용자 메시지 중 발음 점수가 있는 것들
@@ -205,17 +210,23 @@ public class ChatReportService {
 
         int overallScore = (int) Math.round(avgScore);
 
-        // 약한 문장 (70점 미만)
+        // 약한 문장 (70점 미만) - TTS 생성 포함
         List<ChatReportResponse.PronunciationScore.WeakSentence> weakSentences = scoredMessages.stream()
                 .filter(m -> m.getPronunciationScore().compareTo(BigDecimal.valueOf(70)) < 0)
-                .map(m -> ChatReportResponse.PronunciationScore.WeakSentence.builder()
-                        .messageId(m.getId())
-                        .original(m.getContent())
-                        .score(m.getPronunciationScore().intValue())
-                        .issue("발음을 다시 연습해보세요")
-                        .modelAudioUrl(null)  // TTS는 나중에 추가
-                        .build())
+                .map(m -> {
+                    // 모범 발음 TTS 생성
+                    String modelAudioUrl = generateModelAudio(m.getContent(), chatRoom.getAiGender());
+
+                    return ChatReportResponse.PronunciationScore.WeakSentence.builder()
+                            .messageId(m.getId())
+                            .original(m.getContent())
+                            .score(m.getPronunciationScore().intValue())
+                            .issue("발음을 다시 연습해보세요")
+                            .modelAudioUrl(modelAudioUrl)
+                            .build();
+                })
                 .toList();
+
 
         String feedback = overallScore >= 80
                 ? "전반적으로 정확하게 들렸어요!"
@@ -233,6 +244,7 @@ public class ChatReportService {
      * ④ ExpressionNaturalness 빌드 - 표현 자연스러움
      */
     private ChatReportResponse.ExpressionNaturalness buildExpressionNaturalness(
+            ChatRoom chatRoom,
             List<ChatMessage> allMessages
     ) {
         // 사용자 메시지 중 평가된 것들
@@ -260,13 +272,21 @@ public class ChatReportService {
                 evaluatedMessages.stream()
                         .filter(m -> Boolean.FALSE.equals(m.getIsNatural()))
                         .filter(m -> m.getRecommendedAlternative() != null)
-                        .map(m -> ChatReportResponse.ExpressionNaturalness.Improvement.builder()
-                                .messageId(m.getId())
-                                .original(m.getContent())
-                                .suggested(m.getRecommendedAlternative())
-                                .explanation("더 자연스러운 표현이에요")
-                                .modelAudioUrl(null)  // TTS 나중에 추가
-                                .build())
+                        .map(m -> {
+                            //  추천 표현(suggested)의 TTS 생성
+                            String modelAudioUrl = generateModelAudio(
+                                    m.getRecommendedAlternative(),  // suggested 문장의 TTS
+                                    chatRoom.getAiGender()
+                            );
+
+                            return ChatReportResponse.ExpressionNaturalness.Improvement.builder()
+                                    .messageId(m.getId())
+                                    .original(m.getContent())
+                                    .suggested(m.getRecommendedAlternative())
+                                    .explanation("더 자연스러운 표현이에요")
+                                    .modelAudioUrl(modelAudioUrl)
+                                    .build();
+                        })
                         .toList();
 
         String feedback = score >= 80
@@ -328,5 +348,25 @@ public class ChatReportService {
                 .filter(m -> m.getSenderType() == SenderType.USER)
                 .anyMatch(m -> m.getAudioUrl() != null);
         return hasVoice ? "voice" : "text";
+    }
+    /**
+     * 모범 발음 TTS 생성
+     * - 사용자가 어색하게 말한 문장을 원어민 발음으로 TTS 생성
+     */
+    private String generateModelAudio(String text, AiGender gender) {
+        if (text == null || text.isBlank()) {
+            return null;
+        }
+
+        try {
+            String genderStr = (gender != null) ? gender.name() : "FEMALE";
+            byte[] audioData = azureTtsClient.synthesize(text, genderStr);
+            String audioUrl = s3Service.uploadAiAudioAndGetUrl(audioData, "audio/mpeg");
+            log.info("모범 발음 TTS 생성 완료. length={}", text.length());
+            return audioUrl;
+        } catch (Exception e) {
+            log.warn("모범 발음 TTS 생성 실패. text={}", text, e);
+            return null;  // 실패 시 null 반환
+        }
     }
 }
