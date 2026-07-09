@@ -4389,3 +4389,167 @@ letter-spacing: -0.5px;
   justify-content: center;
   gap: 24px;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.recommendedSectionBox3 {
+display: flex;
+flex-direction: column;
+align-items: flex-start;
+/* gap: 14px; */
+align-self: stretch;
+}
+
+/* 추가함 */
+.recommendedSectionLink {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  width: 100%;
+}
+
+
+
+
+.recommendedSectionThumbnail {
+  position: relative;
+height: 190px;
+/* padding: 166px 8px 8px 292px; */
+flex-direction: column;
+align-items: flex-start;
+gap: 10px;
+align-self: stretch;
+border-radius: 12px;
+background: lightgray 50% / cover no-repeat;
+overflow: hidden;
+}
+
+
+.recommendedSectionThumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+
+.recommendedSectionDuration {
+/* display: flex; */
+/* width: 38px;
+height: 16px; */
+position: absolute;
+  right: 4px;
+  bottom: 4px; 
+padding: 3px 4px 3px 5px;
+justify-content: center;
+align-items: center;
+gap: 10px;
+flex-shrink: 0;
+border-radius: 999px;
+background: rgba(15, 15, 15, 0.50);
+}
+
+/* 
+.recommendedSectionDuration2 {
+display: flex;
+justify-content: center;
+align-items: center;
+} */
+
+
+.recommendedSectionDuration3 {
+  display: flex;
+justify-content: center;
+align-items: center;
+
+color: #FFF;
+font-family: Pretendard;
+font-size: 11px;
+font-style: normal;
+font-weight: 500;
+line-height: normal;
+letter-spacing: -0.1px;
+text-transform: uppercase;
+}
+
+
+
+
+
+.recommendedSectionInfo {
+display: flex;
+align-items: flex-start;
+gap: 12px;
+}
+
+
+.recommendedSectionChannel {
+width: 33px;
+height: 33px;
+aspect-ratio: 1/1;
+border-radius: 16px;
+background: #D9D9D9;
+}
+
+
+.recommendedSectionTitle {
+display: flex;
+width: 275px;
+flex-direction: column;
+align-items: flex-start;
+gap: 4px;
+}
+
+
+.recommendedSectionTitle2 {
+  display: flex;
+/* height: 32px; */
+min-height: 32px;
+
+flex-direction: column;
+justify-content: center;
+align-self: stretch;
+color: #5E5A4E;
+font-family: Roboto;
+font-size: 14px;
+font-style: normal;
+font-weight: 700;
+line-height: 16px; /* 114.286% */
+letter-spacing: -0.5px;
+}
+
+
+
+.recommendedSectionChannelName {
+display: flex;
+/* height: 16px; */
+
+min-height: 16px;
+flex-direction: column;
+justify-content: center;
+align-self: stretch;
+color: #5E5A4E;
+font-family: Roboto;
+font-size: 12px;
+font-style: normal;
+font-weight: 400;
+line-height: 20px; /* 166.667% */
+letter-spacing: -0.5px;
+}
