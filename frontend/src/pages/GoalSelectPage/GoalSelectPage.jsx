@@ -158,14 +158,6 @@ const handleBack = () => navigate('/onboarding/level', { replace: true });
                 >
                   <div className={styles['objectives-card9']}>
                     <div className={styles['objectives-card10']}
-          //           style={{
-          //     backgroundImage: 
-          //       value === 'DAILY' ? `url(${frog2})` :
-          //       value === 'SELF_DEVELOPMENT' ? `url(${frog})` :
-          //       'none',
-          // backgroundSize: 'cover',
-          // backgroundPosition: 'center',
-          //   }}
                     >{icon}</div>
                     <div className={styles['objectives-card11']}>
                       <p 
@@ -193,8 +185,6 @@ const handleBack = () => navigate('/onboarding/level', { replace: true });
           </div>
         </button>
       </div>
-
-
     </div>
   );
 }

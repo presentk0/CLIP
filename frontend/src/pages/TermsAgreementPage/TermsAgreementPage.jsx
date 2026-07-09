@@ -19,9 +19,9 @@ export default function TermsAgreementPage() {
   });
 
   const [hasViewed, setHasViewed] = useState({
-  terms: false,
-  privacy: false,
-});
+    terms: false,
+    privacy: false,
+  });
 
   const allAgreed = agreements.age && agreements.terms && agreements.privacy;
 
@@ -99,14 +99,16 @@ export default function TermsAgreementPage() {
                   aria-pressed={agreements.age}
                   >
                     {agreements.age 
-                    ? <div className={styles.agreement16}>
+                    ? 
+                    <div className={styles.agreement16}>
+                      <svg 
+                      className={styles.agreement17}
+                      xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M12.137 3.77574C12.566 3.30103 13.2975 3.26012 13.7767 3.6859C14.2579 4.1139 14.302 4.85088 13.8743 5.33238L13.8675 5.3402L7.08809 12.6732L7.08711 12.6722C6.86614 12.9168 6.55276 13.0578 6.22284 13.058C5.88978 13.058 5.57214 12.9152 5.35076 12.6664L1.79505 8.66637C1.36701 8.18483 1.41026 7.44699 1.89173 7.01891C2.37332 6.59106 3.11121 6.63506 3.53921 7.11656L6.22968 10.1439L12.137 3.77477V3.77574Z" fill="white"/>
+                      </svg>
+                    </div>
+                    : 
                     <svg 
-                    className={styles.agreement17}
-                    xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                      <path d="M12.137 3.77574C12.566 3.30103 13.2975 3.26012 13.7767 3.6859C14.2579 4.1139 14.302 4.85088 13.8743 5.33238L13.8675 5.3402L7.08809 12.6732L7.08711 12.6722C6.86614 12.9168 6.55276 13.0578 6.22284 13.058C5.88978 13.058 5.57214 12.9152 5.35076 12.6664L1.79505 8.66637C1.36701 8.18483 1.41026 7.44699 1.89173 7.01891C2.37332 6.59106 3.11121 6.63506 3.53921 7.11656L6.22968 10.1439L12.137 3.77477V3.77574Z" fill="white"/>
-                    </svg>
-                  </div>
-                    : <svg 
                     className={styles.agreement22}
                     xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
                       <g clip-path="url(#clip0_935_1154)">
@@ -127,8 +129,6 @@ export default function TermsAgreementPage() {
 
               <div className={styles.agreement14}>
                 <div className={styles.agreement15}>
-
-
                   <button className={styles.agreement18}
                   type="button"
                   onClick={() => {
@@ -142,14 +142,16 @@ export default function TermsAgreementPage() {
                   aria-pressed={agreements.terms}
                   >
                     {agreements.terms
-                    ? <div className={styles.agreement16}>
+                    ?
+                    <div className={styles.agreement16}>
+                      <svg 
+                      className={styles.agreement17}
+                      xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M12.137 3.77574C12.566 3.30103 13.2975 3.26012 13.7767 3.6859C14.2579 4.1139 14.302 4.85088 13.8743 5.33238L13.8675 5.3402L7.08809 12.6732L7.08711 12.6722C6.86614 12.9168 6.55276 13.0578 6.22284 13.058C5.88978 13.058 5.57214 12.9152 5.35076 12.6664L1.79505 8.66637C1.36701 8.18483 1.41026 7.44699 1.89173 7.01891C2.37332 6.59106 3.11121 6.63506 3.53921 7.11656L6.22968 10.1439L12.137 3.77477V3.77574Z" fill="white"/>
+                      </svg>
+                    </div>
+                    : 
                     <svg 
-                    className={styles.agreement17}
-                    xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                      <path d="M12.137 3.77574C12.566 3.30103 13.2975 3.26012 13.7767 3.6859C14.2579 4.1139 14.302 4.85088 13.8743 5.33238L13.8675 5.3402L7.08809 12.6732L7.08711 12.6722C6.86614 12.9168 6.55276 13.0578 6.22284 13.058C5.88978 13.058 5.57214 12.9152 5.35076 12.6664L1.79505 8.66637C1.36701 8.18483 1.41026 7.44699 1.89173 7.01891C2.37332 6.59106 3.11121 6.63506 3.53921 7.11656L6.22968 10.1439L12.137 3.77477V3.77574Z" fill="white"/>
-                    </svg>
-                  </div>
-                    : <svg 
                     className={styles.agreement22}
                     xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
                       <g clip-path="url(#clip0_935_1154)">
@@ -168,8 +170,6 @@ export default function TermsAgreementPage() {
 
               <div className={styles.agreement14}>
                 <div className={styles.agreement15}>
-
-
                   <button className={styles.agreement18}
                   type="button"
                   onClick={() => {
@@ -180,18 +180,18 @@ export default function TermsAgreementPage() {
                     }
                     toggleOne('privacy');
                   }}
-                  aria-pressed={agreements.privacy}
-                >
+                  aria-pressed={agreements.privacy}>
                     {agreements.privacy
                     ? 
                     <div className={styles.agreement16}>
+                      <svg 
+                      className={styles.agreement17}
+                      xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M12.137 3.77574C12.566 3.30103 13.2975 3.26012 13.7767 3.6859C14.2579 4.1139 14.302 4.85088 13.8743 5.33238L13.8675 5.3402L7.08809 12.6732L7.08711 12.6722C6.86614 12.9168 6.55276 13.0578 6.22284 13.058C5.88978 13.058 5.57214 12.9152 5.35076 12.6664L1.79505 8.66637C1.36701 8.18483 1.41026 7.44699 1.89173 7.01891C2.37332 6.59106 3.11121 6.63506 3.53921 7.11656L6.22968 10.1439L12.137 3.77477V3.77574Z" fill="white"/>
+                      </svg>
+                    </div>
+                    : 
                     <svg 
-                    className={styles.agreement17}
-                    xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                      <path d="M12.137 3.77574C12.566 3.30103 13.2975 3.26012 13.7767 3.6859C14.2579 4.1139 14.302 4.85088 13.8743 5.33238L13.8675 5.3402L7.08809 12.6732L7.08711 12.6722C6.86614 12.9168 6.55276 13.0578 6.22284 13.058C5.88978 13.058 5.57214 12.9152 5.35076 12.6664L1.79505 8.66637C1.36701 8.18483 1.41026 7.44699 1.89173 7.01891C2.37332 6.59106 3.11121 6.63506 3.53921 7.11656L6.22968 10.1439L12.137 3.77477V3.77574Z" fill="white"/>
-                    </svg>
-                  </div>
-                    : <svg 
                     className={styles.agreement22}
                     xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
                       <g clip-path="url(#clip0_935_1154)">
@@ -216,14 +216,16 @@ export default function TermsAgreementPage() {
             aria-pressed={allAgreed}
             >
               {allAgreed 
-              ? <div className={styles.agreement16}>
-                    <svg 
-                    className={styles.agreement17}
-                    xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                      <path d="M12.137 3.77574C12.566 3.30103 13.2975 3.26012 13.7767 3.6859C14.2579 4.1139 14.302 4.85088 13.8743 5.33238L13.8675 5.3402L7.08809 12.6732L7.08711 12.6722C6.86614 12.9168 6.55276 13.0578 6.22284 13.058C5.88978 13.058 5.57214 12.9152 5.35076 12.6664L1.79505 8.66637C1.36701 8.18483 1.41026 7.44699 1.89173 7.01891C2.37332 6.59106 3.11121 6.63506 3.53921 7.11656L6.22968 10.1439L12.137 3.77477V3.77574Z" fill="white"/>
-                    </svg>
-                  </div>
-              : <svg 
+              ? 
+              <div className={styles.agreement16}>
+                <svg 
+                className={styles.agreement17}
+                xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M12.137 3.77574C12.566 3.30103 13.2975 3.26012 13.7767 3.6859C14.2579 4.1139 14.302 4.85088 13.8743 5.33238L13.8675 5.3402L7.08809 12.6732L7.08711 12.6722C6.86614 12.9168 6.55276 13.0578 6.22284 13.058C5.88978 13.058 5.57214 12.9152 5.35076 12.6664L1.79505 8.66637C1.36701 8.18483 1.41026 7.44699 1.89173 7.01891C2.37332 6.59106 3.11121 6.63506 3.53921 7.11656L6.22968 10.1439L12.137 3.77477V3.77574Z" fill="white"/>
+                </svg>
+              </div>
+              : 
+              <svg 
               className={styles.agreement22}
               xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
                 <g clip-path="url(#clip0_935_1154)">
@@ -235,7 +237,6 @@ export default function TermsAgreementPage() {
                   </clipPath>
                 </defs>
               </svg>}
-              
 
               <div className={styles.agreement23}>
                 <p className={styles.agreement24}>모든 약관에 동의합니다</p>

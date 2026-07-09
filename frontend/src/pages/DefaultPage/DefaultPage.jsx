@@ -420,11 +420,7 @@ function SectionBadgeCard({ currentBadge, videoId, videoTitle, videoDuration, ch
           </div>
 
         <div className={style.sectionBadge}>
-          {/* <span className={style.sectionBadgeIcon}> */}
-          {/* <span> */}
             {BADGE_ICONS[currentBadge] || null}
-          {/* </span> */}
-
           <span className={style.sectionBadgeLabel}>
             <p className={style.sectionBadgeLabelText}>
               도전 중인 마스터리
@@ -547,27 +543,19 @@ function DefaultPage({ onMyPage }) {
     navigate('/login');
   };
 
-
-
-  // // 상태로 대시보드 데이터 관리
-  // const [dashboardData, setDashboardData] = useState(null);
-
   // 상태로 내 정보 조회 데이터 관리 (마스터리 뱃지 영상)
   const [usersData, setUsersData] = useState(null);
 
   const [showTutorial, setShowTutorial] = useState(false);
 
-
   // 추천 영상 관리, 나중에 다시 넣기
   const [recommendedData, setRecommendedData] = useState([]);
-
 
   // 첫 번째와 나머지 분리, 나중에 다시 넣기
   const [firstVideo, ...restVideos] = recommendedData;
 
   // ai 채팅방 중복 클릭 막기
   const [isAiBlocked, setIsAiBlocked] = useState(false);
-
 
   // 팝업 메시지
   const [popupMessage, setPopupMessage] = useState('');
@@ -584,7 +572,6 @@ function DefaultPage({ onMyPage }) {
     const fetchData = async () => {
       try {
         const result = await apiFetch('/users/me', { method: 'GET' });
-        // log.debug('/users/me 값', result);
 
         setUsersData(result.data);
       } catch (error) {
@@ -605,8 +592,6 @@ function DefaultPage({ onMyPage }) {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // // ? 써서 recommended + limit이라는 옵션값 5 로 인식
-        // const result = await apiFetch('/videos/recommended?limit=5', { method: 'GET' });
         const result = await apiFetch('/videos/recommended', { method: 'GET' });
         setRecommendedData(result.data.recommendations);
       } catch (error) {
@@ -657,12 +642,10 @@ const onAiChatPage = async () => {
 
   // 버튼 비활성화
   setIsAiBlocked(true);
-  // log.debug('디폴트에서 채팅방 들어감');
 
 try {
   // 유저별 캐시 확인
   const hasWords = await loadUserData('hasWords');
-  // const { hasWords } = await chrome.storage.local.get('hasWords');
 
   // true면 바로 진입하기 (API 호출 없음)
   if (hasWords === true) {
@@ -683,9 +666,7 @@ try {
     const res = await apiFetch('/chats/words', { method: 'GET' });
 
     // 결과를 유저별 캐시에 저장
-    // await chrome.storage.local.set({ hasWords: res.data.hasWords });
     await saveUserData('hasWords', res.data.hasWords);
-    // await setHasWordsCache(res.data.hasWords);
 
     if (!res.data.hasWords) {
       showPopup(res.data.guideMessage || '수집된 단어가 없습니다!');

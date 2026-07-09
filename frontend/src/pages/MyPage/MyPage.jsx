@@ -1,9 +1,9 @@
 import styles from './MyPage.module.css'
 import { useState, useEffect } from 'react';
 import { apiFetch } from '../../utils/api';
-// import { Spinner } from '../../components/Spinner/Spinner';
+
 import { useNavigate } from 'react-router-dom';
-// import { useAuth } from '../../hooks/useAuth';
+
 import { log } from '../../utils/logger';
 import { TestSpinner } from '../../components/Spinner/Spinner';
 import { loadUserData } from '../../utils/userStorage';
@@ -13,8 +13,8 @@ import { Toast } from '../../contexts/Toast';
 
 
 
-  // 오류
-  // 영문 → 한글 매핑
+
+  // 영문을 한글로 매핑
 const GOAL_LABELS = {
   TRAVEL: '여행',
   BUSINESS: '비즈니스',
@@ -23,10 +23,6 @@ const GOAL_LABELS = {
   DAILY: '일상',
   NONE: '없음'
 };
-
-// const GOALS = ['TRAVEL', 'BUSINESS', 'SELF_DEVELOPMENT', 'EXAM', 'DAILY', 'NONE']; // 명세서 기준
-
-
 
 
 
@@ -110,12 +106,6 @@ const DIFFICULTY_LEVEL_MAP = {
 };
 
 
-// // 절대 난이도
-// const ABSOLUTE_OPTIONS = [
-//   { value: 'BEGINNER', label: '초보자' },
-//   { value: 'INTERMEDIATE', label: '중급자' },
-//   { value: 'ADVANCED', label: '상급자' },
-// ];
 
 // 절대 난이도 레벨
 const ABSOLUTE_LEVEL_MAP = {
@@ -222,10 +212,6 @@ function GrowthChart({ weeklyData = [], growthRate = 0 }) {
 
                   </div>
                 )}
-                {/* <div 
-                  className={isLast ? styles['chart12-g'] : styles['chart11-g']}
-                  style={{ height: `${heightPercent * 1.6}px` }}  
-                /> */}
                 </div>
               </div>
             );
@@ -261,26 +247,13 @@ export function MyPage ({ onExitPage }) {
 
   const [preferencesData, setPreferencesData] = useState(null);
 
-
-
-
-
   const [selectedGoal, setSelectedGoal] = useState(null);
   const [selectedDifficulty, setSelectedDifficulty] = useState(null);
-  // const [selectedAbsolute, setSelectedAbsolute] = useState(null);
 
-
-
-  // const [isInfor, setIsInfor] = useState(true);
+  const [isInfor, setIsInfor] = useState(true);
   const [isGrowth, setIsGrowth] = useState(true);
   const [isObjectives, setIsObjectives] = useState(true);
   const [isDifficulty, setIsDifficulty] = useState(true);
-  // const [isAbsoluteLevel, setIsAbsoluteLevel] = useState(true);
-
-
-  // const { needsOnboarding, completeOnboarding } = useAuth();
-
-
 
   // 단어장 입장 중복 클릭 막기
   const [isAiBlocked, setIsAiBlocked] = useState(false);
@@ -305,11 +278,8 @@ export function MyPage ({ onExitPage }) {
         // 병렬 호출
 
         const [dashboard, growth, preferences] = await Promise.all([
-        // const [dashboard, growth] = await Promise.all([
-          // apiFetch('/users/me', { method: 'GET' }),
           apiFetch('/users/me/dashboard', { method: 'GET' }),
           apiFetch('/users/me/growth', { method: 'GET' }),
-
           apiFetch('/users/me/preferences', { method: 'GET' }),
         ]);
 
@@ -331,11 +301,6 @@ export function MyPage ({ onExitPage }) {
         if (preferences.data?.difficultyLevel) {
           setSelectedDifficulty(preferences.data.difficultyLevel);
         }
-
-        // // 절대 난이도 설정값 업데이트
-        // if (preferences.data?.difficultyLevel) {
-        //   setIsAbsoluteLevel(preferences.data.isAbsoluteLevel);
-        // }
       } catch (error) {
         log.debug('데이터 로딩 실패', error);
       }
@@ -364,12 +329,6 @@ export function MyPage ({ onExitPage }) {
 const isDirty = 
   selectedGoal !== preferencesData?.learningGoal ||
   selectedDifficulty !== preferencesData?.difficultyLevel;
-  // selectedAbsolute !== preferencesData?.absoluteLevel;
-
-
-
-
-
 
 // 마이 페이지의 단어장 입장 버튼
 const onVocaPage = async () => {
@@ -421,7 +380,6 @@ const handleSave = async () => {
         body: JSON.stringify({  
           learningGoal: selectedGoal, 
           difficultyLevel: selectedDifficulty,
-          // absoluteLevel: selectedAbsolute,
           // 서버값 쓰기 (기본 초보자)
           absoluteLevel: preferencesData.absoluteLevel ?? 'BEGINNER',
         }),
@@ -442,11 +400,7 @@ const handleSave = async () => {
 const handleGoalChange = async (goal) => {
   // 같은 거 또 누르면 무시
   if (goal === selectedGoal) return;
-
-
   setSelectedGoal(goal);
-
-
 };
 
 
@@ -456,20 +410,10 @@ const handleGoalChange = async (goal) => {
 // 상대 난이도 변경
 const handleDifficultyChange = async (level) => {
   if (level === selectedDifficulty) return;
-
-
   setSelectedDifficulty(level);
-
 };
 
 
-
-// // 절대 난이도 변경
-// const handleAbsoluteChange = async (level) => {
-//   if (level === selectedAbsolute) return;
-
-//   setSelectedAbsolute(level);
-// };
 
 
   // 비활성화 체크 함수
@@ -493,16 +437,6 @@ const isOptionDisabled = (value) => {
   return { disabled: false, reason: '' };
 };
 
-
-  // const isOptionDisabled = (optionValue) => {
-  //   if (!selectedAbsolute) return false;  // 절대 난이도 선택 전엔 다 활성화
-    
-  //   const currentLevel = ABSOLUTE_LEVEL_MAP[selectedAbsolute];
-  //   const offset = DIFFICULTY_LEVEL_MAP[optionValue];
-  //   const targetLevel = currentLevel + offset;
-    
-  //   return targetLevel < MIN_LEVEL || targetLevel > MAX_LEVEL;
-  // };
 
 
 const handleBack = () => {
@@ -604,8 +538,8 @@ const handleHomeClick = () => {
 
 
 
-      {/* {isInfor ? ( */}
-      {/* 레벨 카드 */}
+      {isInfor ? (
+      // 레벨 카드
       <div className={styles['infor-card']}>
         {/* 레벨 박스 */}
         <div className={styles['infor-card2']}>
@@ -619,12 +553,7 @@ const handleHomeClick = () => {
 
             {/* 열고 닫기 버튼 */}
             <button
-            // onClick={() => setIsInfor(false)}
-
-
-            onClick={() => onVocaPage()}
-
-
+            onClick={() => setIsInfor(false)}
 
             className={styles['infor-card6']}>
               <svg 
@@ -639,34 +568,20 @@ const handleHomeClick = () => {
             </button>
           </div>
 
-
-
-
           {/* 경험치 바 */}
           <div className={styles['infor-card8']}>
             <div className={styles['infor-card9']}>
               <div className={styles['infor-card10']}>
                 <div className={styles['infor-card11']}>
-
-
-
                   <div className={styles['infor-card12']}>
                     <p className={styles['infor-card13']}>
                       LV.{levelInfo.currentLevel}
                       </p>
                   </div>
 
-
-
-
-
-
-
-
                   <div className={styles['infor-card14']}>
                     <p className={styles['infor-card15-l']}>
                       {levelInfo.currentExp.toLocaleString()}
-
                     </p>
                     <span className={styles['infor-card15-r']}> | {levelInfo.nextLevelExp.toLocaleString()}</span>
                   </div>
@@ -686,24 +601,12 @@ const handleHomeClick = () => {
                 </div>
               </div>
 
-
-
               <div className={styles['infor-card19']}>
                 <p className={styles['infor-card20']}>다음 레벨까지 {display}%남았어요!</p>
               </div>
-
-
-
-
-
             </div>
           </div>
-
-
-
-
         </div>
-
 
 
         {/* 경험치 박스 */}
@@ -711,8 +614,6 @@ const handleHomeClick = () => {
           <div className={styles['infor-card22']}>
             <p className={styles['infor-card23']}>획득 경험치</p>
           </div>
-
-
 
           <div className={styles['infor-card24']}>
   {expLogs.map((log, idx) => (
@@ -730,7 +631,6 @@ const handleHomeClick = () => {
       </div>
 
       <div className={styles['infor-card32']}>
-        {/* <div className={styles['infor-card33']}></div> */}
         <div className={styles['infor-card34']}>
           <p 
             className={styles['infor-card35']}
@@ -742,21 +642,86 @@ const handleHomeClick = () => {
       </div>
     </div>
   ))}
-
-
           </div>
-
         </div>
       </div>
+) : (
+  // 레벨 카드
+      <div className={styles['infor-f']}>
+        {/* 레벨 박스 */}
+        <div className={styles['infor-card2']}>
 
+          {/* 레벨과 열고 닫기 */}
+          <div className={styles['infor-card3']}>
 
+            <div className={styles['infor-card4']}>
+              <p className={styles['infor-card5']}>Level</p>
+            </div>
 
+            {/* 열고 닫기 버튼 */}
+            <button
+            onClick={() => setIsInfor(true)}
+            className={styles['infor-card6']}>
+              <svg 
+              className={styles['infor-card7']}
+              xmlns="http://www.w3.org/2000/svg" 
+              width="13" 
+              height="8" 
+              viewBox="0 0 13 8" 
+              fill="none">
+                <path d="M0.75 0.75L6.375 6.375L12 0.75" stroke="#0F0D0E" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </button>
+          </div>
+
+          {/* 경험치 바 */}
+          <div className={styles['infor-card8']}>
+            <div className={styles['infor-card9']}>
+              <div className={styles['infor-card10']}>
+                <div className={styles['infor-card11']}>
+                  <div className={styles['infor-card12']}>
+                    <p className={styles['infor-card13']}>
+                      LV.{levelInfo.currentLevel}
+                      </p>
+                  </div>
+                  <div className={styles['infor-card14']}>
+                    <p className={styles['infor-card15-l']}>
+                      {levelInfo.currentExp.toLocaleString()}
+                    </p>
+                    <span className={styles['infor-card15-r']}> | {levelInfo.nextLevelExp.toLocaleString()}</span>
+                  </div>
+                </div>
+
+                <div className={styles['infor-card16']}>
+                  {/* 전체 바 */}
+                  <div className={styles['infor-card17']}></div>
+
+                  {/* 진행 바 */}
+                  <div 
+                  className={styles['infor-card18']}
+                  style={{ width: `${levelInfo.progressPercentage}%` }}
+                  >
+                  </div>
+                </div>
+              </div>
+
+              <div className={styles['infor-card19']}>
+                <p className={styles['infor-card20']}>다음 레벨까지 {display}%남았어요!</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+)}
 
 
       {/* 총 수집한 단어 + 완료한 영상 박스 */}
       <div className={styles['collection-card']}>
         {/* 총 수집한 단어 */}
-        <div className={styles['collection-card2']}>
+        <button
+        onClick={() => onVocaPage()}
+        className={styles['collection-card2']}
+        >
           <div className={styles['collection-card3']}>
             <div className={styles['collection-card4']}>
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="28" viewBox="0 0 18 28" fill="none">
@@ -768,9 +733,7 @@ const handleHomeClick = () => {
               <p className={styles['collection-card7']}>{totalWords.toLocaleString()}개</p>
             </div>
           </div>
-        </div>
-
-
+        </button>
 
         {/* 완료한 영상 */}
         <div className={styles['collection-card-v']}>
@@ -792,7 +755,7 @@ const handleHomeClick = () => {
 
 
 {isGrowth ? (
-      // {/* 성장 지표 카드 */}
+      // 성장 지표 카드
       <div className={styles['growth-card']}>
         <div className={styles['growth-card2']}>
           <div className={styles['growth-card3']}>
@@ -872,18 +835,12 @@ const handleHomeClick = () => {
 
 
             {/* 실제 그래프 */}
-            {/* <div className={styles['growth-card27']}> */}
             {growthData && (
               <GrowthChart
                 weeklyData={growthData.weeklyAccuracy.weeklyData}
                 growthRate={growthData.weeklyAccuracy.growthRate}
               />
             )}
-            {/* </div> */}
-
-
-
-
           </div>
         </div>
       </div>
@@ -912,13 +869,8 @@ const handleHomeClick = () => {
 )}
 
 
-
-
-
-
-
 {isObjectives ? (
-      // {/* 학습 목표 카드 */}
+      // 학습 목표 카드
       <div className={styles['objectives-card']}>
         <div className={styles['objectives-card2']}>
           <div className={styles['objectives-card3']}>
@@ -958,14 +910,6 @@ const handleHomeClick = () => {
       >
         <div className={styles['objectives-card9']}>
           <div className={styles['objectives-card10']}
-        //   style={{
-        //   backgroundImage: 
-        //     goal === 'DAILY' ? `url(${frog2})` :
-        //     goal === 'SELF_DEVELOPMENT' ? `url(${frog})` :
-        //     'none',
-        //   backgroundSize: 'cover',
-        //   backgroundPosition: 'center',
-        // }}
           >
             {icon}
           </div>
@@ -984,7 +928,7 @@ const handleHomeClick = () => {
         </div>
       </div>
 ) : (
-      // {/* 학습 목표 카드 */}
+      // 학습 목표 카드
       <div className={styles['objectives-card-f']}>
         <div className={styles['objectives-card2']}>
           <div className={styles['objectives-card3']}>
@@ -1006,15 +950,13 @@ const handleHomeClick = () => {
           </button>
         </div>
       </div>
-
 )}
-
 
 
 
 {/* 상대 난이도 */}
 {isDifficulty ? (
-      // {/* 난이도 카드 */}
+      // 난이도 카드
       <div className={styles['difficulty-card']}>
         <div className={styles['difficulty-card2']}>
           <div className={styles['difficulty-card3']}>
@@ -1035,8 +977,6 @@ const handleHomeClick = () => {
                 <path d="M0.75 6.68567L6.375 1.06067L12 6.68567" stroke="#5E5A4E" stroke-width="1.5" stroke-linecap="round"/>
               </svg>
           </button>
-
-
           </div>
 
           <div className={styles['difficulty-card8']}>
@@ -1049,11 +989,9 @@ const handleHomeClick = () => {
       <button
         key={value}
         type="button"
-        // onClick={() => handleDifficultyChange(value)}
         onClick={() => {
         if (disabled) {
           showPopup(reason);
-
           return;
         }
         handleDifficultyChange(value);
@@ -1106,116 +1044,6 @@ const handleHomeClick = () => {
         </div>
       </div>
 )}
-
-
-
-
-
-
-
-
-
-
-{/* 
-절대 난이도
-
-isAbsoluteLevel ? (
-
-      <div className={styles['difficulty-card']}>
-        <div className={styles['difficulty-card2']}>
-          <div className={styles['difficulty-card3']}>
-            <div className={styles['difficulty-card4']}>
-              <p className={styles['difficulty-card5']}>절대 난이도(임시)</p>
-            </div>
-
-            <button 
-            onClick={() => setIsAbsoluteLevel(false)}
-            className={styles['difficulty-card6']}>
-              <svg 
-              className={styles['difficulty-card7']}
-              xmlns="http://www.w3.org/2000/svg" 
-              width="13" 
-              height="8" 
-              viewBox="0 0 13 8" 
-              fill="none">
-                <path d="M0.75 6.68567L6.375 1.06067L12 6.68567" stroke="#5E5A4E" stroke-width="1.5" stroke-linecap="round"/>
-              </svg>
-          </button>
-          </div>
-
-          <div className={styles['difficulty-card8']}>
-ABSOLUTE_OPTIONS.map(({ value, label }) => {
-    const isSelected = selectedAbsolute === value;
-    
-    return (
-      <button
-        key={value}
-        type="button"
-        onClick={() => handleAbsoluteChange(value)}
-        className={isSelected 
-          ? styles['difficulty-card9']     // 선택
-          : styles['difficulty-card15-f']  // 미선택
-        }
-      >
-        {isSelected ? (
-          <div className={styles['difficulty-card10']}>
-            <p className={styles['difficulty-card11']}>{label}</p>
-            <div className={styles['difficulty-card12']}>
-              <div className={styles['difficulty-card13']}>
-                <CheckIcon className={styles['difficulty-card14']} />
-              </div>
-            </div>
-          </div>
-        ) : (
-          <p className={styles['difficulty-card16-f']}>{label}</p>
-        )}
-      </button>
-    );
-  })
-          </div>
-        </div>
-      </div>
-      ) : (
-        <div className={styles['difficulty-card-f']}>
-          <div className={styles['difficulty-card3']}>
-            <div className={styles['difficulty-card4']}>
-              <p className={styles['difficulty-card5']}>절대 난이도(임시)</p>
-            </div>
-
-            <button 
-            onClick={() => setIsAbsoluteLevel(true)}
-            className={styles['difficulty-card6']}>
-              <svg 
-              className={styles['difficulty-card7']}
-              xmlns="http://www.w3.org/2000/svg" 
-              width="13" 
-              height="8" 
-              viewBox="0 0 13 8" 
-              fill="none">
-                <path d="M0.75 0.75L6.375 6.375L12 0.75" stroke="#0F0D0E" stroke-width="1.5" stroke-linecap="round"/>
-              </svg>
-          </button>
-        </div>
-      </div>
-) */}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     </div>
   );
 }

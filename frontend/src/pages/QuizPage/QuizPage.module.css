@@ -186,9 +186,10 @@ z-index: 1;
 
   width: 370px;
   min-height: 88px;
-/* height: 108px; */
-/* fill: #F9F9EA; */
+
 filter: drop-shadow(0 4px 12px rgba(158, 155, 137, 0.20));
+display: flex;
+  align-items: center;   /* 자식을 세로 중앙 */
 }
 
 
@@ -214,8 +215,6 @@ width: 100%;
 padding: 20px 24px;           /* 안쪽 여백 */
   display: flex;          /* 텍스트 가운데 정렬 */
 
-
-  /* display: inline-flex; */
 justify-content: center;
 align-items: center;
 }
@@ -223,7 +222,6 @@ align-items: center;
 
 
 .balloon2-t {
-  /* width: 338px; */
   width: 100%;
   color: #79735B;
 font-family: Pretendard;

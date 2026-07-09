@@ -201,12 +201,12 @@ function QuizPage({ videoId, videoTitle }) {
 
   // 디바운스 자동 저장
   // 매 렌더마다 최신 state를 ref에 저장
-stateRef.current = {
-  videoId, sessionId, quizzes, currentIndex,
-  correctCount, wrongCount, answers, isConfirmed, tempChoice,
-  matchingSelectedWord, matchingSelectedMeaning,
-  matchingMatchedPairs, matchingShuffledMeanings, submittedQuizIds, feedback
-};
+  stateRef.current = {
+    videoId, sessionId, quizzes, currentIndex,
+    correctCount, wrongCount, answers, isConfirmed, tempChoice,
+    matchingSelectedWord, matchingSelectedMeaning,
+    matchingMatchedPairs, matchingShuffledMeanings, submittedQuizIds, feedback
+  };
 
 
 
@@ -215,8 +215,6 @@ stateRef.current = {
   // content.jsx에서 자막 수신
   useEffect(() => {
     const handleSubtitleMessage = (message) => {
-
-
 
       // 전체 자막 수신
       if (message.type === 'SUBTITLES_LOADED') {
@@ -259,8 +257,6 @@ stateRef.current = {
           setSubtitleIndex(insertedIndex);  
           return newList;
         });
-
-        // setCurrentSubtitle(newSubtitle);
       }
     };
 
@@ -366,7 +362,6 @@ stateRef.current = {
     if (subtitleIndex > 0) {
       const newIndex = subtitleIndex - 1;
       setSubtitleIndex(newIndex);
-      // setCurrentSubtitle(subtitles[newIndex]);
     }
   };
 
@@ -377,7 +372,6 @@ stateRef.current = {
     if (subtitleIndex < subtitles.length - 1) {
       const newIndex = subtitleIndex + 1;
       setSubtitleIndex(newIndex);
-      // setCurrentSubtitle(subtitles[newIndex]);
     }
   };
 
@@ -639,12 +633,6 @@ stateRef.current = {
         // 배열 전체 번역 요청
         const translations = await fetchTranslation(word, allDefinitions);
 
-        // // 뜻 번역
-        // result.meaningTranslation = await fetchTranslation(result.definition) || '';
-
-        // // 뜻 배열 번역
-        // result.meaningTranslations = await fetchTranslation (word, result.definitions);
-
         // 번역 결과를 품사별로 매칭
         let cursor = 0;
         result.meaningsByPos = allByPos.map(m => {
@@ -673,11 +661,8 @@ stateRef.current = {
           method: 'POST',
           body: JSON.stringify({
             wordType: 'POPUP',
-            // videoId: videoId,
             videoId,
-            // word: word,
             word,
-            // meanings: result.meaningTranslations,
             meaningsByPos: result.meaningsByPos,
             sentence: savedSubtitle.text,
             timestamp: formatTime(savedSubtitle.startTime),
@@ -690,7 +675,6 @@ stateRef.current = {
 
         // 응답 성공 후 현재 로그인 유저의 캐시에서 ai챗 허용으로 갱신
         if (collect.success) {
-          // await chrome.storage.local.set({ hasWords: true });
           await saveUserData('hasWords', true);
         }
         // 서버에 저장된 단어 추가
@@ -804,10 +788,6 @@ stateRef.current = {
     setDictionaryData(null);
     setClickedSubtitle(null);
     setIsPositioned(false);
-
-    // // 나중에 조회해서 이미 수집했는지 확인 후 대응하기 (오류)
-    // setIsCollected(false);
-
   };
 
 
@@ -849,7 +829,6 @@ stateRef.current = {
           videoId: videoId,
           word: dictionaryData.word,
           meaningsByPos: dictionaryData.meaningsByPos,
-          // meaning: dictionaryData.meaningTranslation,
           // 단어가 포함된 문장
           sentence: clickedSubtitle.text,
           // 영상 시간
@@ -978,11 +957,6 @@ stateRef.current = {
 
   // 현재 문제 정보
   const currentQuiz = quizzes[currentIndex];
-  // if (currentQuiz?.quizType === 'MATCHING') {
-  //   log.debug(feedback?.feedback);
-  // }
-
-
 
 
   // ox퀴즈용 특정 단어 강조하기
@@ -1249,9 +1223,9 @@ stateRef.current = {
     if (matchingWrongPair?.wordQuizId === wordQuizId) {
       return { background: '#FFF2D0', color: '#FFC229'};
     }
-    // 선택된 단어 - 파란색
+    // 선택된 단어 - 초록색
     if (matchingSelectedWord === wordQuizId) {
-      return { background: '#76B9F0', color: '#FFF'};
+      return { background: '#47A84A', color: '#FFF'};
     }
     // 미선택
     return { background: '#E9E9DE', color: '#A0A08A'};
@@ -1269,9 +1243,9 @@ stateRef.current = {
     if (matchingWrongPair?.meaningQuizId === meaningQuizId) {
       return { background: '#FFF2D0', color: '#FFC229'};
     }
-    // 선택된 뜻 - 파란색
+    // 선택된 뜻 - 초록색
     if (matchingSelectedMeaning === meaningQuizId) {
-      return { background: '#76B9F0', color: '#FFF'};
+      return { background: '#47A84A', color: '#FFF'};
     }
     // 미선택
     return { background: '#E9E9DE', color: '#A0A08A'};
@@ -1356,7 +1330,6 @@ stateRef.current = {
       // 복원 완료 체크
       setIsRestoring(false);
     };
-    // });
     restoreQuiz();
 
 
@@ -1447,34 +1420,6 @@ useEffect(() => {
 }, [videoId, sessionId, isRestoring]);
 
 
-  // // 진행 상황 자동 저장 (상태 바뀔 때마다)
-  // useEffect(() => {
-  //   // 복원 중 아닐 때만 저장
-  //   if (sessionId && !isRestoring) {
-
-  //     saveUserData('quizState', {
-  //       videoId,
-  //       sessionId,
-  //       quizzes,
-  //       currentIndex,
-  //       correctCount,
-  //       wrongCount,
-  //       answers,
-  //       isConfirmed,
-  //       tempChoice,
-  //       matchingSelectedWord,
-  //       matchingSelectedMeaning,
-  //       matchingMatchedPairs,
-  //       matchingShuffledMeanings,
-  //       submittedQuizIds,
-  //     }
-  //   )
-  // };
-
-  // }, [currentIndex, correctCount, wrongCount, answers, isConfirmed, sessionId, tempChoice, videoId, isRestoring, quizzes, matchingSelectedWord, matchingSelectedMeaning, matchingMatchedPairs, matchingShuffledMeanings, submittedQuizIds]);
-
-
-
   // 답안 제출
   const handleSubmit = async () => {
     // 선택 안 했거나 이미 제출했으면 무시
@@ -1506,8 +1451,6 @@ useEffect(() => {
       } else {
         setWrongCount(prev => prev + 1);
       }
-
-
     } catch (error) {
       log.debug('제출 실패', error);
     }
@@ -1616,11 +1559,6 @@ useEffect(() => {
 
   // 뒤로가기 버튼
   const handleBack = () => {
-    // if (feedbackPage) {
-    //   navigate('/feedback', { state: { returnTo: -1 } });
-    //   return;
-    // }
-
     // 정산 했는지 체크
     if (isSettlement) {
       // 쿠키 확인 후 페이지 이동
@@ -1637,11 +1575,6 @@ useEffect(() => {
 
   // 마이페이지 버튼
   const handleMyPage = () => {
-
-    // if (feedbackPage) {
-    //   navigate('/feedback', { state: { returnTo: '/my' } });
-    //   return;
-    // }
 
     // 정산 했는지 체크
     if (isSettlement) {
@@ -1708,15 +1641,10 @@ const handleExitFromSettlement = async (target = -1) => {
 
 
 
-  // 퀴즈 기본 화면 테스트용 오류
+  // 퀴즈 기본 화면
   const testQuiz = () => {
-
     return (
       <div className={styles.container}>
-
-
-
-
         <div className={styles.header}>
           <div className={styles.header2}>
             {/* 뒤로가기 */}
@@ -1785,8 +1713,8 @@ const handleExitFromSettlement = async (target = -1) => {
         <div className={styles.balloon}>
           <div className={styles.balloon2}>
             <p className={styles['balloon2-t']}>
-              {settlementData && settlementData.length > 0 
-              ? settlementData
+              {settlementData?.feedback
+              ? settlementData.feedback
               : <>
                     {currentQuiz?.quizType === 'BLANK' && (!isConfirmed ? "이 자리에 어떤 단어가 들어갈까요?"  : feedback?.feedback)}
                     {currentQuiz?.quizType === 'OX' && (!isConfirmed ? "맞으면 O, 아니면 X예요." : feedback?.feedback)}
@@ -1798,7 +1726,7 @@ const handleExitFromSettlement = async (target = -1) => {
         </div>
         )}
 
-{/* 정산 상태에 따라 분기, 오류 테스트 끝내고 !지우기 */}
+{/* 정산 상태에 따라 분기 */}
       {isSettlement ? (
         <>
         <SettlementPage 
@@ -1953,7 +1881,6 @@ const handleExitFromSettlement = async (target = -1) => {
               <div className={styles.information4}>
                 <p className={styles.information5}>{feedback?.relatedExpressions}</p>
 
-                {/* <p className={styles.information5}>stop to 동사원형 : ~하기 위해 멈추다 (He stopped to smoke. 그는 담배를 피우려고 멈췄다.)</p> */}
               </div>
             </div>
 
@@ -2046,7 +1973,6 @@ const handleExitFromSettlement = async (target = -1) => {
             className={styles['quiz8-bt']}
             style={{
               padding: buttonPositions[i].padding,
-              // border: borderColor(choice),
               background: backgroundColor(choice),
               color: textColor(choice),
             }}>
@@ -2208,15 +2134,15 @@ const handleExitFromSettlement = async (target = -1) => {
     if (!quizzes?.length || !matchingShuffledMeanings?.length) return null;
 
     return (
-      <div className={styles.quiz}>
-        <div className={styles['quiz-a']}>
+      <div className={styles.quiz} style={{ flex: 'none' }}>
+        <div className={styles['quiz-a']} style={{ gap: '20px' }}>
           <div className={styles['quiz-badge-n']}>
             <div className={styles['quiz-badge2']}>
               <p className={styles['quiz-badge3']}>Q.1</p>
             </div>
           </div>
 
-          <div className={styles['quiz-b']}>
+          <div className={styles['quiz-b']} style={{ flex: 'none', gap: '20px' }}>
             <div className={styles['quiz-c']}>
               <div className={styles.matching}>
                 {/* 매칭 퀴즈 보기 버튼 */}
@@ -2249,7 +2175,7 @@ const handleExitFromSettlement = async (target = -1) => {
               </div>
             </div>
 
-            <div className={styles['quiz-s']}>
+            <div className={styles['quiz-s']} style={{ marginTop: 0 }}>
               <div className={styles['quiz-s2']}>
                 <div className={styles['quiz-s3']}>
                   <button
@@ -2350,7 +2276,6 @@ const handleExitFromSettlement = async (target = -1) => {
       }}
       >
         <div 
-        // className={styles.wrapper}
         className={`${styles.wrapper} ${
           popupPosition.isBelow ? styles.wrapperBelow : ''
         }`}
@@ -2484,15 +2409,6 @@ const navigate = useNavigate();
         testDictionary()
       )}
 
-      {/* 최종정산 */}
-      {/* <SettlementPage 
-        data={settlementData}
-        videoId={videoId}
-        videoTitle={videoTitle}
-        channelName={channelName}
-        duration={duration}
-        thumbnailUrl={thumbnailUrl}
-      /> */}
     </>
   );  // return 끝
 }  // 함수 끝

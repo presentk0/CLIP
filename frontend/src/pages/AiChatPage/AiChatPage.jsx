@@ -579,18 +579,6 @@ function TestDictionary ({ wordData, currentIndex }) {
                 <div className={styles['dictionary-bar']}></div>
   
                 <div className={styles.dictionary27}>
-                  {/* <div className={styles.dictionary28}>
-                    <p className={styles.dictionary29}>관용구</p>
-                  </div>
-                  <div className={styles.dictionary30}>
-                    <div className={styles.dictionary31}>
-                      <p className={styles.dictionary32}>a stroke of serendipity</p>
-                    </div>
-                    <div className={styles.dictionary33}>
-                      <p className={styles.dictionary34}>뜻밖의 행운 같은 순간</p>
-                    </div>
-                  </div> */}
-  
                   {word.synonyms.length > 0 && (
                   <div className={styles.dictionary35}>
                     <div className={styles.dictionary36}>
@@ -735,17 +723,11 @@ function Scenario ({ scenarioData, selectedScenario, onSelect }) {
 
                 {isSelected === true && (
                 <div className={styles.scenario6}>
-                  {/* <svg 
-                  className={styles.scenario7}
-                  xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <path d="M12.137 3.77574C12.566 3.30103 13.2975 3.26012 13.7767 3.6859C14.2579 4.1139 14.302 4.85088 13.8743 5.33238L13.8675 5.3402L7.08809 12.6732L7.08711 12.6722C6.86614 12.9168 6.55276 13.0578 6.22284 13.058C5.88978 13.058 5.57214 12.9152 5.35076 12.6664L1.79505 8.66637C1.36701 8.18483 1.41026 7.44699 1.89173 7.01891C2.37332 6.59106 3.11121 6.63506 3.53921 7.11656L6.22968 10.1439L12.137 3.77477V3.77574Z" fill="white"/> */}
-
                     <svg 
                     className={styles.scenario8}
                     xmlns="http://www.w3.org/2000/svg" width="13" height="10" viewBox="0 0 13 10" fill="none">
                       <path d="M10.6367 0.384385C11.0656 -0.090327 11.7972 -0.13124 12.2763 0.294542C12.7576 0.72254 12.8017 1.45953 12.374 1.94103L12.3672 1.94884L5.58778 9.28185L5.58681 9.28087C5.36583 9.52548 5.05245 9.66645 4.72254 9.66661C4.38947 9.66661 4.07184 9.52383 3.85046 9.27501L0.294745 5.27501C-0.133297 4.79347 -0.0900501 4.05564 0.391426 3.62755C0.873018 3.1997 1.6109 3.24371 2.03891 3.72521L4.72937 6.75255L10.6367 0.383409V0.384385Z" fill="white"/>
                     </svg>
-                  {/* </svg> */}
                 </div>
                 )}
               </div>
@@ -867,21 +849,10 @@ function MessageContent({ content, highlightWord }) {
 
 
 
-// 발음 점수 표시
-// {msg.senderType === 'USER' && msg.pronunciation && (
-//   <div className={styles.pronunciation}>
-//     발음: {msg.pronunciation.score}점
-//     {msg.pronunciation.recommendedAlternative && (
-//       <p>추천 표현: {msg.pronunciation.recommendedAlternative}</p>
-//     )}
-//   </div>
-// )}
-
 
 
 // 힌트 보기
 function HintCard({ message }) {
-  // log.debug('힌트 값', message);
 
   return (
     <div className={styles['hint-card']}>
@@ -997,7 +968,6 @@ function HintOffer({ message, handleHintAccept, handleHintReject }) {
 
 // 오류 이거 미사용임
 function ReportBubble({ message }) {
-  // log.debug('추천 단어', message);
     // 인트로 (캐릭터 + 한마디)
   if (message.reportType === 'INTRO') {
     return (
@@ -1244,8 +1214,6 @@ function Recommendation() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // // ? 써서 recommended + limit이라는 옵션값 5 로 인식
-        // const result = await apiFetch('/videos/recommended?limit=5', { method: 'GET' });
         const result = await apiFetch('/videos/recommended', { method: 'GET' });
         setRecommendedData(result?.data?.recommendations[0]);
       } catch (error) {
@@ -1359,8 +1327,6 @@ function ReportPage({ reportData, chatData, handleAiSound }) {
   overall, 
   expressionNaturalness, 
   pronunciationScore,
-  // weaknessAnalysis,
-  // summary 
 } = reportData;
 
   const getGrade = (score) => {
@@ -1372,12 +1338,7 @@ function ReportPage({ reportData, chatData, handleAiSound }) {
     return 'E';
   };
 
-  // const {
-  //   overall,
-  //   pronunciationScore,
-  //   expressionNaturalness,
-  //   wordUsage,
-  // } = reportData;
+
 
   return (
     <div className={styles.reportPage}>
@@ -1573,139 +1534,6 @@ function ReportPage({ reportData, chatData, handleAiSound }) {
 
         <Recommendation />
       </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-{/* 
-      캐릭터
-      <div className={styles.bar2}>
-        <div 
-        className={styles.bar3}
-        style={{ backgroundImage: `url(${frog2})` }}
-        >
-        </div>
-      </div>
-
-      한마디
-      <div className={styles.balloon}>
-        <div className={styles.balloon2}>
-          <p className={styles['balloon2-t']}>
-            {expressionNaturalness?.feedback}
-          </p>
-        </div>
-      </div>
-
-      <div className={styles.reportPage3}>
-
-        <div className={styles.reportPage4}>
-          <p>AI 채팅 진행 결과</p>
-
-          <div className={styles.reportPage5}>
-            <div className={styles.reportPage6}>
-              <p className={styles.reportPage7}>종합 점수</p>
-              <p className={styles.reportPage8}>{overall?.score ?? '-'}</p>
-            </div>
-
-            {pronunciationScore?.available && (
-              <>
-                <div className={styles.reportPage9}></div>
-                <div className={styles.reportPage6}>
-                  <p className={styles.reportPage7}>발음 정확도</p>
-                  <p className={styles.reportPage8}>
-                    {pronunciationScore?.overallScore ?? '-'}
-                  </p>
-                </div>
-              </>
-            )}
-
-            <div className={styles.reportPage9}></div>
-
-            <div className={styles.reportPage6}>
-              <p className={styles.reportPage7}>표현 자연도</p>
-              <p className={styles.reportPage8}>
-                {expressionNaturalness?.overallScore ?? '-'}
-              </p>
-            </div>
-          </div>
-
-          <div className={styles.reportPage10}>
-            목표 단어 {wordUsage?.targetWord}를 {wordUsage?.usageCount}회 사용했어요!
-          </div>
-        </div>
-
-        발음이 아쉬웠던 문장 (있을 때만)
-        {pronunciationScore?.available && 
-          pronunciationScore?.weakSentences?.length > 0 && (
-          <div className={styles.reportPage12}>
-            <p className={styles.reportPage13}>🎤 발음이 아쉬웠던 문장</p>
-
-            {pronunciationScore.weakSentences.map((s, i) => (
-              <div key={i} className={styles.reportPage14}>
-                <p className={styles.reportPage15}>{s.sentence}</p>
-                <p className={styles.reportPage16}>{s.feedback}</p>
-
-                <button className={styles.sound}>
-                  <div className={styles.sound2}>🔊</div>
-                  <p className={styles.sound3}>모범 발음 듣기</p>
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        기억하면 좋은 표현
-        {expressionNaturalness?.improvements?.length > 0 && (
-          <div className={styles.reportPage12}>
-            <p className={styles.reportPage13}>기억하면 좋은 표현</p>
-
-            {expressionNaturalness.improvements.map((item, i) => (
-              <div key={i} className={styles.reportPage14}>
-                <p className={styles.reportPage15}>{item.suggested}</p>
-                <p className={styles.reportPage16}>{item.explanation}</p>
-
-                <button className={styles.sound}>
-                  <div className={styles.sound2}></div>
-                  <p className={styles.sound3}>모범 발음 듣기</p>
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        다음엔 이렇게
-        {overall?.improvePoints && (
-          <div className={styles.reportPage17}>
-            <p className={styles.reportPage13}>다음엔 이렇게</p>
-            <div className={styles.reportPage18}>
-              <p className={styles.reportPage19}>{overall.improvePoints}</p>
-            </div>
-          </div>
-        )}
-      </div> */}
     </div>
   );
 }
@@ -2156,7 +1984,7 @@ const handleError = ({ code, message }) => {
       updated = [...updated, {
         messageId: `suggestion_${payload.messageId}`,
         senderType: 'REPORT',
-        reportType: 'SUGGESTION_INLINE',  // ← 정산용 SUGGESTION과 구분
+        reportType: 'SUGGESTION_INLINE',  // 정산용 SUGGESTION과 구분
         recommendedAlternative: payload.recommendedAlternative,
       }];
     }
@@ -2567,8 +2395,6 @@ const handleError = ({ code, message }) => {
 
   // 텍스트 전송
   const sendTextMessage = (text) => {
-
-    // if (!inputText.trim()) return;
     if (isWaiting) return;
     if (!clientRef.current?.connected) return;
 
@@ -2592,7 +2418,6 @@ const handleError = ({ code, message }) => {
       })
     });
 
-    // setInputText('');
     setIsWaiting(true);
   };
 
@@ -3022,15 +2847,6 @@ function ChatInput({ sendTextMessage, showToast, startRecording, stopRecording, 
           </div>
 
           <div className={styles['chat-input10']}>
-            {/* <button onClick={isRecording ? stopRecording : startRecording}
-            disabled={isWaiting}
-            >
-              {isRecording ? '⏹ 음성 녹음 정지' : '음성 녹음'}
-            </button> */}
-            {/* <button className={styles['chat-input12']} onClick={sendTextMessage}
-            disabled={isWaiting || !inputText.trim()}
-            >텍스트전송</button> */}
-
             {isRecording ? (
               // 녹음 정지 + 음성 전송 버튼
               <button 
@@ -3101,8 +2917,7 @@ const AI = React.memo(function AI({ msg, highlightWord, isFirst, isMessage, onSe
   // 선택 여부
   const isSelected = selectedTargetId === messageId;
 
-  // log.debug('메시지 덮어씌워졌는지 확인용', message );
-  
+
   return (
     <div className={styles['chat-ai-group']}>
       {/* 메시지 모드인 경우 아이콘 옆에 체크박스/신고 선택 버튼 노출 */}
@@ -3188,7 +3003,6 @@ const AI = React.memo(function AI({ msg, highlightWord, isFirst, isMessage, onSe
 // User 말풍선
 const User = React.memo(function User({ msg, highlightWord, remainingTurn, message, onPlaySound, turnNumber }) {
 
-  // const turn = turnNumber ?? remainingTurn;
   const turn = turnNumber !== undefined 
   ? turnNumber + 1 
   : remainingTurn;
@@ -3242,7 +3056,6 @@ const User = React.memo(function User({ msg, highlightWord, remainingTurn, messa
 
 
 
-// 에러 처음 진입 시 스테이트 리셋 하는거 넣기
 
 export function AiChatPage ({ handleAiReset }) {
   const [audioAllowed, setAudioAllowed] = useState(false);
@@ -3494,7 +3307,6 @@ const handleMyPage = async () => {
         scenarioGoal: selectedObj.goal,
         scenarioSituation: selectedObj.situation,
 
-        // scenarioDescription: selectedObj.description,
       }));
       setStep('VOICE_SELECT');
     } else if (step === 'VOICE_SELECT') {
@@ -3756,25 +3568,18 @@ const passedData = location.state?.wordsData;
           }
         })
       );
-
       setWords(enriched);
     };
-
     init();
   }, [navigate, passedData, step]);
 
 
 
-
-
   // 시나리오 선택 변경
   const handleScenarioChange = (scenario) => {
-
     if (scenario === selectedScenario) return;
-
     setSelectedScenario(scenario);
   };
-
 
 
 
@@ -3783,18 +3588,6 @@ const passedData = location.state?.wordsData;
     if (voice === selectedVoice) return;
     setSelectedVoice(voice);
   };
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -3850,25 +3643,6 @@ const passedData = location.state?.wordsData;
         </>
       )
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
