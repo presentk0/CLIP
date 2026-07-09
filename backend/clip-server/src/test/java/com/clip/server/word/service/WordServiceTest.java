@@ -262,7 +262,146 @@ public class WordServiceTest {
                 any(Pageable.class)
         );
     }
+    @Test
+    @DisplayName("단어장 조회 - 검색어에 LIKE 와일드카드(%,_)가 있으면 제거되어 전달된다")
+    void getWords_likeWildcard_removed() {
+        // 1. Given
+        Page<CollectedWord> wordPage = new PageImpl<>(List.of(), PageRequest.of(0, 10), 0);
 
+        given(collectedWordRepository.searchMyWords(
+                anyLong(), anyString(), any(), any(), any(Pageable.class)
+        )).willReturn(wordPage);
+
+        // 2. When - LIKE 와일드카드 포함
+        wordService.getWords(TEST_USER_ID, 0, 10, "latest", "all", "app%le_");
+
+        // 3. Then - %, _ 제거되어 "apple"로 전달
+        verify(collectedWordRepository).searchMyWords(
+                eq(TEST_USER_ID),
+                eq(WordType.COLLECT.name()),
+                isNull(),
+                eq("apple"),
+                any(Pageable.class)
+        );
+    }
+
+    @Test
+    @DisplayName("단어장 조회 - 특수문자(@,#,$ 등)는 필터링되어 전달된다")
+    void getWords_specialChars_removed() {
+        // 1. Given
+        Page<CollectedWord> wordPage = new PageImpl<>(List.of(), PageRequest.of(0, 10), 0);
+
+        given(collectedWordRepository.searchMyWords(
+                anyLong(), anyString(), any(), any(), any(Pageable.class)
+        )).willReturn(wordPage);
+
+        // 2. When
+        wordService.getWords(TEST_USER_ID, 0, 10, "latest", "all", "apple@#$");
+
+        // 3. Then - 특수문자 제거되어 "apple"만 남음
+        verify(collectedWordRepository).searchMyWords(
+                eq(TEST_USER_ID),
+                eq(WordType.COLLECT.name()),
+                isNull(),
+                eq("apple"),
+                any(Pageable.class)
+        );
+    }
+
+    @Test
+    @DisplayName("단어장 조회 - 검색어가 특수문자만 있으면 null로 변환된다")
+    void getWords_onlySpecialChars_convertedToNull() {
+        // 1. Given
+        Page<CollectedWord> wordPage = new PageImpl<>(List.of(), PageRequest.of(0, 10), 0);
+
+        given(collectedWordRepository.searchMyWords(
+                anyLong(), anyString(), any(), any(), any(Pageable.class)
+        )).willReturn(wordPage);
+
+        // 2. When
+        wordService.getWords(TEST_USER_ID, 0, 10, "latest", "all", "@#$%^&*");
+
+        // 3. Then - 모두 특수문자 → null로 변환되어 전체 조회
+        verify(collectedWordRepository).searchMyWords(
+                eq(TEST_USER_ID),
+                eq(WordType.COLLECT.name()),
+                isNull(),
+                isNull(),
+                any(Pageable.class)
+        );
+    }
+
+    @Test
+    @DisplayName("단어장 조회 - 한글 검색어는 그대로 전달된다")
+    void getWords_koreanKeyword_success() {
+        // 1. Given
+        Page<CollectedWord> wordPage = new PageImpl<>(List.of(), PageRequest.of(0, 10), 0);
+
+        given(collectedWordRepository.searchMyWords(
+                anyLong(), anyString(), any(), any(), any(Pageable.class)
+        )).willReturn(wordPage);
+
+        // 2. When
+        wordService.getWords(TEST_USER_ID, 0, 10, "latest", "all", "사과");
+
+        // 3. Then
+        verify(collectedWordRepository).searchMyWords(
+                eq(TEST_USER_ID),
+                eq(WordType.COLLECT.name()),
+                isNull(),
+                eq("사과"),
+                any(Pageable.class)
+        );
+    }
+
+    @Test
+    @DisplayName("단어장 조회 - 알파벳/한글/공백 조합 검색어는 정상 전달된다")
+    void getWords_mixedValidKeyword_success() {
+        // 1. Given
+        Page<CollectedWord> wordPage = new PageImpl<>(List.of(), PageRequest.of(0, 10), 0);
+
+        given(collectedWordRepository.searchMyWords(
+                anyLong(), anyString(), any(), any(), any(Pageable.class)
+        )).willReturn(wordPage);
+
+        // 2. When
+        wordService.getWords(TEST_USER_ID, 0, 10, "latest", "all", "apple 사과");
+
+        // 3. Then
+        verify(collectedWordRepository).searchMyWords(
+                eq(TEST_USER_ID),
+                eq(WordType.COLLECT.name()),
+                isNull(),
+                eq("apple 사과"),
+                any(Pageable.class)
+        );
+    }
+
+    @Test
+    @DisplayName("단어장 조회 - 50자를 초과하는 검색어는 50자로 잘려서 전달된다")
+    void getWords_longKeyword_truncated() {
+        // 1. Given
+        Page<CollectedWord> wordPage = new PageImpl<>(List.of(), PageRequest.of(0, 10), 0);
+
+        given(collectedWordRepository.searchMyWords(
+                anyLong(), anyString(), any(), any(), any(Pageable.class)
+        )).willReturn(wordPage);
+
+        String longKeyword = "a".repeat(100);  // 100자
+        String expectedKeyword = "a".repeat(50);  // 50자로 잘림
+
+        // 2. When
+        wordService.getWords(TEST_USER_ID, 0, 10, "latest", "all", longKeyword);
+
+        // 3. Then
+        verify(collectedWordRepository).searchMyWords(
+                eq(TEST_USER_ID),
+                eq(WordType.COLLECT.name()),
+                isNull(),
+                eq(expectedKeyword),
+                any(Pageable.class)
+        );
+    }
     @Test
     @DisplayName("단어장 조회 - filter=today이면 오늘 시작 시간이 전달된다")
     void getWords_todayFilter_success() {

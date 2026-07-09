@@ -115,10 +115,8 @@ public class WordService {
                 ? LocalDate.now().atStartOfDay()
                 : null;
 
-        // 4. 검색어 정제 (null 또는 공백이면 검색 조건에서 제외)
-        String searchKeyword = (keyword != null && !keyword.isBlank())
-                ? keyword.trim()
-                : null;
+        // 4. 검색어 정제 (특수문자 제거 + null/공백 처리)
+        String searchKeyword = sanitizeKeyword(keyword);
 
         // 5. DB 조회 (Native Query - word + meaning 컬럼 LIKE 검색)
         Page<CollectedWord> wordPage = collectedWordRepository.searchMyWords(
@@ -174,6 +172,33 @@ public class WordService {
             case "alphabet-desc" -> Sort.by("word").descending();          // 알파벳 Z-A
             default              -> Sort.by("collected_at").descending();  // 최신 순 (기본값)
         };
+    }
+
+    /**
+     * 검색어 정제
+     * - 알파벳, 숫자, 한글, 공백만 허용
+     * - 특수문자(%, _, \, #, @ 등) 제거
+     * - 앞뒤 공백 제거
+     * - 길이 50자 제한
+     */
+    private String sanitizeKeyword(String keyword) {
+        if (keyword == null || keyword.isBlank()) {
+            return null;
+        }
+
+        // 알파벳, 숫자, 한글, 공백만 남기고 나머지 제거
+        String cleaned = keyword.trim().replaceAll("[^a-zA-Z0-9가-힣\\s]", "");
+
+        if (cleaned.isBlank()) {
+            return null;
+        }
+
+        // 너무 긴 검색어 방지
+        if (cleaned.length() > 50) {
+            cleaned = cleaned.substring(0, 50);
+        }
+
+        return cleaned;
     }
 
     // collectWord, totalCount -> CollectWordResponse 변환
