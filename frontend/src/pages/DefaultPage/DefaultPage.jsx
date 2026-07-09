@@ -1,3 +1,5 @@
+/* global chrome */
+
 import { useAuth } from "../../hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../../utils/api";
@@ -9,6 +11,7 @@ import { log } from "../../utils/logger";
 
 import { saveUserData, loadUserData } from "../../utils/userStorage";
 import { TestSpinner } from "../../components/Spinner/Spinner";
+import { Toast } from "../../contexts/Toast";
 
 const BADGE_ICONS = {
   BRONZE: (<svg className={style.bronze} xmlns="http://www.w3.org/2000/svg" width="21" height="24" viewBox="0 0 21 24" fill="none">
@@ -264,6 +267,103 @@ function UserAvatar({ imageUrl, name }) {
 
 
 
+function TutorialPopup({setShowTutorial, setIsAiBlocked, isAiBlocked}) {
+  // 지금 보기
+  const handleTutorialConfirm = async () => {
+    if (isAiBlocked) return;
+    // 버튼 비활성화
+    setIsAiBlocked(true);
+
+    try {
+
+      await apiFetch('/users/me/ui-state', { 
+        method: 'PATCH',
+        body: JSON.stringify({ tutorialCompleted: true }),
+      });
+
+      setShowTutorial(false);
+      openExternalLink(TUTORIAL_URL);
+    } catch (error) {
+      log.debug('튜토리얼 여부 전송 실패', error);
+      setShowTutorial(false);
+    } finally {
+      // 버튼 활성화
+      setIsAiBlocked(false);
+    }
+  };
+  
+
+  // 나중에 보기
+  const handleTutorialSkip = async () => {
+    if (isAiBlocked) return;
+    // 버튼 비활성화
+    setIsAiBlocked(true);
+
+
+    try {
+      await apiFetch('/users/me/ui-state', {
+        method: 'PATCH',
+        body: JSON.stringify({ tutorialCompleted: true }),
+      });
+
+      setShowTutorial(false);
+    } catch (error) {
+      log.debug('튜토리얼 스킵 전송 실패', error);
+      setShowTutorial(false);
+    } finally {
+      // 버튼 활성화
+      setIsAiBlocked(false);
+    }
+  };
+
+  // 튜토리얼 이동
+  const TUTORIAL_URL = 'https://clipzyguide.netlify.app/';
+
+const openExternalLink = (url) => {
+  if (url !== TUTORIAL_URL) {  // 단일 URL이면 직접 비교가 더 명확
+    log.error('허용되지 않은 URL');
+    return;
+  }
+
+  if (typeof chrome !== 'undefined' && chrome.tabs) {
+    chrome.tabs.create({ url });
+  } else {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+};
+
+
+  return (
+      <>
+      {/* 어두워지기 */}
+      <div className={style['exit-overlay']}></div>
+      
+      <div className={style.exit}>
+        <div className={style.exit2}>
+          <p className={style.exit3}>시작하기 전에 간단한 안내 도와드릴까요?</p>
+          <div className={style.exit4}>
+            <p className={style.exit5}>클립지의 기본적인 사용법을 적어두었어요! </p>
+          </div>
+        </div>
+
+
+        <div className={style.exit6}>
+          <button 
+          className={style.exit7}
+          onClick={handleTutorialConfirm}>
+            <p className={style.exit8}>도움말 바로가기</p>
+          </button>
+          <button 
+          className={style.exit9}
+          onClick={handleTutorialSkip}
+          >
+            <p className={style.exit10}>나중에 구경할게요</p>
+          </button>
+        </div>
+      </div>
+      </>
+  );
+}
 
 
 
@@ -274,7 +374,7 @@ function UserAvatar({ imageUrl, name }) {
 
 
 function SectionBadgeCard({ currentBadge, videoId, videoTitle, videoDuration, channelName }) {
-// function SectionBadgeCard({ videoId, videoTitle, videoDuration, channelName }) {
+  if (!currentBadge) return null;
 
   // 썸네일 클릭 시 메인 탭에서 유튜브 영상 열기
   const handleClick = (e) => {
@@ -455,10 +555,7 @@ function DefaultPage({ onMyPage }) {
   // 상태로 내 정보 조회 데이터 관리 (마스터리 뱃지 영상)
   const [usersData, setUsersData] = useState(null);
 
-
-  // 칭호 박스 열고 닫기
-  const [isBadge, setIsBadge] = useState(false);
-
+  const [showTutorial, setShowTutorial] = useState(false);
 
 
   // 추천 영상 관리, 나중에 다시 넣기
@@ -472,7 +569,14 @@ function DefaultPage({ onMyPage }) {
   const [isAiBlocked, setIsAiBlocked] = useState(false);
 
 
+  // 팝업 메시지
+  const [popupMessage, setPopupMessage] = useState('');
+  const [popupCount, setPopupCount] = useState(0);
 
+  const showPopup = (msg) => {
+    setPopupMessage(msg);
+    setPopupCount(prev => prev + 1);
+  };
 
 
   // 컴포넌트 mount 시 내 정보 조회 API 호출
@@ -515,6 +619,17 @@ function DefaultPage({ onMyPage }) {
 
 
 
+  // 컴포넌트 mount 시 팝업 확인 여부 조회
+  useEffect(() => {
+    const check = async () => {
+      const res = await apiFetch('/users/me/ui-state', { method: 'GET' });
+
+      if (!res.data?.tutorialCompleted) {
+        setShowTutorial(true);
+      }
+    };
+  check();
+  }, []);
 
 
 
@@ -557,7 +672,9 @@ try {
 
   // false면 API 호출 없이 바로 차단 (나중에 단어 삭제 생기면 전부 삭제됐을 때 false로 되돌리는것도 필요함)
   if (hasWords === false) {
-    alert('수집된 단어가 없습니다!');
+    showPopup('수집된 단어가 없습니다!');
+
+    
     return;
   }
 
@@ -571,7 +688,7 @@ try {
     // await setHasWordsCache(res.data.hasWords);
 
     if (!res.data.hasWords) {
-      alert(res.data.guideMessage || '수집된 단어가 없습니다!');
+      showPopup(res.data.guideMessage || '수집된 단어가 없습니다!');
       return;
     }
 
@@ -579,9 +696,11 @@ try {
     navigate('/ai', { state: { wordsData: res.data } });
     
   } catch (error) {
+    showPopup('단어 조회에 실패했습니다');
     log.debug('단어 조회 실패', error);
   }
 } catch (error) {
+  showPopup('AI 채팅방 입장에 실패했습니다');
   log.debug('ai 방 입장 실패', error)
 } finally {
   // 버튼 활성화
@@ -601,6 +720,15 @@ try {
       {/* ai 채팅 진입 시 로딩 */}
       {isAiBlocked && <TestSpinner />}
 
+      {popupMessage && 
+      <Toast 
+        message={popupMessage}
+        count={popupCount}
+        onClose={() => setPopupMessage('')}
+      />}
+
+      {showTutorial && <TutorialPopup setShowTutorial={setShowTutorial} setIsAiBlocked={setIsAiBlocked} isAiBlocked={isAiBlocked} />}
+
       {/* 상단 */}
       <div className={style.top}>
         <div className={style.logobox}>
@@ -618,6 +746,16 @@ try {
           </svg>
         </div>
         <div className={style.topButtonBox}>
+          <button 
+          className={style.tutorial}
+          onClick={() => setShowTutorial(true)}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path d="M12 3C7.041 3 3 7.041 3 12C3 16.959 7.041 21 12 21C16.959 21 21 16.959 21 12C21 7.041 16.959 3 12 3ZM12 19.2C8.031 19.2 4.8 15.969 4.8 12C4.8 8.031 8.031 4.8 12 4.8C15.969 4.8 19.2 8.031 19.2 12C19.2 15.969 15.969 19.2 12 19.2Z" fill="#F9F8F1"/>
+              <path d="M11.2471 14.4983H12.7758V16H11.2471V14.4983ZM12.9822 7.17725C11.3924 6.61409 9.56561 7.44005 9 8.98685L10.4369 9.49744C10.5745 9.12201 10.865 8.82166 11.2548 8.64896C11.6446 8.47626 12.0803 8.45373 12.4624 8.58889C12.7548 8.69385 13.0079 8.8836 13.188 9.133C13.3682 9.38241 13.467 9.67971 13.4713 9.98551C13.4713 10.7664 12.2025 11.3821 11.7592 11.5398C11.4535 11.6449 11.2471 11.9303 11.2471 12.2456V14H12.7758V12.7412C13.5707 12.3583 15 11.4722 15 9.978C14.9934 9.36498 14.7968 8.7685 14.4362 8.2681C14.0757 7.7677 13.5685 7.38716 12.9822 7.17725Z" fill="#F9F8F1"/>
+            </svg>
+          </button>
+
+          
           <button className={style.topLeftButton}
           disabled={isAiBlocked}
           onClick={onAiChatPage}
@@ -644,126 +782,7 @@ try {
       {/* 전체 내용 */}
       <div className={style.container}>
 
-{isBadge ? (
-        // {/* 칭호칸 열린 유저 프로필 */}
-        <div className={style['userProfile-t']}>
-
-          {/* 프로필 박스 */}
-          <div className={style.userProfileBox}>
-          
-            {/* 유저 정보 박스 */}
-            <div className={style.userInfo}>
-
-              {/* 유저 프로필 이미지 */}
-              <div>
-                <UserAvatar 
-                  imageUrl={usersData?.profileImageUrl}
-                  name={usersData?.name}
-                />
-              </div>
-
-              {/* 유저 정보 박스 */}
-              <div className={style.userText}>
-
-                {/* 유저 이름 박스 */}
-                <div className={style.userNameRow}>
-                  <div className={style.userNameBox}>
-                    <p className={style.userName}>
-                      {usersData?.name}
-                    </p>
-                  </div>
-
-                  {/* 님 */}
-                  <div className={style.userNameSuffixBox}>
-                    <p className={style.userNameSuffix}>
-                      님
-                    </p>
-                  </div>
-                </div>
-
-                {/* 이메일 박스 */}
-                <div className={style.userEmailBox}>
-                  {/* 이메일 */}
-                  <p className={style.userEmail}>
-                    {truncateEmail(usersData?.email, 15)}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* 로그아웃 박스 */}
-            <div className={style.logoutButton}>
-              <button 
-              onClick={handleLogout}
-              className={style.logoutButtonInner}
-              >
-                <div className={style.logoutIcon}>
-                  <p className={style.logoutText}>
-                    로그아웃
-                  </p>
-                </div>
-              </button>
-            </div>
-
-            {/* 칭호칸 열고 닫기 */}
-            <button 
-            onClick={() => setIsBadge(false)}
-            className={style.logoutButtonBg}>
-              {/* 버튼 아이콘? */}
-              <svg
-                className={style.logoutButtonIcon}
-                xmlns="http://www.w3.org/2000/svg"
-                width="13"
-                height="8"
-                viewBox="0 0 13 8"
-                fill="none"
-              >
-                <path 
-                  d="M0.75 0.75L6.375 6.375L12 0.75" 
-                  stroke="#0F0D0E"
-                  stroke-width="1.5"
-                  stroke-linecap="round"
-                />
-              </svg>
-            </button>
-          </div>
-
-          {/* 레벨 카드 전체 */}
-          <div className={style.levelCard}>
-            <div className={style.levelCardInner}>
-              <div className={style.levelProgress}>
-                <div className={style.levelInfoRow}>
-                  <div className={style.levelLabel}>
-                    <p className={style.levelLabelText}>
-                      LV.{usersData.level}
-                    </p>
-                  </div>
-
-                  <div className={style.levelExp}>
-                    <p className={style.levelExpTextLeft}>{usersData.exp.toLocaleString()}</p>
-                    <span className={style.levelExpTextRight}> | {usersData.nextLevelExp.toLocaleString()}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className={style.levelBar}>
-                <div className={style.levelBarTrack}></div>
-                <div 
-                className={style.levelBarFill}
-                style={{ width: `${usersData.progressPercentage}%` }}
-                ></div>
-              </div>
-            </div>
-
-            <div className={style.levelMessage}>
-              <p className={style.levelMessageText}>
-                다음 레벨까지 {display}%남았어요!
-              </p>
-            </div>
-          </div>
-        </div>
-) : (
-        // {/* 유저 프로필 */}
+        {/* 유저 프로필 */}
         <div className={style.userProfile}>
 
           {/* 프로필 박스 */}
@@ -823,27 +842,7 @@ try {
               </button>
             </div>
 
-            {/* 칭호칸 열고 닫기 */}
-            <button 
-            onClick={() => setIsBadge(true)}
-            className={style.logoutButtonBg}>
-              {/* 버튼 아이콘? */}
-              <svg
-                className={style.logoutButtonIcon}
-                xmlns="http://www.w3.org/2000/svg"
-                width="13"
-                height="8"
-                viewBox="0 0 13 8"
-                fill="none"
-              >
-                <path 
-                  d="M0.75 0.75L6.375 6.375L12 0.75" 
-                  stroke="#0F0D0E"
-                  stroke-width="1.5"
-                  stroke-linecap="round"
-                />
-              </svg>
-            </button>
+
           </div>
 
           {/* 레벨 카드 전체 */}
@@ -880,12 +879,12 @@ try {
             </div>
           </div>
         </div>
-)}
+
 
 
 
         <div className={style.videoSection}>
-          {(usersData.ongoingMastery.currentBadge && usersData.ongoingMastery.currentBadge.length > 0) ? <SectionBadgeCard { ...usersData.ongoingMastery }></SectionBadgeCard> : null }
+          {usersData?.ongoingMastery?.currentBadge ? <SectionBadgeCard { ...usersData.ongoingMastery }></SectionBadgeCard> : null }
 
           <div className={style.recommendedSection}>
 

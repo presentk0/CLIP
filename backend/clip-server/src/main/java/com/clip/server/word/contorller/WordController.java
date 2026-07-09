@@ -7,9 +7,11 @@ import com.clip.server.word.dto.response.WordListResponse;
 import com.clip.server.word.service.WordService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -46,6 +48,7 @@ public class WordController {
             @RequestParam(defaultValue = "all") String filter,
             @RequestParam(required = false) String keyword
     ) {
+
         WordListResponse wordListResponse = wordService.getWords(userId,  page, size, sort, filter, keyword);
         return ApiResponse.success(wordListResponse,"단어장이 성공적으로 조회됐습니다.");
     }

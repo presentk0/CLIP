@@ -56,6 +56,9 @@ public class User {
     @Column(name = "voice_consent_read", nullable = false)
     private Boolean voiceConsentRead = false; // 음성 팝업 동의 여부
 
+    @Column(name = "tutorial_completed", nullable = false)
+    private Boolean tutorialCompleted = false;
+
     @CreatedDate
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -142,5 +145,12 @@ public class User {
      */
     public void markVoiceConsentRead() {
         this.voiceConsentRead = true;
+    }
+
+    /**
+     * 튜토리얼 팝업 확인 처리
+     */
+    public void markTutorialCompleted() {
+        this.tutorialCompleted = true;
     }
 }

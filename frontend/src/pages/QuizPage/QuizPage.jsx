@@ -2,11 +2,7 @@
 
 import nlp from 'compromise';
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
-// import frog from '../../imgs/image_710.png';
-// import frog1 from '../../imgs/image_712.png';
 import { apiFetch } from '../../utils/api';
-// import bulb from '../../imgs/image_62.png';
-// import frog2 from '../../imgs/image_750.png';
 import { log } from '../../utils/logger';
 import styles from './QuizPage.module.css';
 import frog3 from '../../imgs/image_809.png';
@@ -18,10 +14,69 @@ import { saveUserData, loadUserData, removeUserData } from '../../utils/userStor
 
 
 
+const LOADING_TEXTS = [
+  "영상에서 퀴즈 단어를 찾고 있어요.",
+  "표현들을 살펴보는 중이에요.",
+  "학습할 단어를 모으고 있어요.",
+  "오늘의 퀴즈 재료를 준비 중이에요.",
+  "영상 속 단어를 확인하고 있어요.",
+  "배울 만한 표현을 골라보고 있어요.",
+  "단어 수집 중이에요.",
+  "모은 단어로 퀴즈를 만들고 있어요.",
+  "문제를 구성하는 중이에요.",
+  "퀴즈 유형을 정하고 있어요.",
+  "문제 난이도를 맞추는 중이에요.",
+  "학습 흐름에 맞춰 배열 중이에요.",
+  "퀴즈 문항을 다듬고 있어요.",
+  "문제를 정리하는 중이에요.",
+  "퀴즈에 좋은 단어들을 찾고 있어요.",
+  "수집한 단어로 열심히 만들고 있어요.",
+  "최고의 퀴즈를 준비하고 있어요.",
+  "퀴즈 준비를 구성하고 있어요.",
+  "퀴즈 풀 준비가 됐는지 확인하고 있어요.",
+  "수집한 단어로 재밌는 퀴즈를 준비할게요!"
+]
+
+
+
+
 // 렌더링해도 1번만 셔플 (비교값을 -0.5 ~ 0.5으로 설정)
 const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
 
-// function QuizPage({ videoId, videoTitle, channelName, thumbnailUrl, duration }) {
+
+// 10초 계산해서 로딩 텍스트 띄우기
+function QuizLoadingText() {
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+
+    const timer = setInterval(() => {
+
+      // (기존 + 1) 나누기 21 로 나온 자연수 값을 최소 1에서 최대 20으로 설정
+      setIndex(prev => (prev + 1) % LOADING_TEXTS.length);
+    }, 10000);
+
+    return () => {
+
+      clearInterval(timer);
+    }  // 언마운트 시 정리
+  }, []);
+
+  return <p className={styles.ready7}>{LOADING_TEXTS[index]}</p>;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 function QuizPage({ videoId, videoTitle }) {
 
   // 현재 문제 번호 (0부터 시작)
@@ -75,8 +130,6 @@ function QuizPage({ videoId, videoTitle }) {
   const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
   // 단어 클릭 시점의 자막 정보 (단어 수집용)
   const [clickedSubtitle, setClickedSubtitle] = useState(null);
-  // // 단어 수집 버튼 누름 여부
-  // const [isCollected, setIsCollected] = useState(false);
 
   // 클릭한 단어 중복 실행 방지
   const isProcessingRef = useRef(false);
@@ -159,21 +212,6 @@ stateRef.current = {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   // content.jsx에서 자막 수신
   useEffect(() => {
     const handleSubtitleMessage = (message) => {
@@ -185,7 +223,6 @@ stateRef.current = {
         const sorted = message.subtitles.sort((a, b) => a.startTime - b.startTime);
         setSubtitles(sorted);
         setSubtitleIndex(0);
-        // setCurrentSubtitle(sorted[0]);
       }
 
       // 새 자막 도착
@@ -211,8 +248,6 @@ stateRef.current = {
             // 배열은 그대로
             return prev;
           }
-
-        // if (prev.some(s => s.text === message.text)) return prev;
 
           // 새 자막이면 추가하고 그 위치를 현재로 설정
           const newList = [...prev, newSubtitle].sort((a, b) => a.startTime - b.startTime);
@@ -291,7 +326,7 @@ stateRef.current = {
 
     // 단어 아래에 표시할 때의 top 값 (반전 위치)
     // wordRect.top + wordRect.height = 단어의 아래쪽 끝
-    const topBelow = wordRect.top + wordRect.height + 10;
+    const topBelow = wordRect.top + wordRect.height;
 
     // 위쪽 공간이 부족하면 (화면 위로 삐져나가면) 아래쪽으로 반전
     const showBelow = topAbove < 10;  // 10px 여유 마진
@@ -418,10 +453,13 @@ stateRef.current = {
     isProcessingRef.current = true;
 
     try {
-    
 
     // 다른 클릭 이벤트 막기
     e.stopPropagation();
+
+    const wasAlreadyCollected = collectedWords.some(w => 
+      w.word?.toLowerCase() === word?.toLowerCase()
+    );
 
     // 이미 열려있으면 닫기
     if (isPinned) {
@@ -429,11 +467,9 @@ stateRef.current = {
       setDictionaryData(null);
       setClickedSubtitle(null);
       setIsPositioned(false);
-
-      // // 나중에 조회해서 이미 수집했는지 확인 후 대응하기 (오류)
-      // setIsCollected(false);
-      // return 없으면 다른 단어 클릭 시 즉시 이동
     }
+
+
 
     // 클릭 시점의 자막 정보 저장 (단어 수집용)
     // set은 다음 렌더링에 반영되기에 즉시 사용해야 하는 api는 savedSubtitle로 사용
@@ -456,15 +492,6 @@ stateRef.current = {
     setPopupPosition({ top: -9999, left: -9999, arrowLeft: 0 });
 
 
-// log.debug('찾을 단어:', word, typeof word, word.length);
-// log.debug('collectedWords:', collectedWords);
-// log.debug('각 단어 비교:', collectedWords.map(w => ({
-//   stored: w.word,
-//   storedLength: w.word?.length,
-//   target: word,
-//   match: w.word === word
-// })));
-
 
     // 서버에서 조회한 단어에서 찾기
     const collected = collectedWords.find(w => w.word === word);
@@ -478,6 +505,7 @@ stateRef.current = {
           partOfSpeech: collected.partOfSpeech || '',
           meanings: collected.meanings,
           meaningsByPos: collected.meaningsByPos,
+          wasAlreadyCollected,
         });
         setIsPinned(true);
         return;
@@ -541,6 +569,7 @@ stateRef.current = {
             partOfSpeech: target.partOfSpeech,
             meanings: target.meanings,
             meaningsByPos: meaningsByPos,
+            wasAlreadyCollected,
           };
           
           // 팝업 업데이트
@@ -588,6 +617,7 @@ stateRef.current = {
           partOfSpeech: '',
           meanings: [],
           meaningsByPos: [],
+          wasAlreadyCollected,
         };
 
         // 모든 품사의 모든 뜻 추출
@@ -666,8 +696,9 @@ stateRef.current = {
         // 서버에 저장된 단어 추가
         setCollectedWords(prev => [...prev, {
           word: word,
-          // translations: result.meaningTranslations
           phonetic: result.phonetic,
+          partOfSpeech: result.partOfSpeech,
+          meanings: result.meanings,
           meaningsByPos: result.meaningsByPos,
         }]);
 
@@ -717,6 +748,7 @@ stateRef.current = {
         partOfSpeech: target.partOfSpeech,
         meanings: target.meanings,
         meaningsByPos: meaningsByPos,
+        wasAlreadyCollected: true,  // 409면 무조건 true
       };
       
       // 팝업 표시
@@ -792,12 +824,9 @@ stateRef.current = {
   // 팝업 열릴 때 초기 상태 결정
   useEffect(() => {
     if (dictionaryData?.word) {
-      const alreadyCollected = collectedWords.find(w => 
-        w.word?.toLowerCase() === dictionaryData.word?.toLowerCase()
-      );
-      setButtonState(alreadyCollected ? 'collected' : 'idle');
+      setButtonState(dictionaryData.wasAlreadyCollected ? 'collected' : 'idle');
     }
-  }, [dictionaryData, collectedWords]);
+  }, [dictionaryData]);
 
   // 단어 수집 버튼
   const collectWord = async () => {
@@ -834,14 +863,15 @@ stateRef.current = {
 
       // 응답 성공 후 현재 로그인 유저의 캐시에서 ai챗 허용으로 갱신
       if (collect.success) {
-        // await chrome.storage.local.set({ hasWords: true });
         await saveUserData('hasWords', true);
       }
 
       // 서버에 저장된 단어 추가
       setCollectedWords(prev => [...prev, {
         word: dictionaryData.word,
-        // translation: clickedSubtitle.translation,
+        phonetic: dictionaryData.phonetic,        
+        partOfSpeech: dictionaryData.partOfSpeech, 
+        meanings: dictionaryData.meanings,         
         meaningsByPos: dictionaryData.meaningsByPos,
       }]);
       setButtonState('collected');
@@ -860,7 +890,10 @@ stateRef.current = {
           if (prev.some(w => w.word === dictionaryData.word)) return prev;
           return [...prev, {
             word: dictionaryData.word,
+            phonetic: dictionaryData.phonetic,
+            partOfSpeech: dictionaryData.partOfSpeech,
             meanings: dictionaryData.meanings,
+            meaningsByPos: dictionaryData.meaningsByPos,
           }];
         });
       } else {
@@ -875,14 +908,6 @@ stateRef.current = {
 
 
 
-
-  // // 해당하는 품사를 한글로 변환
-  // const partOfSpeechKo = {
-  //   verb: '동사',
-  //   noun: '명사',
-  //   adjective: '형용사',
-  //   adverb: '부사'
-  // };
 
 
 
@@ -1763,10 +1788,9 @@ const handleExitFromSettlement = async (target = -1) => {
               {settlementData && settlementData.length > 0 
               ? settlementData
               : <>
-                    {log.debug('settlementData', settlementData)}
-                    {currentQuiz?.quizType === 'BLANK' && (!isConfirmed ? "방금 영상에서 나온 문장이에요. 이 자리에 어떤 단어가 들어갈까요?"  : feedback?.feedback)}
-                    {currentQuiz?.quizType === 'OX' && (!isConfirmed ? "방금 영상에서 나온 문장이에요. 이 자리에 어떤 단어가 들어갈까요?" : feedback?.feedback)}
-                    {currentQuiz?.quizType === 'MATCHING' && (!isConfirmed ? "방금 영상에서 나온 문장이에요. 이 자리에 어떤 단어가 들어갈까요?" : matchingMatchedPairs.length === quizzes.length ? "수고했어! 이제 결과를 볼까?" : "방금 영상에서 나온 문장이에요. 이 자리에 어떤 단어가 들어갈까요?")}
+                    {currentQuiz?.quizType === 'BLANK' && (!isConfirmed ? "이 자리에 어떤 단어가 들어갈까요?"  : feedback?.feedback)}
+                    {currentQuiz?.quizType === 'OX' && (!isConfirmed ? "맞으면 O, 아니면 X예요." : feedback?.feedback)}
+                    {currentQuiz?.quizType === 'MATCHING' && (!isConfirmed ? "오늘 영상 속 단어! 같이 정리해봐요" : matchingMatchedPairs.length === quizzes.length ? "수고했어! 이제 결과를 볼까?" : "방금 영상에서 나온 문장이에요. 이 자리에 어떤 단어가 들어갈까요?")}
               </>
                 }
             </p>
@@ -1872,9 +1896,7 @@ const handleExitFromSettlement = async (target = -1) => {
               <div className={styles.ready6}></div>
             </div>
 
-            <p className={styles.ready7}>
-              퀴즈를 준비하고 있어요!
-            </p>
+            <QuizLoadingText />
           </div>
         )}
 
@@ -1916,7 +1938,7 @@ const handleExitFromSettlement = async (target = -1) => {
           <div className={styles['quiz-b']}>
             <div className={styles.explain}>
               <div className={styles.explain2}>
-                <p className={styles.explain3}>{feedback?.correctAnswer} 정답인 이유!</p>
+                <p className={styles.explain3}>{feedback?.correctAnswer}이(가) 정답인 이유!</p>
               </div>
               <div className={styles.explain4}>
                 <p className={styles.explain5}>{feedback?.explanation}</p>
