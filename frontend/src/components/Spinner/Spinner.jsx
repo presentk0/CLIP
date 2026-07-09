@@ -14,15 +14,6 @@ export function Spinner({ label = '로딩 중...', showLabel = true }) {
   );
 }
 
-// 사용 방법
-{/* <Spinner />                              // "로딩 중..." 보임
-<Spinner showLabel={false} />            // 스피너만 보임
-<Spinner label="데이터 가져오는 중..." />  // 텍스트 변경 */}
-
-
-
-
-
 export function TestSpinner({ 
   label = '로딩 중...', 
   showLabel = true, 
