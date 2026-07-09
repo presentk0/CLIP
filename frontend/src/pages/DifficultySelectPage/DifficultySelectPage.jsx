@@ -179,11 +179,8 @@ const handleBack = () => navigate('/onboarding/goal', { replace: true });
     <div className={styles.level}>
       {popupMessage && (
         <>
-
           <p key={Date.now()} className={styles.popup}>{popupMessage}</p>
-
         </>
-
       )}
 
       <div className={styles.level2}>
@@ -230,24 +227,17 @@ const handleBack = () => navigate('/onboarding/goal', { replace: true });
       <div className={styles['difficulty-card4']}>
         <p className={styles['difficulty-card5']}>난이도</p>
       </div>
-      
-      {/* 온보딩에선 토글 버튼 불필요 - 제거 */}
     </div>
 
     <div className={styles['difficulty-card8']}>
       {DIFFICULTY_OPTIONS.map(({ value, label, offset }) => {
         const isSelected = selected === value;
         const { disabled, reason } = isOptionDisabled(offset);
-        // const disabled = isOptionDisabled(offset);
 
         return (
           <button
             key={value}
             type="button"
-            // onClick={() => handleSelect(value, disabled)}
-
-
-
             onClick={() => {
               if (disabled) {
                 setPopupMessage(reason);  // 알림 표시
@@ -256,7 +246,6 @@ const handleBack = () => navigate('/onboarding/goal', { replace: true });
               handleSelect(value);  // 정상 선택
             }}
 
-            // disabled={disabled}
             aria-pressed={isSelected}
             aria-disabled={disabled}
             className={isSelected 
@@ -293,45 +282,6 @@ const handleBack = () => navigate('/onboarding/goal', { replace: true });
           </button>
         </div>
       </div>
-
-
-
-
-
-
-
-
-
-      {/* <h1>학습 난이도를 정해주세요</h1>
-
-      {error && <div role="alert">{error}</div>}
-
-      <ul>
-        {DIFFICULTY_OPTIONS.map((opt) => {
-          const disabled = isOptionDisabled(opt.offset);
-          return (
-            <li key={opt.value}>
-              <button
-                type="button"
-                onClick={() => handleSelect(opt.value, disabled)}
-                disabled={disabled}
-                aria-pressed={selected === opt.value}
-                aria-disabled={disabled}
-              >
-                {opt.label} {selected === opt.value && '✓'}
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-
-      <button
-        type="button"
-        onClick={handleConfirm}
-        disabled={!selected || isLoading}
-      >
-        {isLoading ? '저장 중...' : '확인'}
-      </button> */}
     </div>
   );
 }
