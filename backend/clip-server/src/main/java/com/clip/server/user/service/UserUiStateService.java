@@ -45,14 +45,14 @@ public class UserUiStateService {
         boolean changed = false;
 
         // 2-1 음성 팝업 동의 값 체크: 요청값 True인지, 저장값 false인지
-        if(Boolean.TRUE.equals(updateUiStateRequest.getVoiceConsentRead()) && Boolean.TRUE.equals(user.getVoiceConsentRead())) {
+        if(Boolean.TRUE.equals(updateUiStateRequest.getVoiceConsentRead()) && !Boolean.TRUE.equals(user.getVoiceConsentRead())) {
             user.markVoiceConsentRead();
             changed= true;
             log.info("음성 동의 팝업 확인 저장. userId={}", userId);
         }
 
         // 2-2 튜토리얼 팝업 동의 값 체크: 요청값 True인지, 저장값 false인지
-        if(Boolean.TRUE.equals(updateUiStateRequest.getTutorialCompleted()) && Boolean.TRUE.equals(user.getTutorialCompleted())) {
+        if(Boolean.TRUE.equals(updateUiStateRequest.getTutorialCompleted()) && !Boolean.TRUE.equals(user.getTutorialCompleted())) {
             user.markTutorialCompleted();
             changed= true;
             log.info("튜토리얼 팝업 확인 저장. userId={}", userId);
