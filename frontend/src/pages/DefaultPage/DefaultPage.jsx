@@ -1,3 +1,5 @@
+/* global chrome */
+
 import { useAuth } from "../../hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../../utils/api";
@@ -265,6 +267,80 @@ function UserAvatar({ imageUrl, name }) {
 
 
 
+function TutorialPopup({setShowTutorial}) {
+  // 지금 보기
+  const handleTutorialConfirm = async () => {
+    try {
+      await apiFetch('/users/me/ui-state', { 
+        method: 'PATCH',
+        body: JSON.stringify({ tutorialCompleted: true }),
+      });
+
+      setShowTutorial(false);
+      openExternalLink(TUTORIAL_URL);
+    } catch (error) {
+      log.debug('튜토리얼 여부 전송 실패', error);
+    }
+  };
+  
+
+  // 나중에 보기
+  const handleTutorialSkip = async () => {
+    await apiFetch('/users/me/ui-state', {
+      method: 'PATCH',
+      body: JSON.stringify({ tutorialCompleted: true }),
+    });
+    setShowTutorial(false);
+  };
+
+  // 튜토리얼 이동
+  const TUTORIAL_URL = 'https://clipzyguide.netlify.app/';
+
+const openExternalLink = (url) => {
+  if (url !== TUTORIAL_URL) {  // 단일 URL이면 직접 비교가 더 명확
+    log.error('허용되지 않은 URL');
+    return;
+  }
+
+  if (typeof chrome !== 'undefined' && chrome.tabs) {
+    chrome.tabs.create({ url });
+  } else {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+};
+
+
+  return (
+      <>
+      {/* 어두워지기 */}
+      <div className={style['exit-overlay']}></div>
+      
+      <div className={style.exit}>
+        <div className={style.exit2}>
+          <p className={style.exit3}>시작하기 전에 간단한 안내 도와드릴까요?</p>
+          <div className={style.exit4}>
+            <p className={style.exit5}>클립지의 기본적인 사용법을 적어두었어요! </p>
+          </div>
+        </div>
+
+
+        <div className={style.exit6}>
+          <button 
+          className={style.exit7}
+          onClick={handleTutorialConfirm}>
+            <p className={style.exit8}>도움말 바로가기</p>
+          </button>
+          <button 
+          className={style.exit9}
+          onClick={handleTutorialSkip}
+          >
+            <p className={style.exit10}>나중에 구경할게요</p>
+          </button>
+        </div>
+      </div>
+      </>
+  );
+}
 
 
 
@@ -456,7 +532,7 @@ function DefaultPage({ onMyPage }) {
   // 상태로 내 정보 조회 데이터 관리 (마스터리 뱃지 영상)
   const [usersData, setUsersData] = useState(null);
 
-
+  const [showTutorial, setShowTutorial] = useState(false);
 
 
   // 추천 영상 관리, 나중에 다시 넣기
@@ -520,6 +596,17 @@ function DefaultPage({ onMyPage }) {
 
 
 
+  // 컴포넌트 mount 시 팝업 확인 여부 조회
+  useEffect(() => {
+    const check = async () => {
+      const res = await apiFetch('/users/me/ui-state', { method: 'GET' });
+
+      if (!res.data?.tutorialCompleted) {
+        setShowTutorial(true);
+      }
+    };
+  check();
+  }, []);
 
 
 
@@ -617,6 +704,8 @@ try {
         onClose={() => setPopupMessage('')}
       />}
 
+      {showTutorial && <TutorialPopup setShowTutorial={setShowTutorial} />}
+
       {/* 상단 */}
       <div className={style.top}>
         <div className={style.logobox}>
@@ -634,6 +723,16 @@ try {
           </svg>
         </div>
         <div className={style.topButtonBox}>
+          <button 
+          className={style.tutorial}
+          onClick={() => setShowTutorial(true)}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path d="M12 3C7.041 3 3 7.041 3 12C3 16.959 7.041 21 12 21C16.959 21 21 16.959 21 12C21 7.041 16.959 3 12 3ZM12 19.2C8.031 19.2 4.8 15.969 4.8 12C4.8 8.031 8.031 4.8 12 4.8C15.969 4.8 19.2 8.031 19.2 12C19.2 15.969 15.969 19.2 12 19.2Z" fill="#F9F8F1"/>
+              <path d="M11.2471 14.4983H12.7758V16H11.2471V14.4983ZM12.9822 7.17725C11.3924 6.61409 9.56561 7.44005 9 8.98685L10.4369 9.49744C10.5745 9.12201 10.865 8.82166 11.2548 8.64896C11.6446 8.47626 12.0803 8.45373 12.4624 8.58889C12.7548 8.69385 13.0079 8.8836 13.188 9.133C13.3682 9.38241 13.467 9.67971 13.4713 9.98551C13.4713 10.7664 12.2025 11.3821 11.7592 11.5398C11.4535 11.6449 11.2471 11.9303 11.2471 12.2456V14H12.7758V12.7412C13.5707 12.3583 15 11.4722 15 9.978C14.9934 9.36498 14.7968 8.7685 14.4362 8.2681C14.0757 7.7677 13.5685 7.38716 12.9822 7.17725Z" fill="#F9F8F1"/>
+            </svg>
+          </button>
+
+          
           <button className={style.topLeftButton}
           disabled={isAiBlocked}
           onClick={onAiChatPage}

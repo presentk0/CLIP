@@ -13,35 +13,69 @@ import { saveUserData, loadUserData, removeUserData } from '../../utils/userStor
 
 
 
-// function Ready () {
-// const text = [
-//   {label: "영상에서 퀴즈 단어를 찾고 있어요."},
-//   {label: "표현들을 살펴보는 중이에요."},
-//   {label: "학습할 단어를 모으고 있어요."},
-//   {label: "오늘의 퀴즈 재료를 준비 중이에요."},
-//   {label: "영상 속 단어를 확인하고 있어요."},
-//   {label: "배울 만한 표현을 골라보고 있어요."},
-//   {label: "단어 수집 중이에요."},
-//   {label: "모은 단어로 퀴즈를 만들고 있어요."},
-//   {label: "문제를 구성하는 중이에요."},
-//   {label: "퀴즈 유형을 정하고 있어요."},
-//   {label: "문제 난이도를 맞추는 중이에요."},
-//   {label: "학습 흐름에 맞춰 배열 중이에요."},
-//   {label: "퀴즈 문항을 다듬고 있어요."},
-//   {label: "문제를 정리하는 중이에요."},
-//   {label: "퀴즈에 좋은 단어들을 찾고 있어요."},
-//   {label: "수집한 단어로 열심히 만들고 있어요."},
-//   {label: "최고의 퀴즈를 준비하고 있어요."},
-//   {label: "퀴즈 준비를 구성하고 있어요."},
-//   {label: "퀴즈 풀 준비가 됐는지 확인하고 있어요."},
-//   {label: "수집한 단어로 재밌는 퀴즈를 준비할게요!"},
-// ]
-// }
+
+const LOADING_TEXTS = [
+  "영상에서 퀴즈 단어를 찾고 있어요.",
+  "표현들을 살펴보는 중이에요.",
+  "학습할 단어를 모으고 있어요.",
+  "오늘의 퀴즈 재료를 준비 중이에요.",
+  "영상 속 단어를 확인하고 있어요.",
+  "배울 만한 표현을 골라보고 있어요.",
+  "단어 수집 중이에요.",
+  "모은 단어로 퀴즈를 만들고 있어요.",
+  "문제를 구성하는 중이에요.",
+  "퀴즈 유형을 정하고 있어요.",
+  "문제 난이도를 맞추는 중이에요.",
+  "학습 흐름에 맞춰 배열 중이에요.",
+  "퀴즈 문항을 다듬고 있어요.",
+  "문제를 정리하는 중이에요.",
+  "퀴즈에 좋은 단어들을 찾고 있어요.",
+  "수집한 단어로 열심히 만들고 있어요.",
+  "최고의 퀴즈를 준비하고 있어요.",
+  "퀴즈 준비를 구성하고 있어요.",
+  "퀴즈 풀 준비가 됐는지 확인하고 있어요.",
+  "수집한 단어로 재밌는 퀴즈를 준비할게요!"
+]
+
 
 
 
 // 렌더링해도 1번만 셔플 (비교값을 -0.5 ~ 0.5으로 설정)
 const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
+
+
+// 10초 계산해서 로딩 텍스트 띄우기
+function QuizLoadingText() {
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+
+    const timer = setInterval(() => {
+
+      // (기존 + 1) 나누기 21 로 나온 자연수 값을 최소 1에서 최대 20으로 설정
+      setIndex(prev => (prev + 1) % LOADING_TEXTS.length);
+    }, 10000);
+
+    return () => {
+
+      clearInterval(timer);
+    }  // 언마운트 시 정리
+  }, []);
+
+  return <p className={styles.ready7}>{LOADING_TEXTS[index]}</p>;
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 function QuizPage({ videoId, videoTitle }) {
 
@@ -829,7 +863,6 @@ stateRef.current = {
 
       // 응답 성공 후 현재 로그인 유저의 캐시에서 ai챗 허용으로 갱신
       if (collect.success) {
-        // await chrome.storage.local.set({ hasWords: true });
         await saveUserData('hasWords', true);
       }
 
@@ -875,14 +908,6 @@ stateRef.current = {
 
 
 
-
-  // // 해당하는 품사를 한글로 변환
-  // const partOfSpeechKo = {
-  //   verb: '동사',
-  //   noun: '명사',
-  //   adjective: '형용사',
-  //   adverb: '부사'
-  // };
 
 
 
@@ -1871,9 +1896,7 @@ const handleExitFromSettlement = async (target = -1) => {
               <div className={styles.ready6}></div>
             </div>
 
-            <p className={styles.ready7}>
-              퀴즈를 준비하고 있어요!
-            </p>
+            <QuizLoadingText />
           </div>
         )}
 
@@ -1915,7 +1938,7 @@ const handleExitFromSettlement = async (target = -1) => {
           <div className={styles['quiz-b']}>
             <div className={styles.explain}>
               <div className={styles.explain2}>
-                <p className={styles.explain3}>{feedback?.correctAnswer} 정답인 이유!</p>
+                <p className={styles.explain3}>{feedback?.correctAnswer}이(가) 정답인 이유!</p>
               </div>
               <div className={styles.explain4}>
                 <p className={styles.explain5}>{feedback?.explanation}</p>

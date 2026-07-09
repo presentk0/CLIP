@@ -1087,3 +1087,147 @@ text-transform: uppercase;
   height: 32px;
   margin-bottom: -4px;
 }
+
+
+
+
+
+
+.exit-overlay {
+  position: fixed;
+  inset: 0;                       /* 화면 전체 덮음 */
+  background: rgba(0, 0, 0, 0.50);
+  z-index: 99;
+}
+
+
+
+.exit {
+    position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 100;
+
+display: flex;
+width: 306px;
+padding: 36px 20px 20px 20px;
+flex-direction: column;
+align-items: flex-start;
+gap: 16px;
+border-radius: 20px;
+background: #FEFDF9;
+box-shadow: 0 4px 12px 0 rgba(158, 155, 137, 0.20);
+}
+
+
+.exit2 {
+display: flex;
+flex-direction: column;
+align-items: center;
+gap: 16px;
+align-self: stretch;
+}
+
+
+.exit3 {
+color: #5E5A4E;
+text-align: center;
+font-family: Pretendard;
+font-size: 20px;
+font-style: normal;
+font-weight: 700;
+line-height: 28px; /* 140% */
+}
+
+
+.exit4 {
+display: flex;
+width: 100%;
+height: 64px;
+/* padding: 16px 71px; */
+padding: 16px 24px;
+justify-content: center;
+align-items: center;
+gap: 10px;
+align-self: stretch;
+border-radius: 12px;
+background: #F7F3E7;
+}
+
+
+.exit5 {
+color: #A0A08A;
+text-align: center;
+font-family: Pretendard;
+font-size: 12px;
+font-style: normal;
+font-weight: 500;
+line-height: 16px; /* 133.333% */
+letter-spacing: -0.024px;
+}
+
+
+.exit6 {
+display: flex;
+flex-direction: column;
+align-items: flex-start;
+gap: 8px;
+align-self: stretch;
+}
+
+
+.exit7 {
+display: flex;
+padding: 16px 40px;
+justify-content: center;
+align-items: center;
+gap: 10px;
+align-self: stretch;
+border-radius: 16px;
+background: #01CF8A;
+}
+
+
+.exit8 {
+color: #FFF;
+text-align: center;
+font-family: Pretendard;
+font-size: 16px;
+font-style: normal;
+font-weight: 700;
+line-height: normal;
+letter-spacing: -0.032px;
+}
+
+
+.exit9 {
+display: flex;
+padding: 16px 40px;
+justify-content: center;
+align-items: center;
+gap: 10px;
+align-self: stretch;
+border-radius: 16px;
+border: 1px solid #E6E6DB;
+}
+
+
+.exit10 {
+color: #FA5757;
+text-align: center;
+font-family: Pretendard;
+font-size: 16px;
+font-style: normal;
+font-weight: 700;
+line-height: normal;
+letter-spacing: -0.032px;
+}
+
+
+
+
+.tutorial {
+  width: 24px;
+height: 24px;
+}
