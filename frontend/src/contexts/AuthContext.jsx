@@ -59,13 +59,9 @@ export function AuthProvider({ children }) {
         const cached = await chrome.runtime.sendMessage({ type: 'GET_AUTH' });
 
         if (cached?.accessToken && cached?.user) {
-
           setUser(cached.user);
           setIsLoading(false);
-
-
           setNeedsOnboarding(cached.user.needsOnboarding);
-
           return;
         }
 
@@ -101,8 +97,6 @@ export function AuthProvider({ children }) {
 
         // 상태 + 백그라운드 저장
         setUser(meRes.data);
-
-        
         setNeedsOnboarding(meRes.data.needsOnboarding);
 
         await chrome.runtime.sendMessage({

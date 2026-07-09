@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { useRef } from "react";
 import { useMemo } from "react";
 
-// 사진 순서대로
+
 // 단어 10개로 끊어서 조회 - 가장 최근에 수집한 단어부터 순서대로 출력
 // ?sort=lastest(따로 설정 안해도 기존 lastest로 설정되어있음) - 가장 최근에 수집한 단어부터 순서대로 출력
 // ?sort=oldest(수집한지 오래된 단어부터 출력)
@@ -21,11 +21,11 @@ function SearchBar({ onSearch }) {
   const [input, setInput] = useState('');
   const isFirst = useRef(true);
 
-  const handleChange = (e) => {
-    // 영문, 숫자, 한글, 공백만 허용 (자동 필터링)
-    const cleaned = e.target.value.replace(/[^a-zA-Z0-9가-힣\s]/g, '');
-    setInput(cleaned);
-  };
+  // const handleChange = (e) => {
+  //   // 영문, 숫자, 한글, 공백만 허용 (자동 필터링)
+  //   const cleaned = e.target.value.replace(/[^a-zA-Z0-9가-힣\s]/g, '');
+  //   setInput(cleaned);
+  // };
 
   useEffect(() => {
     // 첫 마운트 시 스킵 (초기 API 호출 방지)
@@ -48,7 +48,8 @@ function SearchBar({ onSearch }) {
       className={styles.voca20}
       type="text"
       value={input}
-      onChange={handleChange}
+      onChange={(e) => setInput(e.target.value)}
+      // onChange={handleChange}
       placeholder="단어, 뜻, 태그 검색"
     />
   );
