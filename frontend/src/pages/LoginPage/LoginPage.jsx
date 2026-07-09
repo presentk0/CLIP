@@ -210,7 +210,6 @@ export default function LoginPage() {
       navigate(from, { replace: true });
     }
   } catch (error) {
-    // setError(SAFE_LOGIN_ERRORS[error.code] || '로그인에 실패했습니다');
     setError(handleApiError(error, '로그인', SAFE_LOGIN_ERRORS) || '로그인에 실패했습니다');
   } finally {
     setIsLoading(false);

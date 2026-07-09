@@ -839,7 +839,7 @@ line-height: normal;
 
 
 .pagination {
-/* display: inline-flex; */
+
 display: flex;          /* 안의 버튼들 가로 정렬 */
   justify-content: center;
 align-items: center;
@@ -1040,7 +1040,7 @@ justify-content: flex-start;
 
 .scenario5 {
   display: flex;
-/* width: 210px; */
+
 height: 14px;
 flex-direction: column;
 justify-content: center;
@@ -1097,7 +1097,7 @@ fill: #FFF;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  /* align-items: center; */
+
 
   width: 338px;
   margin: 0 auto; 
@@ -1344,8 +1344,7 @@ line-height: normal;
 
 
 .chat-time {
-/* width: 106px;
-height: 14px; */
+
 margin-top: 20px;
 text-align: center;
 }
@@ -1433,7 +1432,7 @@ display: flex;
 padding: 10px 16px;
 flex-direction: column;
 justify-content: center;
-/* align-items: flex-end; */
+
 align-items: flex-start;
 gap: 8px;
 box-shadow: 0 4px 12px 0 rgba(158, 155, 137, 0.12);
@@ -1674,7 +1673,7 @@ gap: 4px;
 
 .chat-input6 {
 display: flex;
-/* width: 24px; */
+
 /* 글자 길이만큼 자동 */
 width: auto;
 height: 24px;
@@ -3238,7 +3237,7 @@ line-height: 130%; /* 26px */
 
 .hint-card12 {
 display: flex;
-/* align-items: center; */
+
 gap: 4px;
 align-self: stretch;
 
@@ -3251,7 +3250,7 @@ align-items: flex-start;    /* 왼쪽 정렬 */
 
 .hint-card13 {
 display: flex;
-/* align-items: center; */
+
 align-items: flex-start; /* 위쪽 정렬 */
 margin-bottom: 4px;       /* 항목 사이 간격 */
 }
@@ -3260,7 +3259,7 @@ margin-bottom: 4px;       /* 항목 사이 간격 */
 
 .hint-card14 {
 display: flex;
-/* width: 10px; */
+
 width: auto;
 flex-direction: column;
 justify-content: center;
@@ -3399,11 +3398,10 @@ line-height: 130%; /* 15.6px */
 display: flex;
 padding: 24px 0 36px 0;
 flex-direction: column;
-/* align-items: flex-start; */
+
 align-items: center;
 gap: 24px;
-/* position: absolute; */
-/* bottom: -270px; */
+
 border-radius: 36px 36px 0 0;
 background: #FEFDF9;
 
@@ -3417,7 +3415,7 @@ width: calc(100% + 32px);
   margin-bottom: 0;
   margin-left: -16px;
 
-/* margin-top: 36px; */
+
 
 }
 
@@ -3466,16 +3464,6 @@ background: var(--fill-fill-secondary, #F9F8F1);
 /* ShadowDefault */
 box-shadow: 0 4px 12px 0 rgba(158, 155, 137, 0.20);
 }
-
-
-
-
-/* .reportPage6 {
-display: flex;
-flex-direction: column;
-align-items: center;
-gap: 24px;
-} */
 
 
 .reportPage7 {
@@ -3541,7 +3529,7 @@ gap: 36px;
 
 .reportPage13 {
 display: flex;
-/* width: 25px; */
+
 flex-direction: column;
 align-items: center;
 gap: 16px;
@@ -3599,7 +3587,7 @@ background: var(--stroke-stroke-primary, #DCD6C6);
 
 .reportPage19 {
 display: flex;
-/* width: 25px; */
+
 flex-direction: column;
 justify-content: center;
 align-items: center;
@@ -3657,7 +3645,7 @@ background: var(--stroke-stroke-primary, #DCD6C6);
 
 .reportPage25 {
 display: flex;
-/* width: 25px; */
+
 flex-direction: column;
 align-items: center;
 gap: 16px;
@@ -4271,14 +4259,9 @@ align-self: stretch;
 
 .recommendation-card11 {
   position: relative;
-/* display: flex; */
+
 height: 190px;
-/* padding: 8px; */
-/* padding: 166px 8px 8px 292px; */
-/* flex-direction: column;
-align-items: flex-end; */
-/* align-items: flex-start; */
-/* justify-content: flex-end; */
+
 gap: 10px;
 align-self: stretch;
 border-radius: 12px;
@@ -4287,7 +4270,7 @@ border-radius: 12px;
 
 overflow: hidden;
   flex-shrink: 0;
-/* background: #D9D9D9; */
+
 }
 
 
@@ -4412,7 +4395,7 @@ letter-spacing: -0.5px;
 display: flex;
 flex-direction: column;
 align-items: flex-start;
-/* gap: 14px; */
+
 align-self: stretch;
 }
 
@@ -4431,7 +4414,7 @@ align-self: stretch;
 .recommendedSectionThumbnail {
   position: relative;
 height: 190px;
-/* padding: 166px 8px 8px 292px; */
+
 flex-direction: column;
 align-items: flex-start;
 gap: 10px;
@@ -4451,9 +4434,7 @@ overflow: hidden;
 
 
 .recommendedSectionDuration {
-/* display: flex; */
-/* width: 38px;
-height: 16px; */
+
 position: absolute;
   right: 4px;
   bottom: 4px; 
@@ -4466,12 +4447,6 @@ border-radius: 999px;
 background: rgba(15, 15, 15, 0.50);
 }
 
-/* 
-.recommendedSectionDuration2 {
-display: flex;
-justify-content: center;
-align-items: center;
-} */
 
 
 .recommendedSectionDuration3 {
@@ -4520,7 +4495,7 @@ gap: 4px;
 
 .recommendedSectionTitle2 {
   display: flex;
-/* height: 32px; */
+
 min-height: 32px;
 
 flex-direction: column;
@@ -4539,7 +4514,7 @@ letter-spacing: -0.5px;
 
 .recommendedSectionChannelName {
 display: flex;
-/* height: 16px; */
+
 
 min-height: 16px;
 flex-direction: column;
