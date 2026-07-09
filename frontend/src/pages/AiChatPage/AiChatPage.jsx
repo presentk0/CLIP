@@ -1255,7 +1255,6 @@ function Recommendation() {
 
     fetchData();
   }, []);
-  log.debug('recommendedData', recommendedData);
   return (
     recommendedData && (
   <div className={styles['recommendation-card']}>
@@ -1510,7 +1509,6 @@ function ReportPage({ reportData, chatData, handleAiSound }) {
         </div>
         )}
 
-        {log.debug('pronunciationScore', pronunciationScore)}
         {pronunciationScore?.available && pronunciationScore?.weakSentences?.[0] && (
         <div className={styles.reportPage54}>
           <div className={styles.reportPage55}>
@@ -2323,7 +2321,6 @@ const handleError = ({ code, message }) => {
     // 과거 메시지 fetch 도중 새 메시지가 웹소켓으로 오면 꼬일 수 있으니 같은 유즈이펙트 공유
     const init = async () => {
       const rejected = await loadUserData('voiceRejected');
-      log.debug('rejected 값:', rejected);
       // 과거 메시지 먼저 조회
       if (chatData.hasPreviousMessages) {
         try {
@@ -2337,12 +2334,10 @@ const handleError = ({ code, message }) => {
           if (cancelled) return;
 
           if (response.success) {
-            log.debug('진짜 원인 - voiceConsentRead:', response.data.voiceConsentRead);
             setMessages(response.data.messages);
 
             // 저장소로 미동의 여부 확인
             if (rejected === true) {
-              log.debug('로컬 거절 상태 유지');
               setShowVoiceConsent(true);
             } else if (response.data.voiceConsentRead === true) {
               setAudioAllowed(true);
