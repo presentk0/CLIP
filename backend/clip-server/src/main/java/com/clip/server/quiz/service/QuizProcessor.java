@@ -32,6 +32,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.clip.server.quiz.agent.UserStateAnalyzer;
+import com.clip.server.quiz.agent.QuizWordSelector;
+import com.clip.server.quiz.agent.dto.UserLearningState;
+import com.clip.server.quiz.agent.dto.ScoredWord;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -56,6 +60,9 @@ public class QuizProcessor {
     private final QuizFeedbackGenerator quizFeedbackGenerator;
     private final QuizFallbackService quizFallbackService;
     private final ExpLogService expLogService;
+
+    private final UserStateAnalyzer userStateAnalyzer;
+    private final QuizWordSelector quizWordSelector;
 
     private static final double DENSITY_FACTOR = 0.8;
     private static final int VIDEO_COMPENSATION = 200;
@@ -85,20 +92,20 @@ public class QuizProcessor {
         double start = range * (sectionNum - 1);
         double end = range * sectionNum;
 
-        // 해당 구간 단어 조회 및 우선순위(1~3순위) 정렬
+        // 해당 구간 단어 조회
         List<QuizSessionWord> candidates = quizSessionWordRepository.findWordsBySection(quizSession.getId(), start, end);
 
-        // 전체 리스트를 무작위로 섞음
-        Collections.shuffle(candidates);
+        // [Agent] 사용자 학습 상태 분석
+        UserLearningState state = userStateAnalyzer.analyze(userId);
 
-        // 그 상태에서 우선순위대로 정렬 (셔플된 결과 내에서 등급순 정렬됨)
-        candidates.sort(Comparator.comparingInt(this::getPriority));
+        // [Agent] 스코어링 기반 지능형 정렬 (기존 shuffle + priority sort 대체)
+        List<ScoredWord> scoredCandidates = quizWordSelector.scoreAndSort(candidates, state);
 
-        boolean hasUserWords = candidates.stream()
-                .anyMatch(c -> c.getWordType() == WordType.COLLECT || c.getWordType() == WordType.POPUP);
+        boolean hasUserWords = scoredCandidates.stream()
+                .anyMatch(sw -> sw.getWordType() == WordType.COLLECT || sw.getWordType() == WordType.POPUP);
 
-        List<QuizWordRequest> quizWordRequests = candidates.stream()
-                .map(this::mapToRequest)
+        List<QuizWordRequest> quizWordRequests = scoredCandidates.stream()
+                .map(sw -> mapToRequest(sw.getWord()))
                 .collect(Collectors.toList());
 
         // 단어 부족 시 AI 보충
