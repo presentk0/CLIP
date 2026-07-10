@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
  * 퀴즈 비즈니스 로직 진입점
  * - OX, 빈칸: QuizGenerator (검증+재시도)
  * - 매칭: OpenAIService 직접 호출 (1회 시도 + Fallback)
+ * - Agent Strategy의 difficulty를 AI 프롬프트에 전달
  */
 @Slf4j
 @Service
@@ -45,11 +46,21 @@ public class QuizService {
 
     // ==================== OX 퀴즈 생성 ====================
 
-    public QuizDetailResponse createOXQuiz(Long sessionId, Long userId, QuizWordRequest request) {
+    /**
+     * OX 퀴즈 생성
+     *
+     * @param sessionId 세션 ID
+     * @param userId 사용자 ID
+     * @param request 단어 정보
+     * @param difficulty Agent가 결정한 난이도 (EASY/MEDIUM/HARD, null이면 표준)
+     */
+    public QuizDetailResponse createOXQuiz(Long sessionId, Long userId, QuizWordRequest request, String difficulty) {
+
+        log.debug("[Quiz] OX 생성 시작 - word: {}, difficulty: {}", request.getWord(), difficulty);
 
         // 1. AI 생성 (검증+재시도 포함)
         OpenAIQuizDataResponse aiData = quizGenerator.generateOXQuiz(
-                request.getWord(), request.getMeaning());
+                request.getWord(), request.getMeaning(), difficulty);
 
         // 2. 최종 실패 시 Fallback
         if (aiData == null) {
@@ -64,11 +75,21 @@ public class QuizService {
 
     // ==================== 빈칸 퀴즈 생성 ====================
 
-    public QuizDetailResponse createBlankQuiz(Long sessionId, Long userId, QuizWordRequest request) {
+    /**
+     * 빈칸 퀴즈 생성
+     *
+     * @param sessionId 세션 ID
+     * @param userId 사용자 ID
+     * @param request 단어 정보
+     * @param difficulty Agent가 결정한 난이도 (EASY/MEDIUM/HARD, null이면 표준)
+     */
+    public QuizDetailResponse createBlankQuiz(Long sessionId, Long userId, QuizWordRequest request, String difficulty) {
+
+        log.debug("[Quiz] BLANK 생성 시작 - word: {}, difficulty: {}", request.getWord(), difficulty);
 
         // 1. AI 생성 (검증+재시도 포함)
         OpenAIQuizDataResponse aiData = quizGenerator.generateBlankQuiz(
-                request.getWord(), request.getMeaning());
+                request.getWord(), request.getMeaning(), difficulty);
 
         // 2. 최종 실패 시 Fallback
         if (aiData == null) {
