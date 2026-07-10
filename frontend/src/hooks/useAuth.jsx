@@ -10,7 +10,7 @@ import { AuthContext } from '../contexts/AuthContextDefinition';
 export function useAuth() {
   // 저장소에서 데이터 꺼내기
   // useContext(AuthContext)는 가장 가까운 부모의 <AuthContext.Provider>를 찾아서 값을 가져옴
-  // Provider가 없으면? → null 반환 → 에러
+  // Provider가 없으면? -> null 반환 -> 에러
   const context = useContext(AuthContext);
   if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');

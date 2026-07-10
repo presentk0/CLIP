@@ -43,8 +43,10 @@ public class OpenAIService {
      * @param meaning  의미
      * @param failHint 이전 시도 실패 사유 (없으면 null) → Self-Correction용
      */
-    public OpenAIQuizDataResponse generateOXQuiz(String word, String meaning, String failHint) {
+    public OpenAIQuizDataResponse generateOXQuiz(String word, String meaning, String failHint, String difficulty) {
+
         String hintSection = buildHintSection(failHint);
+        String difficultySection = buildDifficultySection(difficulty);
 
         // 정답 50:50 랜덤 결정 (정답 분포 균등화)
         boolean isCorrectAnswer = ThreadLocalRandom.current().nextBoolean();
@@ -106,6 +108,7 @@ public class OpenAIService {
             ## 역할
             당신은 CLIPZY의 개구리 캐릭터 '클립 프로그'입니다.
             사용자와 함께 단어를 수집하며 세계를 넓혀가는 동반자입니다.
+            %s
             %s
             %s
             
@@ -227,7 +230,7 @@ public class OpenAIService {
               "relatedExpressions": "go : 단순 이동을 의미해요 (I go to school. 나는 학교에 가요.)\\ntravel to : ~로 여행하다 (I travel to Japan. 나는 일본으로 여행해요.)",
               "options": null
             }
-            """, hintSection, answerSection, word, meaning, answerType, word, word, answerType);
+            """, hintSection, answerSection, difficultySection, word, meaning, answerType, word, word, answerType);
 
         return processSingle(prompt);
     }
@@ -239,13 +242,15 @@ public class OpenAIService {
      *
      * @param failHint 이전 시도 실패 사유 (없으면 null)
      */
-    public OpenAIQuizDataResponse generateBlankQuiz(String word, String meaning, String failHint) {
+    public OpenAIQuizDataResponse generateBlankQuiz(String word, String meaning, String failHint, String difficulty) {
         String hintSection = buildHintSection(failHint);
+        String difficultySection = buildDifficultySection(difficulty);
 
         String prompt = String.format("""
                 ## 역할
                 당신은 CLIPZY의 개구리 캐릭터 '클립 프로그'입니다.
                 사용자와 함께 단어를 수집하며 세계를 넓혀가는 동반자입니다.
+                %s
                 %s
                 ## 말투 규칙 (반드시 지킬 것)
                 - 존댓말 사용
@@ -342,7 +347,8 @@ public class OpenAIService {
                   "correctFeedback": "정답 피드백",
                   "wrongFeedback": "오답 피드백"
                 }
-                """, hintSection, word, meaning, word, word);
+               """, hintSection, difficultySection, word, meaning, word, word);
+
 
         return processSingle(prompt);
     }
@@ -477,6 +483,66 @@ public class OpenAIService {
                 
                 위 실패 사유를 분석하고, 이번에는 반드시 해당 문제를 피해서 응답하세요.
                 """, failHint);
+    }
+
+    // ==================== 난이도 조절 섹션 빌더 ====================
+
+    /**
+     * Agent Strategy에서 결정된 난이도를 프롬프트 섹션으로 변환
+     * - MEDIUM 또는 null이면 빈 문자열 반환 (기존 프롬프트 그대로 사용)
+     * - EASY: 초보자용 규칙 추가
+     * - HARD: 고급자용 규칙 추가
+     */
+    private String buildDifficultySection(String difficulty) {
+        if (difficulty == null || "MEDIUM".equalsIgnoreCase(difficulty)) {
+            return "";  // 검증된 표준 프롬프트 그대로 사용
+        }
+
+        if ("EASY".equalsIgnoreCase(difficulty)) {
+            return """
+                    
+                    ## 🎯 난이도: EASY (초보자용 - 자신감 회복)
+                    다음 규칙을 반드시 추가로 준수하세요:
+                    
+                    - 문장 길이: 5~8단어 이내로 짧게
+                    - 어휘: 초등~중학교 수준의 기본 단어만 사용
+                    - 문법: 단순 현재형 또는 과거형만 사용
+                    - 복잡한 부사구, 종속절, 관계대명사 사용 금지
+                    - 문장 구조: 주어 + 동사 + 목적어 정도의 단순 구조
+                    
+                    좋은 예시 (EASY):
+                    - "I want to travel to Japan."
+                    - "She loves to travel."
+                    
+                    피해야 할 예시 (너무 어려움):
+                    - "The delegation intends to travel abroad next quarter."
+                    - "Having traveled extensively, she felt confident."
+                    """;
+        }
+
+        if ("HARD".equalsIgnoreCase(difficulty)) {
+            return """
+                    
+                    ## 🎯 난이도: HARD (고급자용 - 도전 강화)
+                    다음 규칙을 반드시 추가로 준수하세요:
+                    
+                    - 문장 길이: 10단어 이상으로 충분히 길게
+                    - 어휘: 격식체 표현 또는 학술적 어휘 활용
+                    - 문법: 복잡한 시제(완료형, 진행형), 부사구, 종속절 포함
+                    - 문맥: 비즈니스/학술/뉴스 등 실전 상황 반영
+                    - 유사어 트릭: 매우 미묘한 뉘앙스 차이를 활용
+                    
+                    좋은 예시 (HARD):
+                    - "The tourist decided to travel extensively before returning home."
+                    - "Delegates from multiple countries traveled to attend the conference."
+                    
+                    피해야 할 예시 (너무 쉬움):
+                    - "I travel."
+                    - "She goes to school."
+                    """;
+        }
+
+        return "";  // 알 수 없는 값이면 기본 프롬프트
     }
 
     // ==================== 공통 처리 로직 ====================

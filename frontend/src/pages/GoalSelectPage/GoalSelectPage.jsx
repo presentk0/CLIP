@@ -2,10 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useOnboarding } from '../../hooks/useOnboarding';
-
 import styles from './GoalSelectPage.module.css';
-
-
 
 const GOAL_OPTIONS = [
   { value: 'TRAVEL',           label: '여행',     enabled: true,
@@ -65,12 +62,6 @@ const GOAL_OPTIONS = [
 
 
 
-
-
-
-
-
-
 const VALID_VALUES = GOAL_OPTIONS.filter((o) => o.enabled).map((o) => o.value);
 
 export default function GoalSelectPage() {
@@ -101,7 +92,8 @@ export default function GoalSelectPage() {
     if (!selected) return;
     navigate('/onboarding/difficulty');
   };
-const handleBack = () => navigate('/onboarding/level', { replace: true });
+
+  const handleBack = () => navigate('/onboarding/level', { replace: true });
 
   return (
     <div className={styles.goal}>
@@ -142,7 +134,7 @@ const handleBack = () => navigate('/onboarding/level', { replace: true });
           <div className={styles['objectives-card7']}>
             {GOAL_OPTIONS.map(({ value, label, enabled, icon }) => {
               const isSelected = selected === value;
-            
+
               return (
                 <button
                   key={value}
