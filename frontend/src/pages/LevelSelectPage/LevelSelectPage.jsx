@@ -2,7 +2,6 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useOnboarding } from '../../hooks/useOnboarding';
-
 import styles from './LevelSelectPage.module.css';
 
 const ABSOLUTE_OPTIONS = [
@@ -52,6 +51,7 @@ export default function LevelSelectPage() {
               <path d="M15.1776 0.302198C15.5553 -0.100732 16.1681 -0.100733 16.5458 0.302198C16.9232 0.705146 16.9234 1.35833 16.5458 1.76118L9.81627 8.93892L16.8202 16.4116C17.1979 16.8145 17.1979 17.4676 16.8202 17.8706C16.4425 18.2731 15.8306 18.2731 15.453 17.8706L8.44811 10.3979L1.65123 17.6499C1.27352 18.0528 0.660772 18.0528 0.283068 17.6499C-0.0943871 17.247 -0.0943246 16.5938 0.283068 16.1909L7.07994 8.93892L0.558458 1.98189C0.180747 1.57895 0.180747 0.924854 0.558458 0.521924C0.936176 0.119297 1.549 0.119136 1.92662 0.521924L8.44811 7.47993L15.1776 0.302198Z" fill="#454440"/>
             </svg>
           </button>
+
           <div className={styles.level4}>
             <div className={styles.level5}>
               <div
@@ -84,31 +84,33 @@ export default function LevelSelectPage() {
               <div className={styles.level17}>
 
                 {ABSOLUTE_OPTIONS.map((opt) => {
-          const isSelected = selected === opt.value;
-          return (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => handleSelect(opt.value)}
-              aria-pressed={isSelected}
-              className={isSelected ? styles.level18 : styles['level18-f']}
-            >
-              <div className={styles.level19}>
-                <p className={styles.level20}
-                style={{ color: isSelected ? '#FFF' : '#7F7569' }}>{opt.label}</p>
-                {isSelected && (
-                  <div className={styles.level21}>
-                    <svg 
-                    className={styles.level22}
-                    xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                      <path d="M12.137 3.77574C12.566 3.30103 13.2975 3.26012 13.7767 3.6859C14.2579 4.1139 14.302 4.85088 13.8743 5.33238L13.8675 5.3402L7.08809 12.6732L7.08711 12.6722C6.86614 12.9168 6.55276 13.0578 6.22284 13.058C5.88978 13.058 5.57214 12.9152 5.35076 12.6664L1.79505 8.66637C1.36701 8.18483 1.41026 7.44699 1.89173 7.01891C2.37332 6.59106 3.11121 6.63506 3.53921 7.11656L6.22968 10.1439L12.137 3.77477V3.77574Z" fill="#A0A08A"/>
-                    </svg>
-                  </div>
-                )}
-              </div>
-            </button>
-          );
-        })}
+                  const isSelected = selected === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => handleSelect(opt.value)}
+                      aria-pressed={isSelected}
+                      className={isSelected ? styles.level18 : styles['level18-f']}
+                    >
+                      <div className={styles.level19}>
+                        <p className={styles.level20}
+                        style={{ color: isSelected ? '#FFF' : '#7F7569' }}>{opt.label}
+                        </p>
+
+                        {isSelected && (
+                          <div className={styles.level21}>
+                            <svg 
+                            className={styles.level22}
+                            xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                              <path d="M12.137 3.77574C12.566 3.30103 13.2975 3.26012 13.7767 3.6859C14.2579 4.1139 14.302 4.85088 13.8743 5.33238L13.8675 5.3402L7.08809 12.6732L7.08711 12.6722C6.86614 12.9168 6.55276 13.0578 6.22284 13.058C5.88978 13.058 5.57214 12.9152 5.35076 12.6664L1.79505 8.66637C1.36701 8.18483 1.41026 7.44699 1.89173 7.01891C2.37332 6.59106 3.11121 6.63506 3.53921 7.11656L6.22968 10.1439L12.137 3.77477V3.77574Z" fill="#A0A08A"/>
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -123,9 +125,6 @@ export default function LevelSelectPage() {
           </button>
         </div>
       </div>
-
-
-
     </div>
   );
 }

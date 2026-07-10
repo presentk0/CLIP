@@ -6,7 +6,6 @@ import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import { log } from '../../utils/logger';
-
 import { Client } from '@stomp/stompjs';
 import { getAccessToken } from '../../utils/api';
 import SockJS from 'sockjs-client';
@@ -80,22 +79,19 @@ const refreshAccessToken = async () => {
 
 
 
-
-
-
 function ContinuePopup({ info, onContinue, onNewStart }) {
   return (
     <div className={styles.popupOverlay}>
       <div className={styles.popupBox}>
         <h2 className={styles.popupTitle}>진행 중인 대화가 있어요</h2>
-        
+
         <div className={styles.popupInfo}>
           <p>단어: <strong>{info.word}</strong></p>
           <p>시나리오: {info.scenarioTitle}</p>
         </div>
-        
+
         <p className={styles.popupQuestion}>이어서 하시겠어요?</p>
-        
+
         <div className={styles.popupButtons}>
           <button 
             className={styles.popupBtnSecondary}
@@ -103,6 +99,7 @@ function ContinuePopup({ info, onContinue, onNewStart }) {
           >
             새로 시작
           </button>
+
           <button 
             className={styles.popupBtnPrimary}
             onClick={onContinue}
@@ -117,13 +114,12 @@ function ContinuePopup({ info, onContinue, onNewStart }) {
 
 
 
-
 function ConsentPopup({ handleAudioConsent, handleAudioReject }) {
   return (
-      <>
+    <>
       {/* 어두워지기 */}
       <div className={styles['exit-overlay']}></div>
-      
+
       <div className={styles.exit}>
         <div className={styles.exit2}>
           <p className={styles.exit3}>AI 음성 자동 재생을 허용하시겠어요?</p>
@@ -132,13 +128,13 @@ function ConsentPopup({ handleAudioConsent, handleAudioReject }) {
           </div>
         </div>
 
-
         <div className={styles.exit6}>
           <button 
           className={styles.exit7}
           onClick={handleAudioConsent}>
             <p className={styles.exit8}>허용할게요</p>
           </button>
+
           <button 
           className={styles.exit9}
           onClick={handleAudioReject}
@@ -147,28 +143,19 @@ function ConsentPopup({ handleAudioConsent, handleAudioReject }) {
           </button>
         </div>
       </div>
-      </>
+    </>
   );
 }
 
 
 
-
-
-
-
-
-
-
-
-
-// 채팅방 나가기 테스트용 오류
-  function ExitModal ({onConfirm, onCancel}) {
-    return (
-      <>
+// 채팅방 나가기
+function ExitModal ({onConfirm, onCancel}) {
+  return (
+    <>
       {/* 어두워지기 */}
       <div className={styles['exit-overlay']} onClick={onCancel}></div>
-      
+
       <div className={styles.exit}>
         <div className={styles.exit2}>
           <p className={styles.exit3}>지금 끝내기에는 아쉬워요! <br />조금만 더 가봐요!</p>
@@ -177,13 +164,13 @@ function ConsentPopup({ handleAudioConsent, handleAudioReject }) {
           </div>
         </div>
 
-
         <div className={styles.exit6}>
           <button 
           className={styles.exit7}
           onClick={onCancel}>
             <p className={styles.exit8}>대화 계속하기</p>
           </button>
+
           <button 
           className={styles.exit9}
           onClick={onConfirm}
@@ -192,11 +179,9 @@ function ConsentPopup({ handleAudioConsent, handleAudioReject }) {
           </button>
         </div>
       </div>
-      </>
-    )
-  }
-
-
+    </>
+  )
+}
 
 
 
@@ -210,8 +195,6 @@ function Header ({ handleAiReset, currentStep, onBack, onMyPage, onStartMessageR
   const handleSeeMore = () => {
     setIsMoreOpen((prev) => !prev);
   };
-
-
 
   return (
     currentStep !== 'CHAT' ? (
@@ -282,10 +265,10 @@ function Header ({ handleAiReset, currentStep, onBack, onMyPage, onStartMessageR
             !showReportModal && (
               <button onClick={handleSeeMore} className={styles['chat-more']}>
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
-  <path d="M12.5 11.25C12.5 11.9404 11.9404 12.5 11.25 12.5C10.5596 12.5 10 11.9404 10 11.25C10 10.5596 10.5596 10 11.25 10C11.9404 10 12.5 10.5596 12.5 11.25Z" fill="#454440"/>
-  <path opacity="0.8" d="M12.5 6.25C12.5 6.94036 11.9404 7.5 11.25 7.5C10.5596 7.5 10 6.94036 10 6.25C10 5.55964 10.5596 5 11.25 5C11.9404 5 12.5 5.55964 12.5 6.25Z" fill="#454440"/>
-  <path opacity="0.8" d="M12.5 16.25C12.5 16.9404 11.9404 17.5 11.25 17.5C10.5596 17.5 10 16.9404 10 16.25C10 15.5596 10.5596 15 11.25 15C11.9404 15 12.5 15.5596 12.5 16.25Z" fill="#454440"/>
-</svg>
+                  <path d="M12.5 11.25C12.5 11.9404 11.9404 12.5 11.25 12.5C10.5596 12.5 10 11.9404 10 11.25C10 10.5596 10.5596 10 11.25 10C11.9404 10 12.5 10.5596 12.5 11.25Z" fill="#454440"/>
+                  <path opacity="0.8" d="M12.5 6.25C12.5 6.94036 11.9404 7.5 11.25 7.5C10.5596 7.5 10 6.94036 10 6.25C10 5.55964 10.5596 5 11.25 5C11.9404 5 12.5 5.55964 12.5 6.25Z" fill="#454440"/>
+                  <path opacity="0.8" d="M12.5 16.25C12.5 16.9404 11.9404 17.5 11.25 17.5C10.5596 17.5 10 16.9404 10 16.25C10 15.5596 10.5596 15 11.25 15C11.9404 15 12.5 15.5596 12.5 16.25Z" fill="#454440"/>
+                </svg>
               </button>
             )
           )}
@@ -311,48 +294,48 @@ function Header ({ handleAiReset, currentStep, onBack, onMyPage, onStartMessageR
 }
 
 
+
 // 더보기 박스 (비활성화)
 function SeeMore ({ onStartMessageReport, onStartScenarioReport, handleAiReset }) {
 
   return (
     <>
-    <div className={styles.more}>
-      <div className={styles.more2}>
-        <button
-        onClick={() => {
-          // AiChatPage에 선택 모드 켜달라고 요청
-          onStartMessageReport();
-        }}
-        className={styles.more3}>
-          <p className={styles.more4}>AI 대화 신고하기</p>
-        </button>
+      <div className={styles.more}>
+        <div className={styles.more2}>
+          <button
+          onClick={() => {
+            // AiChatPage에 선택 모드 켜달라고 요청
+            onStartMessageReport();
+          }}
+          className={styles.more3}>
+            <p className={styles.more4}>AI 대화 신고하기</p>
+          </button>
 
-        <button
-        onClick={() => {
-          // AiChatPage에 시나리오 신고 팝업 요청
-          onStartScenarioReport();
-        }}
-        className={styles.more3}>
-          <p className={styles.more4}>시나리오 신고하기</p>
-        </button>
-      </div>
-
-      <div className={styles.more5}></div>
-
-      <div className={styles.more6}>
-        <div className={styles.more7}>
-          <img src={union} alt="" className={styles.more8} />
+          <button
+          onClick={() => {
+            // AiChatPage에 시나리오 신고 팝업 요청
+            onStartScenarioReport();
+          }}
+          className={styles.more3}>
+            <p className={styles.more4}>시나리오 신고하기</p>
+          </button>
         </div>
 
+        <div className={styles.more5}></div>
 
-        <button
-        className={styles.more9}
-        onClick={handleAiReset}
-        >
-          <p className={styles.more10}>대화 다시하기</p>
-        </button>
+        <div className={styles.more6}>
+          <div className={styles.more7}>
+            <img src={union} alt="" className={styles.more8} />
+          </div>
+
+          <button
+          className={styles.more9}
+          onClick={handleAiReset}
+          >
+            <p className={styles.more10}>대화 다시하기</p>
+          </button>
+        </div>
       </div>
-    </div>
     </>
   );
 }
@@ -361,24 +344,26 @@ function SeeMore ({ onStartMessageReport, onStartScenarioReport, handleAiReset }
 function Reports ({mode, chatData, targetId, onClose, showPopup}) {
   const [isReports, setIsReports] = useState(false);
   const [inputReports, setInputReports] = useState('');
+  const reportsRef = useRef(null);
   const chatRoomId = chatData?.chatRoomId;
+
   const titles = {
     SCENARIO: '시나리오 신고',
     MESSAGE: 'AI 답변 신고'
   };
 
+
+
   // 산고 전송
   const handleSubmit = async() => {
     if (!inputReports.trim()) {
       showPopup('신고 내용을 입력해주세요.');
-
       return;
     }
 
     if (isReports) return;
     try {
       setIsReports(true);
-
       const result = await apiFetch('/chats/reports', {
         method: 'POST',
         body: JSON.stringify({
@@ -390,7 +375,6 @@ function Reports ({mode, chatData, targetId, onClose, showPopup}) {
 
       if (result.success) {
         showPopup('신고가 접수되었습니다.');
-
         setInputReports('');
         onClose();
       }
@@ -402,15 +386,26 @@ function Reports ({mode, chatData, targetId, onClose, showPopup}) {
   };
 
 
+
+  useEffect(() => {
+    // 신고 모달이 화면에 나타나면 자기 위치로 스크롤
+    reportsRef.current?.scrollIntoView({ 
+      behavior: 'smooth',
+      block: 'center',  // 중앙에 위치
+    });
+  }, []);
+
   return (
-    <div className={styles.reports}>
+    <div ref={reportsRef} className={styles.reports}>
       <div className={styles.reports2}>
         <div className={styles.reports3}>
           <p className={styles.reports4}>{titles[mode]}</p>
         </div>
 
         <div className={styles.reports5}>
-        <textarea 
+          <textarea 
+          id="report-input"
+          name="reportContent"
           className={styles.reports6}
           value={inputReports}
           onChange={(e) => setInputReports(e.target.value)}
@@ -421,16 +416,12 @@ function Reports ({mode, chatData, targetId, onClose, showPopup}) {
             }
           }}
           placeholder={
-            '신고 내용을 작성해주세요'
+            '신고 내용을 작성해주세요 (최대 250자)'
           }
           maxLength={250}
           disabled={isReports}
           >
           </textarea>
-            <p className={styles['chat-input8']}>
-              {inputReports.length}
-              <span className={styles['chat-input9']}>/250자</span>
-            </p>
         </div>
       </div>
 
@@ -454,9 +445,7 @@ function Reports ({mode, chatData, targetId, onClose, showPopup}) {
 
 
 
-
-
-// 단어 선택? 테스트용 오류
+// 단어 선택
 function TestDictionary ({ wordData, currentIndex }) {
   return (
     <div className={styles.viewport}>
@@ -475,6 +464,7 @@ function TestDictionary ({ wordData, currentIndex }) {
                       <div className={styles.dictionary9}>
                         <p className={styles['dictionary9-t']}>{word.word}</p>
                       </div>
+
                       <div className={styles.dictionary10}>
                         <div className={styles.dictionary11}>
                           <div className={styles['dictionary11-a']}>
@@ -482,6 +472,7 @@ function TestDictionary ({ wordData, currentIndex }) {
                               <div className={styles['dictionary11-c']}>
                                 <p className={styles['dictionary11-d']}>US </p>
                               </div>
+
                               <div className={styles['dictionary11-e']}>
                                 <div className={styles['dictionary11-f']}>
                                   <svg 
@@ -498,106 +489,111 @@ function TestDictionary ({ wordData, currentIndex }) {
                                 </div>
                               </div>
                             </div>
+
                             {word.ukPhonetic && (
-                            <div className={styles['dictionary11-g']}>
-                              <p className={styles['dictionary11-h']}>[{word.usPhonetic}]</p>
-                            </div>
+                              <div className={styles['dictionary11-g']}>
+                                <p className={styles['dictionary11-h']}>[{word.usPhonetic}]</p>
+                              </div>
                             )}
                           </div>
-                        <div className={styles['dictionary11-a']}>
-                          <div className={styles['dictionary11-b']}>
-                            <div className={styles['dictionary11-c']}>
-                              <p className={styles['dictionary11-d']}>UK </p>
-                            </div>
-                            <div className={styles['dictionary11-e']}>
-                              <div className={styles['dictionary11-f']}>
-                                <svg 
-                                className={styles['dictionary11-f2']}
-                                xmlns="http://www.w3.org/2000/svg" 
-                                width="16" 
-                                height="16" 
-                                viewBox="0 0 16 16" 
-                                fill="none">
-                                  <path d="M7.33337 4.18509C7.33337 3.54139 6.61183 3.16128 6.08095 3.52531L4.10228 4.88211C4.03568 4.92778 3.95682 4.95222 3.87607 4.95222H2.13337C1.69155 4.95222 1.33337 5.31039 1.33337 5.75222V10.2475C1.33337 10.6893 1.69155 11.0475 2.13337 11.0475H3.87607C3.95682 11.0475 4.03568 11.0719 4.10228 11.1176L6.08095 12.4744C6.61183 12.8384 7.33337 12.4583 7.33337 11.8146V4.18509Z" fill="#A0A08A"/>
-                                  <path d="M9.69336 5.64014C10.3183 6.26523 10.6693 7.11292 10.6693 7.9968C10.6693 8.88068 10.3183 9.72838 9.69336 10.3535" stroke="#A0A08A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
-                                  <path d="M11.4879 3.99658C12.7685 5.05756 13.4879 6.49636 13.4879 7.99658C13.4879 9.4968 12.7685 10.9356 11.4879 11.9966" stroke="#A0A08A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
-                                </svg>
+
+                          <div className={styles['dictionary11-a']}>
+                            <div className={styles['dictionary11-b']}>
+                              <div className={styles['dictionary11-c']}>
+                                <p className={styles['dictionary11-d']}>UK </p>
+                              </div>
+
+                              <div className={styles['dictionary11-e']}>
+                                <div className={styles['dictionary11-f']}>
+                                  <svg 
+                                  className={styles['dictionary11-f2']}
+                                  xmlns="http://www.w3.org/2000/svg" 
+                                  width="16" 
+                                  height="16" 
+                                  viewBox="0 0 16 16" 
+                                  fill="none">
+                                    <path d="M7.33337 4.18509C7.33337 3.54139 6.61183 3.16128 6.08095 3.52531L4.10228 4.88211C4.03568 4.92778 3.95682 4.95222 3.87607 4.95222H2.13337C1.69155 4.95222 1.33337 5.31039 1.33337 5.75222V10.2475C1.33337 10.6893 1.69155 11.0475 2.13337 11.0475H3.87607C3.95682 11.0475 4.03568 11.0719 4.10228 11.1176L6.08095 12.4744C6.61183 12.8384 7.33337 12.4583 7.33337 11.8146V4.18509Z" fill="#A0A08A"/>
+                                    <path d="M9.69336 5.64014C10.3183 6.26523 10.6693 7.11292 10.6693 7.9968C10.6693 8.88068 10.3183 9.72838 9.69336 10.3535" stroke="#A0A08A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M11.4879 3.99658C12.7685 5.05756 13.4879 6.49636 13.4879 7.99658C13.4879 9.4968 12.7685 10.9356 11.4879 11.9966" stroke="#A0A08A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                                  </svg>
+                                </div>
                               </div>
                             </div>
+
+                            {word.ukPhonetic && (
+                              <div className={styles['dictionary11-g']}>
+                                <p className={styles['dictionary11-h']}>[{word.ukPhonetic}]</p>
+                              </div>
+                            )}
                           </div>
-  
-                          {word.ukPhonetic && (
-                          <div className={styles['dictionary11-g']}>
-                            <p className={styles['dictionary11-h']}>[{word.ukPhonetic}]</p>
-                          </div>
-                          )}
                         </div>
                       </div>
                     </div>
-                  </div>
-  
-  
-                  <div className={styles.dictionary12}>
-                    <div className={styles.dictionary13}>
-                      <div className={styles['dictionary14-s']}>
-                        <p className={styles['dictionary15-s']}>뜻</p>
+
+                    <div className={styles.dictionary12}>
+                      <div className={styles.dictionary13}>
+                        <div className={styles['dictionary14-s']}>
+                          <p className={styles['dictionary15-s']}>뜻</p>
+                        </div>
+
+                        <div className={styles['dictionary16-n']}>
+                          <p className={styles['dictionary17-n']}>표현</p>
+                        </div>
+
+                        <div className={styles.dictionary18}>
+                          <p className={styles.dictionary19}>관계어</p>
+                        </div>
+
+                        <div className={styles['dictionary16-n']}>
+                          <p className={styles['dictionary17-n']}>파생형</p>
+                        </div>
                       </div>
-                      <div className={styles['dictionary16-n']}>
-                        <p className={styles['dictionary17-n']}>표현</p>
-                      </div>
-                      <div className={styles.dictionary18}>
-                        <p className={styles.dictionary19}>관계어</p>
-                      </div>
-                      <div className={styles['dictionary16-n']}>
-                        <p className={styles['dictionary17-n']}>파생형</p>
-                      </div>
-                    </div>
-  
-                    {/* 뜻 탭 내용 */}
-    {word.meaningsByPos?.map((m, i) => (
-      <div key={i}>
-        <div className={styles.dictionary20}>
-          <p className={styles.dictionary21}>
-            {m.partOfSpeech}
-          </p>
-          {m.meanings?.map((meaning, j) => (
-          <div key={j} className={styles.dictionary22}>
-            <div className={styles.dictionary23}>
-              <div className={styles.dictionary24}>
-                {j+1}.{meaning}
-              </div>
-            </div>
-          </div>
-          ))}
-        </div>
-      </div>
-    ))}
-                  </div>
-                </div>
-  
-  
-                <div className={styles['dictionary-bar']}></div>
-  
-                <div className={styles.dictionary27}>
-                  {word.synonyms.length > 0 && (
-                  <div className={styles.dictionary35}>
-                    <div className={styles.dictionary36}>
-                      <p className={styles.dictionary37}>유의어</p>
-                    </div>
-                    <div className={styles.dictionary38}>
-                      {word.synonyms.map((syn, i) => (
-                        <div className={styles.dictionary39}>
-                          <p key={i} className={styles.dictionary40}>{syn}</p>
+
+                      {/* 뜻 탭 내용 */}
+                      {word.meaningsByPos?.map((m, i) => (
+                        <div key={i}>
+                          <div className={styles.dictionary20}>
+                            <p className={styles.dictionary21}>
+                              {m.partOfSpeech}
+                            </p>
+                            {m.meanings?.map((meaning, j) => (
+                              <div key={j} className={styles.dictionary22}>
+                                <div className={styles.dictionary23}>
+                                  <div className={styles.dictionary24}>
+                                    {j+1}.{meaning}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       ))}
                     </div>
                   </div>
-                  )}
+
+                  <div className={styles['dictionary-bar']}></div>
+
+                  <div className={styles.dictionary27}>
+                    {word.synonyms.length > 0 && (
+                      <div className={styles.dictionary35}>
+                        <div className={styles.dictionary36}>
+                          <p className={styles.dictionary37}>유의어</p>
+                        </div>
+
+                        <div className={styles.dictionary38}>
+                          {word.synonyms.map((syn, i) => (
+                            <div className={styles.dictionary39}>
+                              <p key={i} className={styles.dictionary40}>{syn}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
         ))}
       </div>
     </div>
@@ -606,22 +602,8 @@ function TestDictionary ({ wordData, currentIndex }) {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 // 상단 진행 표시 (1 - 2 - 3)
 function Stepper({ currentStep, totalSteps = 3 }) {
-
   let stepNumber;
   if (currentStep === 'WORD_SELECT') {
     stepNumber = 1;
@@ -649,18 +631,19 @@ function Stepper({ currentStep, totalSteps = 3 }) {
 }
 
 
+
 // 활성화 구분 후 스탭 표시
 function StepCircle({ stepNum, currentStep }) {
   const isActive = stepNum === currentStep;
   const isDone = stepNum < currentStep;
-  
-    // 현재 스텝: 진한 초록 + 번호
+
+  // 현재 스텝: 진한 초록 + 번호
   if (isActive) {
     return <div className={styles.step2}>{stepNum}</div>;
   }
 
   // 완료 스텝: 연한 초록 + 체크
-    if (isDone) {
+  if (isDone) {
     return (
       <div className={styles['step-active']}>
         <svg 
@@ -673,12 +656,14 @@ function StepCircle({ stepNum, currentStep }) {
   }
 
   // 대기 스텝: 테두리 + 연한 번호
-    return (
+  return (
     <div className={styles['step-done']}>
       <span className={styles['step-done2']}>{stepNum}</span>
     </div>
   );
 }
+
+
 
 function StepDots() {
   return (
@@ -702,41 +687,39 @@ function StepDots() {
 
 
 
-
 // 시나리오 선택
 function Scenario ({ scenarioData, selectedScenario, onSelect }) {
+  return (
+    <div className={styles.scenario}>
+      {scenarioData.map(({ scenarioId, title }) => {
+        const isSelected = selectedScenario === scenarioId;
 
-
-
-    return (
-      <div className={styles.scenario}>
-        {scenarioData.map(({ scenarioId, title }) => {
-          const isSelected = selectedScenario === scenarioId;
-          return (
-            <button key={scenarioId}
-            onClick={() => onSelect(scenarioId)}
-            className={`${styles.scenario2} ${isSelected ? styles['scenario2-selected'] : ''}`}>
-              <div className={styles.scenario3}>
-                <div className={styles.scenario4}>
-                  <p className={styles.scenario5}>{title}</p>
-                </div>
-
-                {isSelected === true && (
-                <div className={styles.scenario6}>
-                    <svg 
-                    className={styles.scenario8}
-                    xmlns="http://www.w3.org/2000/svg" width="13" height="10" viewBox="0 0 13 10" fill="none">
-                      <path d="M10.6367 0.384385C11.0656 -0.090327 11.7972 -0.13124 12.2763 0.294542C12.7576 0.72254 12.8017 1.45953 12.374 1.94103L12.3672 1.94884L5.58778 9.28185L5.58681 9.28087C5.36583 9.52548 5.05245 9.66645 4.72254 9.66661C4.38947 9.66661 4.07184 9.52383 3.85046 9.27501L0.294745 5.27501C-0.133297 4.79347 -0.0900501 4.05564 0.391426 3.62755C0.873018 3.1997 1.6109 3.24371 2.03891 3.72521L4.72937 6.75255L10.6367 0.383409V0.384385Z" fill="white"/>
-                    </svg>
-                </div>
-                )}
+        return (
+          <button key={scenarioId}
+          onClick={() => onSelect(scenarioId)}
+          className={`${styles.scenario2} ${isSelected ? styles['scenario2-selected'] : ''}`}>
+            <div className={styles.scenario3}>
+              <div className={styles.scenario4}>
+                <p className={styles.scenario5}>{title}</p>
               </div>
-            </button>
-          )
-        })}
-      </div>
-    );
-  }
+
+              {isSelected === true && (
+                <div className={styles.scenario6}>
+                  <svg 
+                  className={styles.scenario8}
+                  xmlns="http://www.w3.org/2000/svg" width="13" height="10" viewBox="0 0 13 10" fill="none">
+                    <path d="M10.6367 0.384385C11.0656 -0.090327 11.7972 -0.13124 12.2763 0.294542C12.7576 0.72254 12.8017 1.45953 12.374 1.94103L12.3672 1.94884L5.58778 9.28185L5.58681 9.28087C5.36583 9.52548 5.05245 9.66645 4.72254 9.66661C4.38947 9.66661 4.07184 9.52383 3.85046 9.27501L0.294745 5.27501C-0.133297 4.79347 -0.0900501 4.05564 0.391426 3.62755C0.873018 3.1997 1.6109 3.24371 2.03891 3.72521L4.72937 6.75255L10.6367 0.383409V0.384385Z" fill="white"/>
+                  </svg>
+                </div>
+              )}
+            </div>
+          </button>
+        )
+      })}
+    </div>
+  );
+}
+
 
 
 // 보이스 선택
@@ -768,66 +751,53 @@ function Voice ({ selectedVoice, onSelect }) {
 </div>) },
   ];
 
-
-
-
-
-
-
-
-
-
-
-
-
   return (
     <div className={styles.voiceList}>
-    {voices.map(voice => {
-      const isSelected = selectedVoice === voice.id;
-      return (
-    <button
-    className={`${styles.voice} ${isSelected ? styles['voice-selected'] : ''}`}
-    onClick={() => onSelect(voice.id)}
-    key={voice.id}
-    >
-      <div className={styles.voice2}>
-        <div className={styles.voice3}>
-          {voice.icon}
-        </div>
+      {voices.map(voice => {
+        const isSelected = selectedVoice === voice.id;
 
-        <div className={styles.voice4}>
-          <p className={styles.voice5}>{voice.label}</p>
-          <p className={styles.voice6}>{voice.description}</p>
-        </div>
+        return (
+          <button
+          className={`${styles.voice} ${isSelected ? styles['voice-selected'] : ''}`}
+          onClick={() => onSelect(voice.id)}
+          key={voice.id}
+          >
+            <div className={styles.voice2}>
+              <div className={styles.voice3}>
+                {voice.icon}
+              </div>
 
-        {isSelected && (
-        <div
-        className={styles.voice7}>
-            <svg 
-            className={styles.voice9}
-            xmlns="http://www.w3.org/2000/svg" width="13" height="10" viewBox="0 0 13 10" fill="none">
-              <path d="M10.6367 0.384385C11.0656 -0.090327 11.7972 -0.13124 12.2763 0.294542C12.7576 0.72254 12.8017 1.45953 12.374 1.94103L12.3672 1.94884L5.58778 9.28185L5.58681 9.28087C5.36583 9.52548 5.05245 9.66645 4.72254 9.66661C4.38947 9.66661 4.07184 9.52383 3.85046 9.27501L0.294745 5.27501C-0.133297 4.79347 -0.0900501 4.05564 0.391426 3.62755C0.873018 3.1997 1.6109 3.24371 2.03891 3.72521L4.72937 6.75255L10.6367 0.383409V0.384385Z" fill="white"/>
-            </svg>
+              <div className={styles.voice4}>
+                <p className={styles.voice5}>{voice.label}</p>
+                <p className={styles.voice6}>{voice.description}</p>
+              </div>
 
-        </div>
-        )}
-
-      </div>
-    </button>
-    );
-    })}
+              {isSelected && (
+                <div
+                className={styles.voice7}>
+                  <svg 
+                  className={styles.voice9}
+                  xmlns="http://www.w3.org/2000/svg" width="13" height="10" viewBox="0 0 13 10" fill="none">
+                    <path d="M10.6367 0.384385C11.0656 -0.090327 11.7972 -0.13124 12.2763 0.294542C12.7576 0.72254 12.8017 1.45953 12.374 1.94103L12.3672 1.94884L5.58778 9.28185L5.58681 9.28087C5.36583 9.52548 5.05245 9.66645 4.72254 9.66661C4.38947 9.66661 4.07184 9.52383 3.85046 9.27501L0.294745 5.27501C-0.133297 4.79347 -0.0900501 4.05564 0.391426 3.62755C0.873018 3.1997 1.6109 3.24371 2.03891 3.72521L4.72937 6.75255L10.6367 0.383409V0.384385Z" fill="white"/>
+                  </svg>
+                </div>
+              )}
+            </div>
+          </button>
+        );
+      })}
     </div>
   )
 }
 
 
+
 // 단어 강조하기
 function MessageContent({ content, highlightWord }) {
   if (!highlightWord) return <p>{content}</p>;
-  
   // highlightWord를 분리해서 강조
   const parts = content.split(new RegExp(`(${highlightWord})`, 'gi'));
-  
+
   return (
     <p>
       {parts.map((part, i) => 
@@ -841,19 +811,8 @@ function MessageContent({ content, highlightWord }) {
 
 
 
-
-
-
-
-
-
-
-
-
-
 // 힌트 보기
 function HintCard({ message }) {
-
   return (
     <div className={styles['hint-card']}>
       <div className={styles['hint-card2']}>
@@ -916,15 +875,8 @@ function HintCard({ message }) {
 
 
 
-
-
-
-
 // 힌트 볼지 여부
 function HintOffer({ message, handleHintAccept, handleHintReject }) {
-
-
-
   return (
     <div className={styles.hint}>
       <div className={styles.hint2}>
@@ -940,21 +892,17 @@ function HintOffer({ message, handleHintAccept, handleHintReject }) {
 
         <div className={styles.hint8}>
           <button className={styles.hint9}
-            onClick={() => handleHintAccept(message.messageId)}
+          onClick={() => handleHintAccept(message.messageId)}
           >
-            <div className={styles.hint10}
-
-            >
+            <div className={styles.hint10}>
               <p className={styles.hint11}>네</p>
             </div>
           </button>
 
           <button className={styles.hint12}
-            onClick={() => handleHintReject(message.messageId)}
+          onClick={() => handleHintReject(message.messageId)}
           >
-            <div className={styles.hint13}
-
-            >
+            <div className={styles.hint13}>
               <p className={styles.hint14}>아니요</p>
             </div>
           </button>
@@ -968,7 +916,7 @@ function HintOffer({ message, handleHintAccept, handleHintReject }) {
 
 // 오류 이거 미사용임
 function ReportBubble({ message }) {
-    // 인트로 (캐릭터 + 한마디)
+  // 인트로 (캐릭터 + 한마디)
   if (message.reportType === 'INTRO') {
     return (
       <div className={styles.reportIntro}>
@@ -977,7 +925,7 @@ function ReportBubble({ message }) {
       </div>
     );
   }
-  
+
   // AI 채팅 진행 결과 (점수)
   if (message.reportType === 'SCORES') {
     return (
@@ -1005,7 +953,7 @@ function ReportBubble({ message }) {
       </div>
     );
   }
-  
+
   // 발음이 아쉬웠던 문장
   if (message.reportType === 'PRONUNCIATION') {
     return (
@@ -1021,7 +969,7 @@ function ReportBubble({ message }) {
       </div>
     );
   }
-  
+
   // 기억하면 좋은 표현
   if (message.reportType === 'NATIVE') {
     return (
@@ -1038,7 +986,7 @@ function ReportBubble({ message }) {
       </div>
     );
   }
-  
+
   // 다음엔 이렇게
   if (message.reportType === 'NEXT_SCENARIO') {
     return (
@@ -1049,20 +997,19 @@ function ReportBubble({ message }) {
     );
   }
 
-
-    // 종합 점수
+  // 종합 점수
   if (message.reportType === 'OVERALL') {
     return (
       <div className={styles.reportCard}>
         <div className={styles.reportCard2}>
           <p className={styles.reportCard3}>종합 점수: {message.score}점</p>
         </div>
-        
+
         <div className={styles.reportCard4}>
           <p className={styles.reportCard6}>잘한 점</p>
           <p className={styles.reportCard10}>{message.goodPoints}</p>
         </div>
-        
+
         <div className={styles.reportCard4}>
           <p className={styles.reportCard6}>개선할 점</p>
           <p className={styles.reportCard10}>{message.improvePoints}</p>
@@ -1070,7 +1017,7 @@ function ReportBubble({ message }) {
       </div>
     );
   }
-  
+
   // 단어 사용
   if (message.reportType === 'WORD_USAGE') {
     return (
@@ -1080,11 +1027,11 @@ function ReportBubble({ message }) {
             "{message.targetWord}" 단어 활용
           </p>
         </div>
-        
+
         <div className={styles.reportCard4}>
           <p className={styles.reportCard6}>{message.feedback}</p>
         </div>
-        
+
         {message.usageContext?.map((ctx) => (
           <div key={ctx.messageId} className={styles.reportCard4}>
             <p className={styles.reportCard6}>"{ctx.userSentence}"</p>
@@ -1096,7 +1043,6 @@ function ReportBubble({ message }) {
       </div>
     );
   }
-  
 
   if (message.reportType === 'SUGGESTION_INLINE') {
     return (
@@ -1129,8 +1075,6 @@ function ReportBubble({ message }) {
     );
   }
 
-
-
   // 표현 자연스러움 (개선점 없을 때)
   if (message.reportType === 'EXPRESSION_FEEDBACK') {
     return (
@@ -1140,14 +1084,14 @@ function ReportBubble({ message }) {
             표현 점수: {message.score}점
           </p>
         </div>
-        
+
         <div className={styles.reportCard4}>
           <p className={styles.reportCard10}>{message.feedback}</p>
         </div>
       </div>
     );
   }
-  
+
   if (message.reportType === 'NATIVE') {
     return (
       
@@ -1177,21 +1121,13 @@ function ReportBubble({ message }) {
 
 
 
-
-
-
-
-
 const formatDate = (isoString) => {
   const date = new Date(isoString);
-  
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
-  
   const days = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
   const dayName = days[date.getDay()];
-  
   return `${year}.${month}.${day} ${dayName}`;
 };
 
@@ -1202,6 +1138,8 @@ function Recommendation() {
   // 추천 영상 관리, 나중에 다시 넣기
   const [recommendedData, setRecommendedData] = useState([]);
 
+
+
   // 썸네일 클릭 시 메인 탭에서 유튜브 영상 열기
   const handleClick = (e) => {
     // e.preventDefault() = HTML 요소의 기본 동작(default behavior)을 막는 함수
@@ -1209,6 +1147,8 @@ function Recommendation() {
     e.preventDefault();
     openYoutubeVideo(recommendedData?.videoId);
   };
+
+
 
   // 컴포넌트 mount 시 추천영상 API 호출, 나중에 다시 넣기 오류
   useEffect(() => {
@@ -1220,77 +1160,77 @@ function Recommendation() {
         log.debug('데이터 로딩 실패', error);
       }
     };
-
     fetchData();
   }, []);
+
   return (
     recommendedData && (
-  <div className={styles['recommendation-card']}>
-    <div className={styles['recommendation-card2']}>
-      <div className={styles['recommendation-card3']}>
-        <div className={styles['recommendation-card4']}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 23 23" fill="none">
-            <path d="M11.6471 0.41721C17.744 0.417582 22.6862 5.36163 22.6862 11.4592C22.6858 17.5565 17.7438 22.4994 11.6471 22.4997C5.55012 22.4997 0.606941 17.5567 0.606581 11.4592C0.606581 11.1755 0.618045 10.8936 0.640273 10.6155C0.665945 10.2954 0.940283 10.0573 1.26137 10.0573C1.64929 10.0577 1.94593 10.4012 1.91908 10.7883C1.90366 11.0097 1.89564 11.2339 1.89564 11.4592C1.896 16.8453 6.26146 21.2107 11.6471 21.2107C17.0324 21.2103 21.3967 16.8451 21.3971 11.4592C21.3971 6.07304 17.0327 1.70665 11.6471 1.70627C11.422 1.70627 11.1975 1.71454 10.9762 1.72971C10.589 1.75601 10.2453 1.45871 10.2453 1.07053C10.2454 0.749618 10.4835 0.476337 10.8034 0.450901C11.0815 0.428973 11.3635 0.41721 11.6471 0.41721ZM13.736 15.1404H12.3239L11.7086 13.321H8.93861L8.32777 15.1404H6.91566L9.50697 7.77951H11.1344L13.736 15.1404ZM15.9318 15.1404H14.6105V7.77951H15.9318V15.1404ZM9.29457 12.2531H11.3527L10.3507 9.28537H10.2907L9.29457 12.2531ZM4.4767 0.311741C4.54544 -0.0972571 5.13007 -0.106529 5.21205 0.300022L5.27943 0.635472C5.68492 2.64634 7.33556 4.16964 9.37221 4.41477C9.7578 4.46151 9.80116 5.00459 9.42787 5.11203L8.96058 5.2468C7.10696 5.77891 5.68432 7.26854 5.23842 9.14475L5.21937 9.21946C5.12358 9.62014 4.54946 9.60923 4.46937 9.20481C4.09333 7.30606 2.6786 5.78225 0.813124 5.26584L0.260878 5.11203C-0.115769 5.00773 -0.0731594 4.46129 0.315077 4.41623C2.41283 4.17267 4.09713 2.57156 4.4474 0.488987L4.4767 0.311741Z" fill="#7F7569"/>
-          </svg>
-        </div>
-        <div className={styles['recommendation-card5']}>
-          <p className={styles['recommendation-card6']}>이런 영상은 어때요?</p>
-        </div>
-      </div>
+      <div className={styles['recommendation-card']}>
+        <div className={styles['recommendation-card2']}>
+          <div className={styles['recommendation-card3']}>
+            <div className={styles['recommendation-card4']}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 23 23" fill="none">
+                <path d="M11.6471 0.41721C17.744 0.417582 22.6862 5.36163 22.6862 11.4592C22.6858 17.5565 17.7438 22.4994 11.6471 22.4997C5.55012 22.4997 0.606941 17.5567 0.606581 11.4592C0.606581 11.1755 0.618045 10.8936 0.640273 10.6155C0.665945 10.2954 0.940283 10.0573 1.26137 10.0573C1.64929 10.0577 1.94593 10.4012 1.91908 10.7883C1.90366 11.0097 1.89564 11.2339 1.89564 11.4592C1.896 16.8453 6.26146 21.2107 11.6471 21.2107C17.0324 21.2103 21.3967 16.8451 21.3971 11.4592C21.3971 6.07304 17.0327 1.70665 11.6471 1.70627C11.422 1.70627 11.1975 1.71454 10.9762 1.72971C10.589 1.75601 10.2453 1.45871 10.2453 1.07053C10.2454 0.749618 10.4835 0.476337 10.8034 0.450901C11.0815 0.428973 11.3635 0.41721 11.6471 0.41721ZM13.736 15.1404H12.3239L11.7086 13.321H8.93861L8.32777 15.1404H6.91566L9.50697 7.77951H11.1344L13.736 15.1404ZM15.9318 15.1404H14.6105V7.77951H15.9318V15.1404ZM9.29457 12.2531H11.3527L10.3507 9.28537H10.2907L9.29457 12.2531ZM4.4767 0.311741C4.54544 -0.0972571 5.13007 -0.106529 5.21205 0.300022L5.27943 0.635472C5.68492 2.64634 7.33556 4.16964 9.37221 4.41477C9.7578 4.46151 9.80116 5.00459 9.42787 5.11203L8.96058 5.2468C7.10696 5.77891 5.68432 7.26854 5.23842 9.14475L5.21937 9.21946C5.12358 9.62014 4.54946 9.60923 4.46937 9.20481C4.09333 7.30606 2.6786 5.78225 0.813124 5.26584L0.260878 5.11203C-0.115769 5.00773 -0.0731594 4.46129 0.315077 4.41623C2.41283 4.17267 4.09713 2.57156 4.4474 0.488987L4.4767 0.311741Z" fill="#7F7569"/>
+              </svg>
+            </div>
 
+            <div className={styles['recommendation-card5']}>
+              <p className={styles['recommendation-card6']}>이런 영상은 어때요?</p>
+            </div>
+          </div>
 
-      <div className={styles['recommendation-card7']}>
-        <p className={styles['recommendation-card8']}>문맥 연결에 약한 부분을 보완해줄 영상이에요! 같이 한 번 봐볼까요?</p>
-      </div>
-    </div>
-
-
-    <article className={styles.recommendedSectionBox3}>
-      <a 
-      className={styles.recommendedSectionLink}
-      href={`https://youtube.com/watch?v=${recommendedData?.videoId}`}
-      onClick={handleClick}
-      rel="noopener noreferrer"
-      >
-        {/* 썸네일 */}
-        <div className={styles.recommendedSectionThumbnail}>
-          <img 
-          src={`https://img.youtube.com/vi/${recommendedData?.videoId}/maxresdefault.jpg`} 
-          alt={`${recommendedData?.title} 영상 썸네일`} 
-          // 고화질 실패하면 저화질로
-          onError={(e) => {
-              e.target.src = `https://img.youtube.com/vi/${recommendedData?.videoId}/hqdefault.jpg`;
-          }}
-          />
-
-          <div className={styles.recommendedSectionDuration}>
-            <p className={styles.recommendedSectionDuration3}>{formatDuration(recommendedData?.duration)}</p>
+          <div className={styles['recommendation-card7']}>
+            <p className={styles['recommendation-card8']}>문맥 연결에 약한 부분을 보완해줄 영상이에요! 같이 한 번 봐볼까요?</p>
           </div>
         </div>
 
-        {/* 영상 정보 */}
-        <div className={styles.recommendedSectionInfo}>
-          {/* 채널 정보 (프로필 없음 오류) */}
-          <img
-            className={styles.recommendedSectionChannel}
-            src={recommendedData?.thumbnailUrl}
-            alt={`${recommendedData?.channelName} 프로필`}
-          />
-          <div className={styles.recommendedSectionTitle}>
-            <h3 className={styles.recommendedSectionTitle2}>{recommendedData?.title}</h3>
-            <span className={styles.recommendedSectionChannelName}>{recommendedData?.channelName}</span>
-          </div>
-        </div>
-      </a>
-    </article>
-  </div>
+        <article className={styles.recommendedSectionBox3}>
+          <a 
+          className={styles.recommendedSectionLink}
+          href={`https://youtube.com/watch?v=${recommendedData?.videoId}`}
+          onClick={handleClick}
+          rel="noopener noreferrer"
+          >
+            {/* 썸네일 */}
+            <div className={styles.recommendedSectionThumbnail}>
+              <img 
+              src={`https://img.youtube.com/vi/${recommendedData?.videoId}/maxresdefault.jpg`} 
+              alt={`${recommendedData?.title} 영상 썸네일`} 
+              // 고화질 실패하면 저화질로
+              onError={(e) => {
+                e.target.src = `https://img.youtube.com/vi/${recommendedData?.videoId}/hqdefault.jpg`;
+              }}/>
+
+              <div className={styles.recommendedSectionDuration}>
+                <p className={styles.recommendedSectionDuration3}>{formatDuration(recommendedData?.duration)}</p>
+              </div>
+            </div>
+
+            {/* 영상 정보 */}
+            <div className={styles.recommendedSectionInfo}>
+              {/* 채널 정보 (프로필 없음 오류) */}
+              <img
+                className={styles.recommendedSectionChannel}
+                src={recommendedData?.thumbnailUrl}
+                alt={`${recommendedData?.channelName} 프로필`}
+              />
+
+              <div className={styles.recommendedSectionTitle}>
+                <h3 className={styles.recommendedSectionTitle2}>{recommendedData?.title}</h3>
+                <span className={styles.recommendedSectionChannelName}>{recommendedData?.channelName}</span>
+              </div>
+            </div>
+          </a>
+        </article>
+      </div>
     )
   )
 }
 
+
+
 function formatDuration (duration) {
   if (duration == null) return '00:00';
-
   let totalSeconds;
 
   if (typeof duration === 'number') {
@@ -1306,11 +1246,9 @@ function formatDuration (duration) {
   }
 
   if (isNaN(totalSeconds)) return '00:00';
-
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
-
   const pad = (n) => String(n).padStart(2, '0');
 
   return hours > 0
@@ -1318,16 +1256,17 @@ function formatDuration (duration) {
     : `${pad(minutes)}:${pad(seconds)}`;
 };
 
+
+
 // 최종정산 페이지
 function ReportPage({ reportData, chatData, handleAiSound }) {
-
-
   if (!reportData || !chatData ) return null;
+
   const { 
-  overall, 
-  expressionNaturalness, 
-  pronunciationScore,
-} = reportData;
+    overall, 
+    expressionNaturalness, 
+    pronunciationScore,
+  } = reportData;
 
   const getGrade = (score) => {
     if (score >= 95) return 'S';
@@ -1337,8 +1276,6 @@ function ReportPage({ reportData, chatData, handleAiSound }) {
     if (score >= 50 && score < 60) return 'D';
     return 'E';
   };
-
-
 
   return (
     <div className={styles.reportPage}>
@@ -1411,125 +1348,121 @@ function ReportPage({ reportData, chatData, handleAiSound }) {
         </div>
 
         {expressionNaturalness?.improvements?.[0] && (
-        <div className={styles.reportPage34}>
-          <div className={styles.reportPage35}>
-            <div className={styles.reportPage36}>
-              <div className={styles.reportPage37}>
-                <div className={styles.reportPage38}>
-                  <p className={styles.reportPage39}>
-                    기억하면 좋을 표현
-                  </p>
-                </div>
-
-                <div className={styles.reportPage40}>
-
-                  <div className={styles.reportPage41}>
-                    <div className={styles.reportPage42}>
-                      <svg 
-                      className={styles.reportPage43}
-                      xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
-  <path d="M11 6.27788C11 5.31233 9.91769 4.74216 9.12137 5.2882L6.15336 7.32341C6.05346 7.39191 5.93517 7.42857 5.81405 7.42857H3.2C2.53726 7.42857 2 7.96583 2 8.62857V15.3714C2 16.0342 2.53726 16.5714 3.2 16.5714H5.81405C5.93517 16.5714 6.05346 16.6081 6.15336 16.6766L9.12137 18.7118C9.91769 19.2578 11 18.6877 11 17.7221V6.27788Z" fill="#5E5A4E"/>
-  <path d="M15.1035 11.9946C15.1035 10.9076 14.6709 9.86449 13.9024 9.0957C13.5516 8.74412 13.5525 8.17396 13.9038 7.82275C14.2554 7.47197 14.8256 7.4729 15.1768 7.82421C16.2824 8.93049 16.9037 10.4306 16.9038 11.9946C16.9038 13.559 16.2827 15.0601 15.1768 16.1665C14.8255 16.5179 14.2554 16.5176 13.9038 16.1665C13.5524 15.8152 13.5513 15.2451 13.9024 14.8936C14.671 14.1247 15.1035 13.0818 15.1035 11.9946Z" fill="#5E5A4E"/>
-  <path d="M19.3325 11.9951C19.3325 10.044 18.3976 8.12947 16.6577 6.68799C16.275 6.37086 16.222 5.80363 16.5391 5.4209C16.8562 5.03824 17.4234 4.98517 17.8061 5.30225C19.908 7.0437 21.1313 9.44558 21.1313 11.9951C21.1313 14.5447 19.908 16.9465 17.8061 18.688C17.4234 19.0051 16.8562 18.952 16.5391 18.5693C16.222 18.1866 16.275 17.6194 16.6577 17.3023C18.3976 15.8608 19.3325 13.9462 19.3325 11.9951Z" fill="#5E5A4E"/>
-</svg>
-                    </div>
-
-                    <div className={styles.reportPage44}>
-                      <p className={styles.reportPage45}>{expressionNaturalness.improvements[0].original}</p>
-                    </div>
+          <div className={styles.reportPage34}>
+            <div className={styles.reportPage35}>
+              <div className={styles.reportPage36}>
+                <div className={styles.reportPage37}>
+                  <div className={styles.reportPage38}>
+                    <p className={styles.reportPage39}>
+                      기억하면 좋을 표현
+                    </p>
                   </div>
 
+                  <div className={styles.reportPage40}>
 
+                    <div className={styles.reportPage41}>
+                      <div className={styles.reportPage42}>
+                        <svg 
+                        className={styles.reportPage43}
+                        xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                          <path d="M11 6.27788C11 5.31233 9.91769 4.74216 9.12137 5.2882L6.15336 7.32341C6.05346 7.39191 5.93517 7.42857 5.81405 7.42857H3.2C2.53726 7.42857 2 7.96583 2 8.62857V15.3714C2 16.0342 2.53726 16.5714 3.2 16.5714H5.81405C5.93517 16.5714 6.05346 16.6081 6.15336 16.6766L9.12137 18.7118C9.91769 19.2578 11 18.6877 11 17.7221V6.27788Z" fill="#5E5A4E"/>
+                          <path d="M15.1035 11.9946C15.1035 10.9076 14.6709 9.86449 13.9024 9.0957C13.5516 8.74412 13.5525 8.17396 13.9038 7.82275C14.2554 7.47197 14.8256 7.4729 15.1768 7.82421C16.2824 8.93049 16.9037 10.4306 16.9038 11.9946C16.9038 13.559 16.2827 15.0601 15.1768 16.1665C14.8255 16.5179 14.2554 16.5176 13.9038 16.1665C13.5524 15.8152 13.5513 15.2451 13.9024 14.8936C14.671 14.1247 15.1035 13.0818 15.1035 11.9946Z" fill="#5E5A4E"/>
+                          <path d="M19.3325 11.9951C19.3325 10.044 18.3976 8.12947 16.6577 6.68799C16.275 6.37086 16.222 5.80363 16.5391 5.4209C16.8562 5.03824 17.4234 4.98517 17.8061 5.30225C19.908 7.0437 21.1313 9.44558 21.1313 11.9951C21.1313 14.5447 19.908 16.9465 17.8061 18.688C17.4234 19.0051 16.8562 18.952 16.5391 18.5693C16.222 18.1866 16.275 17.6194 16.6577 17.3023C18.3976 15.8608 19.3325 13.9462 19.3325 11.9951Z" fill="#5E5A4E"/>
+                        </svg>
+                      </div>
 
-
-                  <div className={styles.reportPage46}>
-                    <div className={styles.reportPage47}>
-                      <svg 
-                      className={styles.reportPage48}
-                      xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
-  <path d="M11 6.27788C11 5.31233 9.91769 4.74216 9.12137 5.2882L6.15336 7.32341C6.05346 7.39191 5.93517 7.42857 5.81405 7.42857H3.2C2.53726 7.42857 2 7.96583 2 8.62857V15.3714C2 16.0342 2.53726 16.5714 3.2 16.5714H5.81405C5.93517 16.5714 6.05346 16.6081 6.15336 16.6766L9.12137 18.7118C9.91769 19.2578 11 18.6877 11 17.7221V6.27788Z" fill="#01CF8A"/>
-  <path d="M15.1035 11.9946C15.1035 10.9076 14.6709 9.86449 13.9024 9.0957C13.5516 8.74412 13.5525 8.17396 13.9038 7.82275C14.2554 7.47197 14.8256 7.4729 15.1768 7.82421C16.2824 8.93049 16.9037 10.4306 16.9038 11.9946C16.9038 13.559 16.2827 15.0601 15.1768 16.1665C14.8255 16.5179 14.2554 16.5176 13.9038 16.1665C13.5524 15.8152 13.5513 15.2451 13.9024 14.8936C14.671 14.1247 15.1035 13.0818 15.1035 11.9946Z" fill="#01CF8A"/>
-  <path d="M19.3325 11.9951C19.3325 10.044 18.3976 8.12947 16.6577 6.68799C16.275 6.37086 16.222 5.80363 16.5391 5.4209C16.8562 5.03824 17.4234 4.98517 17.8061 5.30225C19.908 7.0437 21.1313 9.44558 21.1313 11.9951C21.1313 14.5447 19.908 16.9465 17.8061 18.688C17.4234 19.0051 16.8562 18.952 16.5391 18.5693C16.222 18.1866 16.275 17.6194 16.6577 17.3023C18.3976 15.8608 19.3325 13.9462 19.3325 11.9951Z" fill="#01CF8A"/>
-</svg>
+                      <div className={styles.reportPage44}>
+                        <p className={styles.reportPage45}>{expressionNaturalness.improvements[0].original}</p>
+                      </div>
                     </div>
 
-                    <p className={styles.reportPage49}>{expressionNaturalness.improvements[0].suggested}</p>
+                    <div className={styles.reportPage46}>
+                      <div className={styles.reportPage47}>
+                        <svg 
+                        className={styles.reportPage48}
+                        xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                          <path d="M11 6.27788C11 5.31233 9.91769 4.74216 9.12137 5.2882L6.15336 7.32341C6.05346 7.39191 5.93517 7.42857 5.81405 7.42857H3.2C2.53726 7.42857 2 7.96583 2 8.62857V15.3714C2 16.0342 2.53726 16.5714 3.2 16.5714H5.81405C5.93517 16.5714 6.05346 16.6081 6.15336 16.6766L9.12137 18.7118C9.91769 19.2578 11 18.6877 11 17.7221V6.27788Z" fill="#01CF8A"/>
+                          <path d="M15.1035 11.9946C15.1035 10.9076 14.6709 9.86449 13.9024 9.0957C13.5516 8.74412 13.5525 8.17396 13.9038 7.82275C14.2554 7.47197 14.8256 7.4729 15.1768 7.82421C16.2824 8.93049 16.9037 10.4306 16.9038 11.9946C16.9038 13.559 16.2827 15.0601 15.1768 16.1665C14.8255 16.5179 14.2554 16.5176 13.9038 16.1665C13.5524 15.8152 13.5513 15.2451 13.9024 14.8936C14.671 14.1247 15.1035 13.0818 15.1035 11.9946Z" fill="#01CF8A"/>
+                          <path d="M19.3325 11.9951C19.3325 10.044 18.3976 8.12947 16.6577 6.68799C16.275 6.37086 16.222 5.80363 16.5391 5.4209C16.8562 5.03824 17.4234 4.98517 17.8061 5.30225C19.908 7.0437 21.1313 9.44558 21.1313 11.9951C21.1313 14.5447 19.908 16.9465 17.8061 18.688C17.4234 19.0051 16.8562 18.952 16.5391 18.5693C16.222 18.1866 16.275 17.6194 16.6577 17.3023C18.3976 15.8608 19.3325 13.9462 19.3325 11.9951Z" fill="#01CF8A"/>
+                        </svg>
+                      </div>
+
+                      <p className={styles.reportPage49}>{expressionNaturalness.improvements[0].suggested}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className={styles.reportPage50}>
-                <div className={styles.reportPage51}>
-                  <div className={styles.reportPage52}>
-                    <p className={styles.reportPage53}>{expressionNaturalness.improvements[0].explanation}</p>
+                <div className={styles.reportPage50}>
+                  <div className={styles.reportPage51}>
+                    <div className={styles.reportPage52}>
+                      <p className={styles.reportPage53}>{expressionNaturalness.improvements[0].explanation}</p>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
         )}
 
         {pronunciationScore?.available && pronunciationScore?.weakSentences?.[0] && (
-        <div className={styles.reportPage54}>
-          <div className={styles.reportPage55}>
-            <div className={styles.reportPage56}>
-              <div className={styles.reportPage57}>
-                <div className={styles.reportPage58}>
-                  <p className={styles.reportPage59}>발음이 아쉬웠던 문장</p>
+          <div className={styles.reportPage54}>
+            <div className={styles.reportPage55}>
+              <div className={styles.reportPage56}>
+                <div className={styles.reportPage57}>
+                  <div className={styles.reportPage58}>
+                    <p className={styles.reportPage59}>발음이 아쉬웠던 문장</p>
+                  </div>
+
+                  <div className={styles.reportPage60}>
+                    <div className={styles.reportPage61}>
+                      <div className={styles.reportPage62}>
+                        <svg 
+                        className={styles.reportPage63}
+                        xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                          <path d="M11 6.2779C11 5.31234 9.91769 4.74217 9.12137 5.28822L6.15336 7.32342C6.05346 7.39192 5.93517 7.42859 5.81405 7.42859H3.2C2.53726 7.42859 2 7.96584 2 8.62859V15.3714C2 16.0342 2.53726 16.5714 3.2 16.5714H5.81405C5.93517 16.5714 6.05346 16.6081 6.15336 16.6766L9.12137 18.7118C9.91769 19.2579 11 18.6877 11 17.7221V6.2779Z" fill="#5E5A4E"/>
+                          <path d="M15.1035 11.9946C15.1035 10.9076 14.6709 9.8645 13.9024 9.09571C13.5516 8.74414 13.5525 8.17397 13.9038 7.82277C14.2554 7.47198 14.8256 7.47292 15.1768 7.82423C16.2824 8.9305 16.9037 10.4306 16.9038 11.9946C16.9038 13.559 16.2827 15.0601 15.1768 16.1665C14.8255 16.5179 14.2554 16.5176 13.9038 16.1665C13.5524 15.8152 13.5513 15.2451 13.9024 14.8936C14.671 14.1247 15.1035 13.0818 15.1035 11.9946Z" fill="#5E5A4E"/>
+                          <path d="M19.3325 11.9951C19.3325 10.044 18.3976 8.12945 16.6577 6.68798C16.275 6.37085 16.222 5.80361 16.5391 5.42089C16.8562 5.03823 17.4234 4.98515 17.8061 5.30224C19.908 7.04369 21.1313 9.44557 21.1313 11.9951C21.1313 14.5446 19.908 16.9465 17.8061 18.688C17.4234 19.0051 16.8562 18.952 16.5391 18.5693C16.222 18.1866 16.275 17.6194 16.6577 17.3022C18.3976 15.8608 19.3325 13.9462 19.3325 11.9951Z" fill="#5E5A4E"/>
+                        </svg>
+                      </div>
+
+                      <div className={styles.reportPage64}>
+                        <p className={styles.reportPage65}>{pronunciationScore?.weakSentences?.[0]?.original}</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
-                <div className={styles.reportPage60}>
-                  <div className={styles.reportPage61}>
-                    <div className={styles.reportPage62}>
-                      <svg 
-                      className={styles.reportPage63}
-                      xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
-  <path d="M11 6.2779C11 5.31234 9.91769 4.74217 9.12137 5.28822L6.15336 7.32342C6.05346 7.39192 5.93517 7.42859 5.81405 7.42859H3.2C2.53726 7.42859 2 7.96584 2 8.62859V15.3714C2 16.0342 2.53726 16.5714 3.2 16.5714H5.81405C5.93517 16.5714 6.05346 16.6081 6.15336 16.6766L9.12137 18.7118C9.91769 19.2579 11 18.6877 11 17.7221V6.2779Z" fill="#5E5A4E"/>
-  <path d="M15.1035 11.9946C15.1035 10.9076 14.6709 9.8645 13.9024 9.09571C13.5516 8.74414 13.5525 8.17397 13.9038 7.82277C14.2554 7.47198 14.8256 7.47292 15.1768 7.82423C16.2824 8.9305 16.9037 10.4306 16.9038 11.9946C16.9038 13.559 16.2827 15.0601 15.1768 16.1665C14.8255 16.5179 14.2554 16.5176 13.9038 16.1665C13.5524 15.8152 13.5513 15.2451 13.9024 14.8936C14.671 14.1247 15.1035 13.0818 15.1035 11.9946Z" fill="#5E5A4E"/>
-  <path d="M19.3325 11.9951C19.3325 10.044 18.3976 8.12945 16.6577 6.68798C16.275 6.37085 16.222 5.80361 16.5391 5.42089C16.8562 5.03823 17.4234 4.98515 17.8061 5.30224C19.908 7.04369 21.1313 9.44557 21.1313 11.9951C21.1313 14.5446 19.908 16.9465 17.8061 18.688C17.4234 19.0051 16.8562 18.952 16.5391 18.5693C16.222 18.1866 16.275 17.6194 16.6577 17.3022C18.3976 15.8608 19.3325 13.9462 19.3325 11.9951Z" fill="#5E5A4E"/>
-</svg>
-                    </div>
-
-                    <div className={styles.reportPage64}>
-                      <p className={styles.reportPage65}>{pronunciationScore?.weakSentences?.[0]?.original}</p>
+                <div className={styles.reportPage66}>
+                  <div className={styles.reportPage67}>
+                    <div className={styles.reportPage68}>
+                      <p className={styles.reportPage69}>{pronunciationScore?.weakSentences?.[0]?.issue}</p>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className={styles.reportPage66}>
-                <div className={styles.reportPage67}>
-                  <div className={styles.reportPage68}>
-                    <p className={styles.reportPage69}>{pronunciationScore?.weakSentences?.[0]?.issue}</p>
-                  </div>
+              <div className={styles.reportPage70}>
+                <div className={styles.reportPage71}>
+                  <svg 
+                  className={styles.reportPage72}
+                  xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path d="M11 6.27787C11 5.31231 9.91769 4.74214 9.12137 5.28819L6.15336 7.32339C6.05346 7.39189 5.93517 7.42855 5.81405 7.42855H3.2C2.53726 7.42855 2 7.96581 2 8.62855V15.3714C2 16.0342 2.53726 16.5714 3.2 16.5714H5.81405C5.93517 16.5714 6.05346 16.6081 6.15336 16.6766L9.12137 18.7118C9.91769 19.2578 11 18.6877 11 17.7221V6.27787Z" fill="#01CF8A"/>
+                    <path d="M15.1035 11.9946C15.1035 10.9076 14.6709 9.86447 13.9024 9.09568C13.5516 8.74411 13.5525 8.17394 13.9038 7.82273C14.2554 7.47195 14.8256 7.47289 15.1768 7.8242C16.2824 8.93047 16.9037 10.4306 16.9038 11.9946C16.9038 13.559 16.2827 15.0601 15.1768 16.1665C14.8255 16.5179 14.2554 16.5176 13.9038 16.1665C13.5524 15.8152 13.5513 15.2451 13.9024 14.8935C14.671 14.1247 15.1035 13.0818 15.1035 11.9946Z" fill="#01CF8A"/>
+                    <path d="M19.3325 11.9951C19.3325 10.044 18.3976 8.12945 16.6577 6.68798C16.275 6.37085 16.222 5.80361 16.5391 5.42089C16.8562 5.03823 17.4234 4.98515 17.8061 5.30224C19.908 7.04369 21.1313 9.44557 21.1313 11.9951C21.1313 14.5446 19.908 16.9465 17.8061 18.688C17.4234 19.0051 16.8562 18.952 16.5391 18.5693C16.222 18.1866 16.275 17.6194 16.6577 17.3022C18.3976 15.8608 19.3325 13.9462 19.3325 11.9951Z" fill="#01CF8A"/>
+                  </svg>
                 </div>
-              </div>
-            </div>
 
-            <div className={styles.reportPage70}>
-              <div className={styles.reportPage71}>
-                <svg 
-                className={styles.reportPage72}
-                xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
-  <path d="M11 6.27787C11 5.31231 9.91769 4.74214 9.12137 5.28819L6.15336 7.32339C6.05346 7.39189 5.93517 7.42855 5.81405 7.42855H3.2C2.53726 7.42855 2 7.96581 2 8.62855V15.3714C2 16.0342 2.53726 16.5714 3.2 16.5714H5.81405C5.93517 16.5714 6.05346 16.6081 6.15336 16.6766L9.12137 18.7118C9.91769 19.2578 11 18.6877 11 17.7221V6.27787Z" fill="#01CF8A"/>
-  <path d="M15.1035 11.9946C15.1035 10.9076 14.6709 9.86447 13.9024 9.09568C13.5516 8.74411 13.5525 8.17394 13.9038 7.82273C14.2554 7.47195 14.8256 7.47289 15.1768 7.8242C16.2824 8.93047 16.9037 10.4306 16.9038 11.9946C16.9038 13.559 16.2827 15.0601 15.1768 16.1665C14.8255 16.5179 14.2554 16.5176 13.9038 16.1665C13.5524 15.8152 13.5513 15.2451 13.9024 14.8935C14.671 14.1247 15.1035 13.0818 15.1035 11.9946Z" fill="#01CF8A"/>
-  <path d="M19.3325 11.9951C19.3325 10.044 18.3976 8.12945 16.6577 6.68798C16.275 6.37085 16.222 5.80361 16.5391 5.42089C16.8562 5.03823 17.4234 4.98515 17.8061 5.30224C19.908 7.04369 21.1313 9.44557 21.1313 11.9951C21.1313 14.5446 19.908 16.9465 17.8061 18.688C17.4234 19.0051 16.8562 18.952 16.5391 18.5693C16.222 18.1866 16.275 17.6194 16.6577 17.3022C18.3976 15.8608 19.3325 13.9462 19.3325 11.9951Z" fill="#01CF8A"/>
-</svg>
+                <button 
+                className={styles.reportPage73}
+                onClick={() => handleAiSound({ 
+                  senderType: 'AI', 
+                  audioUrl: pronunciationScore?.weakSentences?.[0]?.modelAudioUrl
+                })}>
+                  모범 발음 듣기
+                </button>
               </div>
-              
-              <button 
-              className={styles.reportPage73}
-              onClick={() => handleAiSound({ 
-                senderType: 'AI', 
-                audioUrl: pronunciationScore?.weakSentences?.[0]?.modelAudioUrl
-              })}>
-                모범 발음 듣기
-              </button>
             </div>
           </div>
-        </div>
-          
         )}
 
         <Recommendation />
@@ -1540,73 +1473,53 @@ function ReportPage({ reportData, chatData, handleAiSound }) {
 
 
 
-
 // 채팅방
-function ChatRoom ({ setChatData, chatData, progress, setProgress, setMessages, messages, onFetchReport, isSelectMode, onSelectMessage, isReportOpen, selectedTargetId, isMessage, reportData, step, audioAllowed, setAudioAllowed }) {
-
+function ChatRoom ({ setChatData, chatData, progress, setProgress, setMessages, messages, onFetchReport, isSelectMode, onSelectMessage, isReportOpen, selectedTargetId, isMessage, reportData, step, audioAllowed, setAudioAllowed, showReportModal }) {
   const audioQueueRef = useRef([]);
   const isPlayingRef = useRef(false);
-
   // 큐에 추가하는 함수 저장
   const addToQueueRef = useRef(null);
-
   // 매 렌더링마다 최신 오디오 재생 함수 갱신해서 저장
   const playNextRef = useRef(null);
-
-
   const [showVoiceConsent, setShowVoiceConsent] = useState(false);
-
   // 동의 중복클릭 방지
   const [isConsenting, setIsConsenting] = useState(false);
-
   const [isRecording, setIsRecording] = useState(false);
   const recorderWindowIdRef = useRef(null);
-
   const clientRef = useRef(null);
-
   // 현재 재생 중인 오디오 추적 (중복 재생 방지)
   const currentAudioRef = useRef(null);
-
   const [suggestion, setSuggestion] = useState(null);      // 추천
   const [isCompleted, setIsCompleted] = useState(false);   // 종료 여부
   const [toast, setToast] = useState(null);
-
   const chatRoomId = chatData?.chatRoomId;
-
   // 첫 진입 시 AI 첫 메시지 대기
   const [isWaiting, setIsWaiting] = useState(!chatData.hasPreviousMessages);
-
   const [chatStartDate] = useState(new Date().toISOString());
-
   const progressRef = useRef(progress);
-
   const messagesContainerRef = useRef(null);
-
   const navigate = useNavigate();
+
 
 
   // 렌더링될 때마다 이 코드 실행
   // playNextRef.current가 항상 최신 audioAllowed 값을 가진 함수로 갱신
   // 이렇게 하면 useEffect가 playNextRef만 참조하니까 audioAllowed를 의존성에 뺄 수 있음 (useRef로 만든 값은 변경돼도 리렌더링 안 해서 의존성에 안 넣어도 됨)
   playNextRef.current = async () => {
-
-  if (!audioAllowed) {
-
-    return;
-  }
-
+    if (!audioAllowed) {
+      return;
+    }
     // 이미 재생 중이면 스킵
     if (isPlayingRef.current) return;
      // 큐가 비어있으면 스킵
     if (audioQueueRef.current.length === 0) return;
     // 유저가 아직 허용 안 했으면 스킵 (큐에는 남아있음)
     if (!audioAllowed) return;
-  
     // 재생 시작 플래그
     isPlayingRef.current = true;
     // 큐에서 첫 오디오 URL 꺼내기 (shift = 앞에서 빼기, 시간도 없고 어차피 많이 쌓이는거 아니니까 이거 씀)
     const url = audioQueueRef.current.shift();
-  
+
     try {
       // 오디오 재생용 JS 객체(HTMLAudioElement) 생성
       const audio = new Audio(url);
@@ -1635,6 +1548,8 @@ function ChatRoom ({ setChatData, chatData, progress, setProgress, setMessages, 
     }
   };
 
+
+
   // 큐에 오디오 추가 후 재생 시도
   addToQueueRef.current = (audioUrl) => {
     audioQueueRef.current.push(audioUrl);
@@ -1642,10 +1557,12 @@ function ChatRoom ({ setChatData, chatData, progress, setProgress, setMessages, 
   };
 
 
-const showToast = (message, type = 'info') => {
-  setToast({ message, type });
-  setTimeout(() => setToast(null), 3000);  // 3초 후 사라짐
-};
+
+  const showToast = (message, type = 'info') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);  // 3초 후 사라짐
+  };
+
 
 
   // 시간 포맷
@@ -1670,16 +1587,14 @@ const showToast = (message, type = 'info') => {
     });
   };
 
+
+
   // 녹음 정지
   const stopRecording = () => {
     chrome.runtime.sendMessage({
       type: 'STOP_RECORDING',
     });
-
   };
-
-
-
 
 
 
@@ -1688,32 +1603,31 @@ const showToast = (message, type = 'info') => {
     chrome.runtime.sendMessage({
       type: 'CANCEL_RECORDING',
     });
-    
+
     // 백업 창 직접 닫기
     if (recorderWindowIdRef.current) {
       chrome.windows.remove(recorderWindowIdRef.current).catch(() => {});
       recorderWindowIdRef.current = null;
     }
-
     setIsRecording(false);
   };
 
 
-// 팝업 X로 닫은 경우 대응
-useEffect(() => {
-  const handleWindowClosed = (windowId) => {
-    if (windowId === recorderWindowIdRef.current) {
-      recorderWindowIdRef.current = null;
-      setIsRecording(false);
-    }
-  };
 
-  chrome.windows.onRemoved.addListener(handleWindowClosed);
-  
-  return () => {
-    chrome.windows.onRemoved.removeListener(handleWindowClosed);
-  };
-}, []);
+  // 팝업 X로 닫은 경우 대응
+  useEffect(() => {
+    const handleWindowClosed = (windowId) => {
+      if (windowId === recorderWindowIdRef.current) {
+        recorderWindowIdRef.current = null;
+        setIsRecording(false);
+      }
+    };
+    chrome.windows.onRemoved.addListener(handleWindowClosed);
+
+    return () => {
+      chrome.windows.onRemoved.removeListener(handleWindowClosed);
+    };
+  }, []);
 
 
 
@@ -1725,8 +1639,6 @@ useEffect(() => {
       }
     };
   }, []);
-
-
 
 
 
@@ -1942,7 +1854,7 @@ const handleError = ({ code, message }) => {
     
     
         // ========== AI 응답 완료 ==========
-        // AI_TEXT_CHUNK × N → AI_TEXT_DONE 로 진행되야 하는데 CHUNK 없이 AI_TEXT_DONE만 보내고 있음
+        // AI_TEXT_CHUNK × N -> AI_TEXT_DONE 로 진행되야 하는데 CHUNK 없이 AI_TEXT_DONE만 보내고 있음
         // streaming 있으면 업데이트, 없으면 새로 추가하게 설정
         case 'AI_TEXT_DONE':
           setMessages(prev => {
@@ -1953,7 +1865,7 @@ const handleError = ({ code, message }) => {
             const last = prev[prev.length - 1];
             let updated;
 
-            // 케이스 1: streaming 메시지가 있으면 → 완료 처리 (CHUNK 받았을 때)
+            // 케이스 1: streaming 메시지가 있으면 완료 처리 (CHUNK 받았을 때)
             if (last?.streaming) {
               return prev.map(msg => 
                 msg.streaming
@@ -2594,7 +2506,11 @@ const handleHintAccept = (messageId) => {
         />
       )}
 
-    <div className={styles['chat-page']}>
+    <div className={styles['chat-page']}
+    style={{ 
+      height: showReportModal ? 'calc(100vh - 326px)' : 'calc(100vh - 54px)' 
+    }}
+    >
     <div className={styles['chat-messages']}
     ref={messagesContainerRef}
     >
@@ -3794,6 +3710,7 @@ const passedData = location.state?.wordsData;
       step={step}
       audioAllowed={audioAllowed}
       setAudioAllowed={setAudioAllowed}
+      showReportModal={showReportModal}
       />}
 
       {step !== 'CHAT' && step !== 'REPORT' && Next()}
