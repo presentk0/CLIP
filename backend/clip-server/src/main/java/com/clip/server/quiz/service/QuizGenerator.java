@@ -25,22 +25,22 @@ public class QuizGenerator {
 
     // ==================== OX 퀴즈 ====================
 
-    public OpenAIQuizDataResponse generateOXQuiz(String word, String meaning) {
+    public OpenAIQuizDataResponse generateOXQuiz(String word, String meaning, String difficulty){
         return generateWithRetry(
                 "OX",
                 word,
-                (hint) -> openAIService.generateOXQuiz(word, meaning, hint),
+                (hint) -> openAIService.generateOXQuiz(word, meaning, hint, difficulty),
                 quizValidator::validateOXQuiz
         );
     }
 
     // ==================== 빈칸 퀴즈 ====================
 
-    public OpenAIQuizDataResponse generateBlankQuiz(String word, String meaning) {
+    public OpenAIQuizDataResponse generateBlankQuiz(String word, String meaning, String difficulty) {
         return generateWithRetry(
                 "BLANK",
                 word,
-                (hint) -> openAIService.generateBlankQuiz(word, meaning, hint),
+                (hint) -> openAIService.generateBlankQuiz(word, meaning, hint, difficulty),
                 quizValidator::validateBlankQuiz
         );
     }

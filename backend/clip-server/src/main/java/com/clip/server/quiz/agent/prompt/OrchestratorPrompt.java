@@ -29,7 +29,7 @@ public class OrchestratorPrompt {
                 1. If accuracy < 0.5 → quiz_type=OX_HEAVY, difficulty=EASY, focus=WEAK_WORDS
                    (Bottom quartile of real users, confidence recovery needed)
                 2. If accuracy between 0.5 and 0.85 → quiz_type=BALANCED, difficulty=MEDIUM
-                   (Middle 50% of real users, balanced learning)
+                   (Middle 50%% of real users, balanced learning)
                 3. If accuracy > 0.85 → quiz_type=BLANK_HEAVY, difficulty=HARD, focus=NEW_WORDS
                    (Top quartile of real users, challenge needed)
                 4. If days_since > 7 → prioritize WEAK_WORDS (review needed)
