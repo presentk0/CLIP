@@ -2,6 +2,12 @@ package com.clip.server.quiz.service;
 
 import com.clip.server.common.exception.BusinessException;
 import com.clip.server.common.exception.ErrorCode;
+import com.clip.server.quiz.agent.QuizOrchestrator;
+import com.clip.server.quiz.agent.QuizWordSelector;
+import com.clip.server.quiz.agent.UserStateAnalyzer;
+import com.clip.server.quiz.agent.dto.QuizStrategy;
+import com.clip.server.quiz.agent.dto.ScoredWord;
+import com.clip.server.quiz.agent.dto.UserLearningState;
 import com.clip.server.quiz.ai.OpenAIService;
 import com.clip.server.quiz.ai.QuizFallbackService;
 import com.clip.server.quiz.dto.request.QuizGenerateRequest;
@@ -73,6 +79,14 @@ class QuizProcessorTest {
     @Mock
     private ExpLogService expLogService;
 
+    // [Agent] 3-Layer Agent Mock
+    @Mock
+    private UserStateAnalyzer userStateAnalyzer;
+    @Mock
+    private QuizWordSelector quizWordSelector;
+    @Mock
+    private QuizOrchestrator quizOrchestrator;
+
     @InjectMocks
     private QuizProcessor quizProcessor;
 
@@ -98,6 +112,45 @@ class QuizProcessorTest {
                 .totalQuizCount(8)
                 .build();
         ReflectionTestUtils.setField(session, "id", 100L);
+
+        // ==================== [Agent] 기본 Mock 설정 ====================
+        // 섹션 퀴즈 테스트에서 사용됨. 매칭/완료 테스트에는 영향 없음 (lenient)
+
+        // Layer 1: UserStateAnalyzer - 기본 상태 반환
+        UserLearningState defaultState = UserLearningState.builder()
+                .userId(1L)
+                .recentAccuracy(0.5)
+                .weakWords(List.of())
+                .recentWrongWords(List.of())
+                .neverTestedWords(List.of())
+                .chatWeakExpressions(List.of())
+                .daysSinceLastQuiz(1)
+                .totalCollectedWords(0)
+                .build();
+        lenient().when(userStateAnalyzer.analyze(anyLong())).thenReturn(defaultState);
+
+        // Layer 2: QuizWordSelector - 후보를 그대로 스코어링 결과로 반환
+        lenient().when(quizWordSelector.scoreAndSort(anyList(), any())).thenAnswer(inv -> {
+            List<QuizSessionWord> candidates = inv.getArgument(0);
+            return candidates.stream()
+                    .map(w -> ScoredWord.builder()
+                            .word(w)
+                            .score(100)
+                            .reasons(List.of("테스트"))
+                            .build())
+                    .toList();
+        });
+
+        // Layer 3: QuizOrchestrator - BALANCED 기본 전략 반환
+        lenient().when(quizOrchestrator.decideStrategy(any())).thenReturn(
+                QuizStrategy.builder()
+                        .quizType("BALANCED")
+                        .difficulty("MEDIUM")
+                        .focus("MIXED")
+                        .wordCount(3)
+                        .reason("테스트용 기본 전략")
+                        .build()
+        );
     }
 
     // ==================== 섹션 퀴즈 생성 테스트 ====================
@@ -122,15 +175,20 @@ class QuizProcessorTest {
                 .thenReturn(List.of());
 
         QuizDetailResponse mockQuiz = mock(QuizDetailResponse.class);
-        lenient().when(quizService.createOXQuiz(anyLong(), anyLong(), any())).thenReturn(mockQuiz);
-        lenient().when(quizService.createBlankQuiz(anyLong(), anyLong(), any())).thenReturn(mockQuiz);
+        lenient().when(quizService.createOXQuiz(anyLong(), anyLong(), any(), any())).thenReturn(mockQuiz);
+        lenient().when(quizService.createBlankQuiz(anyLong(), anyLong(), any(), any())).thenReturn(mockQuiz);
 
         // when
         QuizGenerateResponse response = quizProcessor.generateSectionQuizInternal(1L, 100L, request);
 
         // then
         assertThat(response.getSessionId()).isEqualTo(100L);
-        verify(quizService, atLeastOnce()).createOXQuiz(anyLong(), anyLong(), any());
+        verify(quizService, atLeastOnce()).createOXQuiz(anyLong(), anyLong(), any(), any());
+
+        // [Agent] Agent 3-Layer 호출 검증
+        verify(userStateAnalyzer).analyze(1L);
+        verify(quizOrchestrator).decideStrategy(any());
+        verify(quizWordSelector).scoreAndSort(anyList(), any());
     }
 
     @Test
@@ -153,14 +211,18 @@ class QuizProcessorTest {
         given(openAIService.recommendImportantWords(anyString(), anyInt())).willReturn(aiWords);
 
         QuizDetailResponse mockQuiz = mock(QuizDetailResponse.class);
-        lenient().when(quizService.createOXQuiz(anyLong(), anyLong(), any())).thenReturn(mockQuiz);
-        lenient().when(quizService.createBlankQuiz(anyLong(), anyLong(), any())).thenReturn(mockQuiz);
+        lenient().when(quizService.createOXQuiz(anyLong(), anyLong(), any(), any())).thenReturn(mockQuiz);
+        lenient().when(quizService.createBlankQuiz(anyLong(), anyLong(), any(), any())).thenReturn(mockQuiz);
 
         // when
         quizProcessor.generateSectionQuizInternal(1L, 100L, request);
 
         // then
         verify(openAIService).recommendImportantWords(anyString(), anyInt());
+
+        // [Agent] Agent 3-Layer 호출 검증
+        verify(userStateAnalyzer).analyze(1L);
+        verify(quizOrchestrator).decideStrategy(any());
     }
 
     @Test

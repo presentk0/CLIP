@@ -111,13 +111,13 @@ class QuizServiceTest {
                 .build();
         ReflectionTestUtils.setField(savedResult, "id", 100L);
 
-        // ✅ Generator를 통해 AI 호출 + 검증 + 재시도 결과 반환
-        given(quizGenerator.generateOXQuiz(anyString(), anyString())).willReturn(aiResponse);
+        //  Generator를 통해 AI 호출 + 검증 + 재시도 결과 반환
+        given(quizGenerator.generateOXQuiz(anyString(), anyString(), any())).willReturn(aiResponse);
         given(quizPersistenceService.saveOXQuiz(anyLong(), anyLong(), any(), any()))
                 .willReturn(savedResult);
 
         // when
-        QuizDetailResponse response = quizService.createOXQuiz(10L, 1L, request);
+        QuizDetailResponse response = quizService.createOXQuiz(10L, 1L, request, null);
 
         // then
         assertThat(response.getContent()).isEqualTo("His actions are consistent.");
@@ -136,8 +136,8 @@ class QuizServiceTest {
             // given
             QuizWordRequest request = new QuizWordRequest("travel", "여행하다", "01:30");
 
-            // ✅ Generator가 null 반환 = 3회 시도 모두 실패
-            given(quizGenerator.generateOXQuiz(anyString(), anyString())).willReturn(null);
+            //  Generator가 null 반환 = 3회 시도 모두 실패
+            given(quizGenerator.generateOXQuiz(anyString(), anyString(), any())).willReturn(null);
 
             QuizDetailResponse fallbackResponse = QuizDetailResponse.builder()
                     .quizId(1L)
@@ -148,7 +148,7 @@ class QuizServiceTest {
                     .willReturn(fallbackResponse);
 
             // when
-            QuizDetailResponse response = quizService.createOXQuiz(10L, 1L, request);
+            QuizDetailResponse response = quizService.createOXQuiz(10L, 1L, request, null);
 
             // then
             assertThat(response).isNotNull();
@@ -182,13 +182,12 @@ class QuizServiceTest {
                 .build();
         ReflectionTestUtils.setField(savedResult, "id", 101L);
 
-        given(quizGenerator.generateBlankQuiz(anyString(), anyString())).willReturn(aiResponse);
+        given(quizGenerator.generateBlankQuiz(anyString(), anyString(), any())).willReturn(aiResponse);
         given(quizPersistenceService.saveBlankQuiz(anyLong(), anyLong(), any(), any()))
                 .willReturn(savedResult);
 
         // when
-        QuizDetailResponse response = quizService.createBlankQuiz(10L, 1L, request);
-
+        QuizDetailResponse response = quizService.createBlankQuiz(10L, 1L, request, null);
         // then
         assertThat(response.getQuizType()).isEqualTo(QuizType.BLANK);
         assertThat(response.getOptions()).hasSize(4);
@@ -206,7 +205,7 @@ class QuizServiceTest {
             // given
             QuizWordRequest request = new QuizWordRequest("study", "공부하다", "02:00");
 
-            given(quizGenerator.generateBlankQuiz(anyString(), anyString())).willReturn(null);
+            given(quizGenerator.generateBlankQuiz(anyString(), anyString(), any())).willReturn(null);
 
             QuizDetailResponse fallbackResponse = QuizDetailResponse.builder()
                     .quizId(1L)
@@ -218,7 +217,7 @@ class QuizServiceTest {
                     .willReturn(fallbackResponse);
 
             // when
-            QuizDetailResponse response = quizService.createBlankQuiz(10L, 1L, request);
+            QuizDetailResponse response = quizService.createBlankQuiz(10L, 1L, request, null);
 
             // then
             assertThat(response).isNotNull();
