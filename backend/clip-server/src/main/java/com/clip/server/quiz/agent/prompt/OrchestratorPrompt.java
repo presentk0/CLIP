@@ -26,12 +26,16 @@ public class OrchestratorPrompt {
                 - Days Since Last Quiz: %d
 
                 === DECISION RULES ===
-                1. If accuracy < 0.5 → EASY difficulty, focus on WEAK_WORDS (confidence recovery)
-                2. If accuracy > 0.8 → HARD difficulty, focus on NEW_WORDS (challenge)
-                3. If days_since > 7 → prioritize WEAK_WORDS (review needed)
-                4. If unresolved_chat_weaknesses >= 3 → focus on CHAT_WEAKNESS
-                5. Adjust word_count based on user's state (3-5 range)
-
+                1. If accuracy < 0.5 → quiz_type=OX_HEAVY, difficulty=EASY, focus=WEAK_WORDS
+                   (Bottom quartile of real users, confidence recovery needed)
+                2. If accuracy between 0.5 and 0.85 → quiz_type=BALANCED, difficulty=MEDIUM
+                   (Middle 50% of real users, balanced learning)
+                3. If accuracy > 0.85 → quiz_type=BLANK_HEAVY, difficulty=HARD, focus=NEW_WORDS
+                   (Top quartile of real users, challenge needed)
+                4. If days_since > 7 → prioritize WEAK_WORDS (review needed)
+                5. If unresolved_chat_weaknesses >= 3 → focus=CHAT_WEAKNESS
+                6. Adjust word_count based on user's state (3-5 range)
+                
                 === OUTPUT ===
                 Respond ONLY with valid JSON (no markdown, no explanation).
                 {

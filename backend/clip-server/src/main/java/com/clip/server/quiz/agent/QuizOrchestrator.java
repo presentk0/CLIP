@@ -30,17 +30,23 @@ public class QuizOrchestrator {
     private final OpenAiClient openAiClient;
     private final ObjectMapper objectMapper;
 
+    // 시스템 프롬프트 (역할 정의)
+    private static final String SYSTEM_PROMPT = """
+            You are CLIPZY's learning strategy agent for English learners.
+            You analyze user learning state and decide optimal quiz strategy.
+            You MUST respond with valid JSON only, no markdown, no explanation.
+            """;
+
     /**
      * 사용자 학습 상태를 기반으로 퀴즈 전략을 결정한다.
-     * LLM 호출 실패 시 규칙 기반 폴백 사용.
      */
     public QuizStrategy decideStrategy(UserLearningState state) {
         log.debug("[Agent] Orchestrator start - userId: {}", state.getUserId());
 
         try {
-            // LLM 호출
-            String prompt = OrchestratorPrompt.build(state);
-            String jsonResponse = callLlm(prompt);
+            // LLM 호출 (system + user 프롬프트)
+            String userPrompt = OrchestratorPrompt.build(state);
+            String jsonResponse = openAiClient.chat(SYSTEM_PROMPT, userPrompt);
 
             // JSON 파싱
             QuizStrategy strategy = objectMapper.readValue(jsonResponse, QuizStrategy.class);
@@ -58,16 +64,6 @@ public class QuizOrchestrator {
             log.warn("[Agent] Orchestrator LLM failed, using fallback - reason: {}", e.getMessage());
             return fallbackStrategy(state);
         }
-    }
-
-    /**
-     * OpenAI 호출 (기존 OpenAiClient 활용)
-     * 여기는 팀의 실제 OpenAiClient 시그니처에 맞게 조정 필요!
-     */
-    private String callLlm(String prompt) {
-        // TODO: 실제 OpenAiClient의 메서드 시그니처로 교체
-        // 예시: return openAiClient.chatCompletion(prompt);
-        return openAiClient.chat(prompt);
     }
 
     /**
