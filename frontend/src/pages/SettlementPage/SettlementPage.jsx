@@ -254,9 +254,11 @@ function QuizResultCard({ data, currentBadge, videoId, videoTitle, videoDuration
             </div>
           </div>
 
-          <div className={styles['quiz-result-card23']}>
-            <p className={styles['quiz-result-card24']}>{remainingCount} 번 더 시청하면 {data?.newBadge?.badgeType}에요!</p>
-          </div>
+          {data?.newBadge?.badgeType && (
+            <div className={styles['quiz-result-card23']}>
+              <p className={styles['quiz-result-card24']}>{remainingCount} 번 더 시청하면 {data?.newBadge?.badgeType}에요!</p>
+            </div>
+          )}
         </div>
 
         <div className={styles['quiz-result-card25']}>
@@ -416,6 +418,8 @@ function MessageBox({data}) {
 
   // 퀴즈 풀이 후 정확도
   const accuracy = data?.accuracy ?? 0;
+  // 반올림
+  const display = Math.round(accuracy * 10) / 10;
 
   return (
     <div className={styles.messageWrapper}>
@@ -455,7 +459,7 @@ function MessageBox({data}) {
         {/* 텍스트 묶음 */}
         <div className={styles.messageText}>
           <p className={styles.message3}>알림!</p>
-          <p className={styles.message4}>정확도 {accuracy}% 달성! {message}</p>
+          <p className={styles.message4}>정확도 {display}% 달성! {message}</p>
         </div>
       </div>
     </div>

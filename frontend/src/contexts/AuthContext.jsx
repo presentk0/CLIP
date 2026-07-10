@@ -71,7 +71,7 @@ export function AuthProvider({ children }) {
 
           if (!refreshRes.success) {
 
-            // 401 → 비로그인 상태 유지
+            // 401 -> 비로그인 상태 유지
             setIsLoading(false);
             return;
           }

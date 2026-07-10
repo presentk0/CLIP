@@ -779,7 +779,7 @@ const getDuration = () => {
 
 
 // ISO 8601 형식의 duration 문자열을 초 단위 숫자로 변환
-// 예: "PT1H23M45S" → 5025초 (1시간 23분 45초)
+// 예: "PT1H23M45S" -> 5025초 (1시간 23분 45초)
 // 유튜브의 JSON-LD는 영상 길이를 "PT4M13S" 같은 ISO 8601 duration 형식으로 제공함
 function parseISODuration(iso) {
   // 입력값이 없으면 null 반환
@@ -787,8 +787,8 @@ function parseISODuration(iso) {
 
   // 정규식으로 시(H), 분(M), 초(S) 부분을 각각 추출
   // PT 뒤에 H, M, S 단위가 선택적(?)으로 올 수 있음
-  // 예: "PT1H23M45S" → match[1]="1", match[2]="23", match[3]="45"
-  // 예: "PT4M13S"   → match[1]=undefined, match[2]="4", match[3]="13"
+  // 예: "PT1H23M45S" -> match[1]="1", match[2]="23", match[3]="45"
+  // 예: "PT4M13S"   -> match[1]=undefined, match[2]="4", match[3]="13"
   const match = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
 
   // 형식이 맞지 않으면 null 반환
