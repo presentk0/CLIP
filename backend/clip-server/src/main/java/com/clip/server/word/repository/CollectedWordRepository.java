@@ -103,6 +103,24 @@ public interface CollectedWordRepository extends JpaRepository<CollectedWord, Lo
             Pageable pageable
     );
 
+    // ==================== Agent용 쿼리 ====================
+
+    // 수집했지만 퀴즈에 안 나온 단어
+    @Query("""
+    SELECT DISTINCT cw.word FROM CollectedWord cw
+    WHERE cw.user.id = :userId 
+      AND cw.wordType = :wordType
+      AND cw.word NOT IN (
+          SELECT qr.word FROM QuizResult qr WHERE qr.user.id = :userId
+      )
+    """)
+    List<String> findNeverTestedWords(
+            @Param("userId") Long userId,
+            @Param("wordType") WordType wordType
+    );
+
+    // 타입별 수집 단어 수
+    Long countByUserIdAndWordType(Long userId, WordType wordType);
 
     // ==================================== 관리자용 ======================================================
     @Query("SELECT new com.clip.server.admin.dashboard.stats.dto.response.UserVideoWordStatResponse(" +

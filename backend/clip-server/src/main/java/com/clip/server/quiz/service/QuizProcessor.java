@@ -2,6 +2,7 @@ package com.clip.server.quiz.service;
 
 import com.clip.server.common.exception.BusinessException;
 import com.clip.server.common.exception.ErrorCode;
+import com.clip.server.quiz.agent.QuizOrchestrator;
 import com.clip.server.quiz.ai.OpenAIService;
 import com.clip.server.quiz.ai.QuizFallbackService;
 import com.clip.server.quiz.dto.request.QuizGenerateRequest;
@@ -32,6 +33,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.clip.server.quiz.agent.UserStateAnalyzer;
+import com.clip.server.quiz.agent.QuizWordSelector;
+import com.clip.server.quiz.agent.dto.UserLearningState;
+import com.clip.server.quiz.agent.dto.ScoredWord;
+import com.clip.server.quiz.agent.dto.QuizStrategy;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -56,6 +62,11 @@ public class QuizProcessor {
     private final QuizFeedbackGenerator quizFeedbackGenerator;
     private final QuizFallbackService quizFallbackService;
     private final ExpLogService expLogService;
+
+    // [Agent]
+    private final UserStateAnalyzer userStateAnalyzer;
+    private final QuizWordSelector quizWordSelector;
+    private final QuizOrchestrator quizOrchestrator;
 
     private static final double DENSITY_FACTOR = 0.8;
     private static final int VIDEO_COMPENSATION = 200;
@@ -85,20 +96,23 @@ public class QuizProcessor {
         double start = range * (sectionNum - 1);
         double end = range * sectionNum;
 
-        // 해당 구간 단어 조회 및 우선순위(1~3순위) 정렬
+        // 해당 구간 단어 조회
         List<QuizSessionWord> candidates = quizSessionWordRepository.findWordsBySection(quizSession.getId(), start, end);
 
-        // 전체 리스트를 무작위로 섞음
-        Collections.shuffle(candidates);
+        // [Agent] 사용자 학습 상태 분석
+        UserLearningState state = userStateAnalyzer.analyze(userId);
 
-        // 그 상태에서 우선순위대로 정렬 (셔플된 결과 내에서 등급순 정렬됨)
-        candidates.sort(Comparator.comparingInt(this::getPriority));
+        // [Agent] LLM Orchestrator: 오늘의 학습 전략 결정
+        QuizStrategy strategy = quizOrchestrator.decideStrategy(state);
 
-        boolean hasUserWords = candidates.stream()
-                .anyMatch(c -> c.getWordType() == WordType.COLLECT || c.getWordType() == WordType.POPUP);
+        // [Agent] 스코어링 기반 지능형 정렬
+        List<ScoredWord> scoredCandidates = quizWordSelector.scoreAndSort(candidates, state);
 
-        List<QuizWordRequest> quizWordRequests = candidates.stream()
-                .map(this::mapToRequest)
+        boolean hasUserWords = scoredCandidates.stream()
+                .anyMatch(sw -> sw.getWordType() == WordType.COLLECT || sw.getWordType() == WordType.POPUP);
+
+        List<QuizWordRequest> quizWordRequests = scoredCandidates.stream()
+                .map(sw -> mapToRequest(sw.getWord()))
                 .collect(Collectors.toList());
 
         // 단어 부족 시 AI 보충
@@ -106,13 +120,18 @@ public class QuizProcessor {
             supplementWordsWithAI(quizWordRequests, video, start, end, quizPerSection);
         }
 
-
         // 중복 제거 후 필요한 개수만
         List<QuizWordRequest> finalWords = deduplicateAndLimit(quizWordRequests, quizPerSection);
 
         // 퀴즈 생성
         List<QuizDetailResponse> quizzes = createSectionQuizzes(
-                quizSession.getId(), userId, finalWords, hasUserWords, request.getVideoId(), sectionNum);
+                quizSession.getId(),
+                userId,
+                finalWords,
+                hasUserWords,
+                strategy,
+                request.getVideoId(),
+                sectionNum);
 
         return mapToQuizGenerateResponse(quizSession, quizzes);
     }
@@ -154,16 +173,106 @@ public class QuizProcessor {
         }
     }
 
-    private List<QuizDetailResponse> createSectionQuizzes(Long sessionId, Long userId,
-                                                          List<QuizWordRequest> finalWords,
-                                                          boolean hasUserWords,
-                                                          String videoId, int sectionNum) {
+    private List<QuizDetailResponse> createSectionQuizzes(
+            Long sessionId,
+            Long userId,
+            List<QuizWordRequest> finalWords,
+            boolean hasUserWords,
+            QuizStrategy strategy,
+            String videoId,
+            int sectionNum
+    ) {
         List<QuizDetailResponse> quizzes = new ArrayList<>();
 
         if (finalWords.isEmpty()) {
             log.warn("videoId: {}, 섹션 {}에 사용할 단어가 없습니다.", videoId, sectionNum);
             return quizzes;
         }
+
+        // [Agent] Strategy 기반 퀴즈 유형 결정 (실패 시 기존 로직 폴백)
+        String quizType = resolveQuizType(strategy);
+
+        if (quizType != null) {
+            log.info("[Agent] Strategy 반영 - quizType: {}, reason: {}",
+                    quizType, strategy.getReason());
+            quizzes = createByStrategy(sessionId, userId, finalWords, quizType);
+        } else {
+            log.info("[Agent] Strategy 미적용, 기존 로직 사용 - hasUserWords: {}", hasUserWords);
+            quizzes = createByLegacyRule(sessionId, userId, finalWords, hasUserWords);
+        }
+
+        return quizzes;
+    }
+
+    /**
+     * Strategy에서 유효한 quizType 추출 (검증 포함)
+     * 유효하지 않으면 null 반환 → 기존 로직으로 폴백
+     */
+    private String resolveQuizType(QuizStrategy strategy) {
+        if (strategy == null || strategy.getQuizType() == null) {
+            return null;
+        }
+
+        String type = strategy.getQuizType().toUpperCase();
+
+        // 화이트리스트: 우리가 아는 값만 통과
+        if (type.equals("OX_HEAVY") || type.equals("BLANK_HEAVY") || type.equals("BALANCED")) {
+            return type;
+        }
+
+        log.warn("[Agent] 알 수 없는 quiz_type: {} → 기존 로직 사용", type);
+        return null;
+    }
+
+    /**
+     * [Agent] Strategy 기반 퀴즈 생성
+     * - OX_HEAVY: 첫 문제만 빈칸, 나머지 OX
+     * - BLANK_HEAVY: 첫 문제만 OX, 나머지 빈칸
+     * - BALANCED: 50:50 (홀수번째 OX, 짝수번째 빈칸)
+     */
+    private List<QuizDetailResponse> createByStrategy(Long sessionId, Long userId,
+                                                      List<QuizWordRequest> finalWords,
+                                                      String quizType) {
+        List<QuizDetailResponse> quizzes = new ArrayList<>();
+
+        switch (quizType) {
+            case "OX_HEAVY" -> {
+                // 다양성을 위해 첫 문제만 빈칸, 나머지 OX
+                quizzes.add(quizService.createBlankQuiz(sessionId, userId, finalWords.get(0)));
+                for (int i = 1; i < finalWords.size(); i++) {
+                    quizzes.add(quizService.createOXQuiz(sessionId, userId, finalWords.get(i)));
+                }
+            }
+            case "BLANK_HEAVY" -> {
+                // 다양성을 위해 첫 문제만 OX, 나머지 빈칸
+                quizzes.add(quizService.createOXQuiz(sessionId, userId, finalWords.get(0)));
+                for (int i = 1; i < finalWords.size(); i++) {
+                    quizzes.add(quizService.createBlankQuiz(sessionId, userId, finalWords.get(i)));
+                }
+            }
+            case "BALANCED" -> {
+                // 홀수 인덱스는 OX, 짝수 인덱스는 빈칸
+                for (int i = 0; i < finalWords.size(); i++) {
+                    if (i % 2 == 0) {
+                        quizzes.add(quizService.createOXQuiz(sessionId, userId, finalWords.get(i)));
+                    } else {
+                        quizzes.add(quizService.createBlankQuiz(sessionId, userId, finalWords.get(i)));
+                    }
+                }
+            }
+        }
+
+        return quizzes;
+    }
+
+    /**
+     * [Legacy] 기존 로직 - hasUserWords 기반 A/B 전략
+     * Agent Strategy 실패 시 폴백용
+     */
+    private List<QuizDetailResponse> createByLegacyRule(Long sessionId, Long userId,
+                                                        List<QuizWordRequest> finalWords,
+                                                        boolean hasUserWords) {
+        List<QuizDetailResponse> quizzes = new ArrayList<>();
 
         if (hasUserWords) {
             // [전략 A] 수집/호버 단어 존재: OX 1, 빈칸 1 보장 + 나머지 빈칸
