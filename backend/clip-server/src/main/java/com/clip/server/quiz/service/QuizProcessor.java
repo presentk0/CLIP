@@ -173,15 +173,11 @@ public class QuizProcessor {
         }
     }
 
-    private List<QuizDetailResponse> createSectionQuizzes(
-            Long sessionId,
-            Long userId,
-            List<QuizWordRequest> finalWords,
-            boolean hasUserWords,
-            QuizStrategy strategy,
-            String videoId,
-            int sectionNum
-    ) {
+    private List<QuizDetailResponse> createSectionQuizzes(Long sessionId, Long userId,
+                                                          List<QuizWordRequest> finalWords,
+                                                          boolean hasUserWords,
+                                                          QuizStrategy strategy,
+                                                          String videoId, int sectionNum) {
         List<QuizDetailResponse> quizzes = new ArrayList<>();
 
         if (finalWords.isEmpty()) {
@@ -189,13 +185,14 @@ public class QuizProcessor {
             return quizzes;
         }
 
-        // [Agent] Strategy 기반 퀴즈 유형 결정 (실패 시 기존 로직 폴백)
         String quizType = resolveQuizType(strategy);
+        // [Agent] Strategy에서 difficulty 추출 (null이면 MEDIUM으로 자동 처리)
+        String difficulty = (strategy != null) ? strategy.getDifficulty() : null;
 
         if (quizType != null) {
-            log.info("[Agent] Strategy 반영 - quizType: {}, reason: {}",
-                    quizType, strategy.getReason());
-            quizzes = createByStrategy(sessionId, userId, finalWords, quizType);
+            log.info("[Agent] Strategy 반영 - quizType: {}, difficulty: {}, reason: {}",
+                    quizType, difficulty, strategy.getReason());
+            quizzes = createByStrategy(sessionId, userId, finalWords, quizType, difficulty);
         } else {
             log.info("[Agent] Strategy 미적용, 기존 로직 사용 - hasUserWords: {}", hasUserWords);
             quizzes = createByLegacyRule(sessionId, userId, finalWords, hasUserWords);
@@ -232,31 +229,29 @@ public class QuizProcessor {
      */
     private List<QuizDetailResponse> createByStrategy(Long sessionId, Long userId,
                                                       List<QuizWordRequest> finalWords,
-                                                      String quizType) {
+                                                      String quizType,
+                                                      String difficulty) {
         List<QuizDetailResponse> quizzes = new ArrayList<>();
 
         switch (quizType) {
             case "OX_HEAVY" -> {
-                // 다양성을 위해 첫 문제만 빈칸, 나머지 OX
-                quizzes.add(quizService.createBlankQuiz(sessionId, userId, finalWords.get(0)));
+                quizzes.add(quizService.createBlankQuiz(sessionId, userId, finalWords.get(0), difficulty));
                 for (int i = 1; i < finalWords.size(); i++) {
-                    quizzes.add(quizService.createOXQuiz(sessionId, userId, finalWords.get(i)));
+                    quizzes.add(quizService.createOXQuiz(sessionId, userId, finalWords.get(i), difficulty));
                 }
             }
             case "BLANK_HEAVY" -> {
-                // 다양성을 위해 첫 문제만 OX, 나머지 빈칸
-                quizzes.add(quizService.createOXQuiz(sessionId, userId, finalWords.get(0)));
+                quizzes.add(quizService.createOXQuiz(sessionId, userId, finalWords.get(0), difficulty));
                 for (int i = 1; i < finalWords.size(); i++) {
-                    quizzes.add(quizService.createBlankQuiz(sessionId, userId, finalWords.get(i)));
+                    quizzes.add(quizService.createBlankQuiz(sessionId, userId, finalWords.get(i), difficulty));
                 }
             }
             case "BALANCED" -> {
-                // 홀수 인덱스는 OX, 짝수 인덱스는 빈칸
                 for (int i = 0; i < finalWords.size(); i++) {
                     if (i % 2 == 0) {
-                        quizzes.add(quizService.createOXQuiz(sessionId, userId, finalWords.get(i)));
+                        quizzes.add(quizService.createOXQuiz(sessionId, userId, finalWords.get(i), difficulty));
                     } else {
-                        quizzes.add(quizService.createBlankQuiz(sessionId, userId, finalWords.get(i)));
+                        quizzes.add(quizService.createBlankQuiz(sessionId, userId, finalWords.get(i), difficulty));
                     }
                 }
             }
@@ -265,29 +260,28 @@ public class QuizProcessor {
         return quizzes;
     }
 
-    /**
-     * [Legacy] 기존 로직 - hasUserWords 기반 A/B 전략
-     * Agent Strategy 실패 시 폴백용
-     */
     private List<QuizDetailResponse> createByLegacyRule(Long sessionId, Long userId,
-                                                        List<QuizWordRequest> finalWords,
-                                                        boolean hasUserWords) {
+                                                         List<QuizWordRequest> finalWords,
+                                                         boolean hasUserWords) {
         List<QuizDetailResponse> quizzes = new ArrayList<>();
+
+        // Legacy 로직은 Agent Strategy가 없으므로 difficulty도 null (MEDIUM 처리됨)
+        String difficulty = null;
 
         if (hasUserWords) {
             // [전략 A] 수집/호버 단어 존재: OX 1, 빈칸 1 보장 + 나머지 빈칸
-            quizzes.add(quizService.createOXQuiz(sessionId, userId, finalWords.get(0)));
+            quizzes.add(quizService.createOXQuiz(sessionId, userId, finalWords.get(0), difficulty));
             if (finalWords.size() > 1) {
-                quizzes.add(quizService.createBlankQuiz(sessionId, userId, finalWords.get(1)));
+                quizzes.add(quizService.createBlankQuiz(sessionId, userId, finalWords.get(1), difficulty));
             }
             for (int i = 2; i < finalWords.size(); i++) {
-                quizzes.add(quizService.createBlankQuiz(sessionId, userId, finalWords.get(i)));
+                quizzes.add(quizService.createBlankQuiz(sessionId, userId, finalWords.get(i), difficulty));
             }
         } else {
             // [전략 B] 수집 단어 없음: 빈칸 1 + 나머지 OX
-            quizzes.add(quizService.createBlankQuiz(sessionId, userId, finalWords.get(0)));
+            quizzes.add(quizService.createBlankQuiz(sessionId, userId, finalWords.get(0), difficulty));
             for (int i = 1; i < finalWords.size(); i++) {
-                quizzes.add(quizService.createOXQuiz(sessionId, userId, finalWords.get(i)));
+                quizzes.add(quizService.createOXQuiz(sessionId, userId, finalWords.get(i), difficulty));
             }
         }
 

@@ -175,15 +175,15 @@ class QuizProcessorTest {
                 .thenReturn(List.of());
 
         QuizDetailResponse mockQuiz = mock(QuizDetailResponse.class);
-        lenient().when(quizService.createOXQuiz(anyLong(), anyLong(), any())).thenReturn(mockQuiz);
-        lenient().when(quizService.createBlankQuiz(anyLong(), anyLong(), any())).thenReturn(mockQuiz);
+        lenient().when(quizService.createOXQuiz(anyLong(), anyLong(), any(), any())).thenReturn(mockQuiz);
+        lenient().when(quizService.createBlankQuiz(anyLong(), anyLong(), any(), any())).thenReturn(mockQuiz);
 
         // when
         QuizGenerateResponse response = quizProcessor.generateSectionQuizInternal(1L, 100L, request);
 
         // then
         assertThat(response.getSessionId()).isEqualTo(100L);
-        verify(quizService, atLeastOnce()).createOXQuiz(anyLong(), anyLong(), any());
+        verify(quizService, atLeastOnce()).createOXQuiz(anyLong(), anyLong(), any(), any());
 
         // [Agent] Agent 3-Layer 호출 검증
         verify(userStateAnalyzer).analyze(1L);
@@ -211,8 +211,8 @@ class QuizProcessorTest {
         given(openAIService.recommendImportantWords(anyString(), anyInt())).willReturn(aiWords);
 
         QuizDetailResponse mockQuiz = mock(QuizDetailResponse.class);
-        lenient().when(quizService.createOXQuiz(anyLong(), anyLong(), any())).thenReturn(mockQuiz);
-        lenient().when(quizService.createBlankQuiz(anyLong(), anyLong(), any())).thenReturn(mockQuiz);
+        lenient().when(quizService.createOXQuiz(anyLong(), anyLong(), any(), any())).thenReturn(mockQuiz);
+        lenient().when(quizService.createBlankQuiz(anyLong(), anyLong(), any(), any())).thenReturn(mockQuiz);
 
         // when
         quizProcessor.generateSectionQuizInternal(1L, 100L, request);
