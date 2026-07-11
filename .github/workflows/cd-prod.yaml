@@ -4,8 +4,7 @@ on:
   pull_request:
     types: [closed]
     branches: [ "main" ]
-    paths:
-      - 'backend/clip-server/**'
+  workflow_dispatch:
 
 permissions:
   id-token: write
@@ -15,6 +14,7 @@ env:
   ECR_REPOSITORY: clipzy-server-prod
   ECS_CLUSTER: clipzy-server-prod-cluster
   ECS_SERVICE: clipzy-server-prod-service
+  ECS_TASK_FAMILY: clipzy-server-prod-task
   CONTAINER_NAME: spring-app
 
 jobs:
@@ -68,14 +68,14 @@ jobs:
       - name: Download Active Task Definition from AWS ECS
         run: |
           aws ecs describe-task-definition \
-            --task-definition ${{ env.CONTAINER_NAME }} \
+            --task-definition ${{ env.ECS_TASK_FAMILY }} \
             --query taskDefinition > task-definition.json
 
       - name: Render New Image ID in ECS Task Definition
         id: render-task-def
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
-          task-definition: task-definition.json
+          task-definition: backend/clip-server/task-definition.json
           container-name: ${{ env.CONTAINER_NAME }}
           image: ${{ steps.build-image.outputs.image }}
 
