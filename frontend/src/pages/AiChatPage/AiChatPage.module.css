@@ -1,6 +1,5 @@
 .main {
   width: 402px;
-/* height: 853px; */
 min-height: 853px;
 background: #F5F9F8;
 
@@ -69,7 +68,6 @@ line-height: normal;
 
 
 .step {
-/* display: inline-flex; */
   display: flex;
 align-items: center;
 gap: 8px;
@@ -1223,7 +1221,8 @@ width: 402px;
 height: 54px;
 padding: 15px 16px;
 align-items: center;
-gap: 131px;
+/* gap: 131px; */
+justify-content: space-between;
 background: #F5F3E7;
 }
 
@@ -1590,7 +1589,8 @@ height: 36px;
 .chat-page {
   display: flex;
   flex-direction: column;
-  height: 100vh;        /* 사이드패널 전체 높이 */
+  /* 사이드패널 전체 높이 - 상단에 고정할 헤더의 높이 값 */
+  height: calc(100vh - 54px);
   width: 100%;
 }
 
@@ -1897,7 +1897,7 @@ letter-spacing: -0.032px;
   position: absolute;
   top: calc(100% + 8px); /* 버튼 바로 밑(100%)에서 살짝 여백(8px)을 두고 배치 */
   right: 0;              /* 버튼의 오른쪽 끝선에 맞춰서 정렬 (좌측 정렬을 원하시면 left: 0) */
-  z-index: 1;
+  z-index: 2;
 
 
 display: inline-flex;
@@ -2461,11 +2461,6 @@ line-height: 16px; /* 133.333% */
 
 .reports {
 display: flex;
-
-
-
-
-
 width: 402px;
 padding: 24px 36px;
 flex-direction: column;
@@ -2520,9 +2515,12 @@ border: 1px solid #DCD6C6;
 
 
 .reports6 {
-max-width: 300px;
-max-height: 120px;
-color: #CCC3B4;
+/* max-width: 300px;
+max-height: 120px; */
+width: 100%;
+height: 80px;
+/* 입력 시 검은색 */
+color: #01030D;
 font-family: Pretendard;
 font-size: 14px;
 font-style: normal;
@@ -2531,6 +2529,10 @@ line-height: 20px; /* 142.857% */
 
 /* textarea에 자동으로 추가된 드래그해서 textarea 크기를 조절할 수 있게 해주는 기능 제거  */
 resize: none;
+}
+
+.reports6::placeholder {
+  color: #CCC3B4;  /* placeholder만 회색 */
 }
 
 

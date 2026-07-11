@@ -5,7 +5,6 @@ import { handleApiError } from '../../utils/errorHandler';
 import { useAuth } from '../../hooks/useAuth';
 import { useOnboarding } from '../../hooks/useOnboarding';
 import { log } from '../../utils/logger';
-
 import styles from './DifficultySelectPage.module.css';
 
 
@@ -16,6 +15,8 @@ const DIFFICULTY_OPTIONS = [
   { value: 'HARDER',  label: '한 발 더 내딛어볼게요',    offset:  1 },
   { value: 'MAX',     label: '전력으로 해볼게요',        offset:  2 },
 ];
+
+
 
 const ABSOLUTE_LEVEL_MAP = {
   BEGINNER: 1,
@@ -58,21 +59,13 @@ function CheckIcon({ className, fill = "#A0A08A" }) {
 
 
 
-
-
-
-
-
-
 export default function DifficultySelectPage() {
   const navigate = useNavigate();
   const { needsOnboarding, completeOnboarding } = useAuth();
   const { onboardingData, setDifficultyLevel, resetOnboarding } = useOnboarding();
-
   const [isLoading, setIsLoading] = useState(false);
   const [popupMessage, setPopupMessage] = useState('');
   const [error, setError] = useState('');
-
   const selected = onboardingData.difficultyLevel;
 
   // 보안: 선행 단계 미완료 시 되돌리기
@@ -98,6 +91,7 @@ export default function DifficultySelectPage() {
   }, [popupMessage]);
 
 
+
   // 절대 난이도 기준으로 비활성화 옵션 계산
   const isOptionDisabled = (offset) => {
     const absolute = onboardingData.absoluteLevel;
@@ -106,16 +100,18 @@ export default function DifficultySelectPage() {
     const currentLevel = ABSOLUTE_LEVEL_MAP[absolute];
     const targetLevel = currentLevel + offset;
 
-  if (targetLevel < MIN_LEVEL) {
-    return { disabled: true, reason: '최소 레벨보다 낮습니다' };
-  }
-  if (targetLevel > MAX_LEVEL) {
-    return { disabled: true, reason: '최대 레벨을 초과합니다' };
-  }
-  
-  return { disabled: false, reason: '' };
+    if (targetLevel < MIN_LEVEL) {
+      return { disabled: true, reason: '최소 레벨보다 낮습니다' };
+    }
 
+    if (targetLevel > MAX_LEVEL) {
+      return { disabled: true, reason: '최대 레벨을 초과합니다' };
+    }
+
+    return { disabled: false, reason: '' };
   };
+
+
 
   const handleSelect = (value, disabled) => {
     if (disabled) return;
@@ -123,27 +119,31 @@ export default function DifficultySelectPage() {
     setDifficultyLevel(value);
   };
 
+
+
   const handleConfirm = async () => {
     if (!selected) return;
     if (isLoading) return;
 
     const { learningGoal, difficultyLevel, absoluteLevel } = onboardingData;
+
     // 보안: 최종 검증 (조작된 상태 차단)
     if (!VALID_GOALS.includes(learningGoal)) {
       setError('학습 목표를 다시 선택해주세요');
       navigate('/onboarding/goal');
       return;
     }
+
     if (!VALID_DIFFICULTY.includes(difficultyLevel)) {
       setError('난이도를 다시 선택해주세요');
       return;
     }
+
     if (!VALID_ABSOLUTE.includes(absoluteLevel)) {
       setError('영어 실력을 다시 선택해주세요');
       navigate('/onboarding/level');
       return;
     }
-
     setError('');
     setIsLoading(true);
 
@@ -162,10 +162,8 @@ export default function DifficultySelectPage() {
         err.code = res.error?.code;
         throw err;
       }
-
       completeOnboarding();
       resetOnboarding();
-
       navigate('/', { replace: true });
     } catch (err) {
       log.debug('온보딩 저장 실패', err);
@@ -174,7 +172,9 @@ export default function DifficultySelectPage() {
       setIsLoading(false);
     }
   };
-const handleBack = () => navigate('/onboarding/goal', { replace: true });
+
+  const handleBack = () => navigate('/onboarding/goal', { replace: true });
+
   return (
     <div className={styles.level}>
       {popupMessage && (
@@ -186,14 +186,15 @@ const handleBack = () => navigate('/onboarding/goal', { replace: true });
       <div className={styles.level2}>
         <div className={styles.level3}>
           <button 
-                    onClick={handleBack}
-                    className={styles.agreement4}>
-                      <svg 
-                      className={styles.agreement5}
-                      xmlns="http://www.w3.org/2000/svg" width="18" height="19" viewBox="0 0 18 19" fill="none">
-                        <path d="M15.1776 0.302198C15.5553 -0.100732 16.1681 -0.100733 16.5458 0.302198C16.9232 0.705146 16.9234 1.35833 16.5458 1.76118L9.81627 8.93892L16.8202 16.4116C17.1979 16.8145 17.1979 17.4676 16.8202 17.8706C16.4425 18.2731 15.8306 18.2731 15.453 17.8706L8.44811 10.3979L1.65123 17.6499C1.27352 18.0528 0.660772 18.0528 0.283068 17.6499C-0.0943871 17.247 -0.0943246 16.5938 0.283068 16.1909L7.07994 8.93892L0.558458 1.98189C0.180747 1.57895 0.180747 0.924854 0.558458 0.521924C0.936176 0.119297 1.549 0.119136 1.92662 0.521924L8.44811 7.47993L15.1776 0.302198Z" fill="#454440"/>
-                      </svg>
-                    </button>
+          onClick={handleBack}
+          className={styles.agreement4}>
+            <svg 
+            className={styles.agreement5}
+            xmlns="http://www.w3.org/2000/svg" width="18" height="19" viewBox="0 0 18 19" fill="none">
+              <path d="M15.1776 0.302198C15.5553 -0.100732 16.1681 -0.100733 16.5458 0.302198C16.9232 0.705146 16.9234 1.35833 16.5458 1.76118L9.81627 8.93892L16.8202 16.4116C17.1979 16.8145 17.1979 17.4676 16.8202 17.8706C16.4425 18.2731 15.8306 18.2731 15.453 17.8706L8.44811 10.3979L1.65123 17.6499C1.27352 18.0528 0.660772 18.0528 0.283068 17.6499C-0.0943871 17.247 -0.0943246 16.5938 0.283068 16.1909L7.07994 8.93892L0.558458 1.98189C0.180747 1.57895 0.180747 0.924854 0.558458 0.521924C0.936176 0.119297 1.549 0.119136 1.92662 0.521924L8.44811 7.47993L15.1776 0.302198Z" fill="#454440"/>
+            </svg>
+          </button>
+
           <div className={styles.level4}>
             <div className={styles.level5}>
               <div className={styles.level6}>
@@ -222,55 +223,54 @@ const handleBack = () => navigate('/onboarding/goal', { replace: true });
 
         <div className={styles.level14}>
           <div className={styles['difficulty-card']}>
-  <div className={styles['difficulty-card2']}>
-    <div className={styles['difficulty-card3']}>
-      <div className={styles['difficulty-card4']}>
-        <p className={styles['difficulty-card5']}>난이도</p>
-      </div>
-    </div>
-
-    <div className={styles['difficulty-card8']}>
-      {DIFFICULTY_OPTIONS.map(({ value, label, offset }) => {
-        const isSelected = selected === value;
-        const { disabled, reason } = isOptionDisabled(offset);
-
-        return (
-          <button
-            key={value}
-            type="button"
-            onClick={() => {
-              if (disabled) {
-                setPopupMessage(reason);  // 알림 표시
-                return;
-              }
-              handleSelect(value);  // 정상 선택
-            }}
-
-            aria-pressed={isSelected}
-            aria-disabled={disabled}
-            className={isSelected 
-              ? styles['difficulty-card9']     // 선택
-              : styles['difficulty-card15-f']  // 미선택
-            }
-          >
-            {isSelected ? (
-              <div className={styles['difficulty-card10']}>
-                <p className={styles['difficulty-card11']}>{label}</p>
-                <div className={styles['difficulty-card12']}>
-                  <div className={styles['difficulty-card13']}>
-                    <CheckIcon className={styles['difficulty-card14']} />
-                  </div>
+            <div className={styles['difficulty-card2']}>
+              <div className={styles['difficulty-card3']}>
+                <div className={styles['difficulty-card4']}>
+                  <p className={styles['difficulty-card5']}>난이도</p>
                 </div>
               </div>
-            ) : (
-              <p className={styles['difficulty-card16-f']}>{label}</p>
-            )}
-          </button>
-        );
-      })}
-    </div>
-  </div>
-</div>
+
+              <div className={styles['difficulty-card8']}>
+                {DIFFICULTY_OPTIONS.map(({ value, label, offset }) => {
+                  const isSelected = selected === value;
+                  const { disabled, reason } = isOptionDisabled(offset);
+
+                  return (
+                    <button
+                    key={value}
+                    type="button"
+                    onClick={() => {
+                      if (disabled) {
+                        setPopupMessage(reason);  // 알림 표시
+                        return;
+                      }
+                      handleSelect(value);  // 정상 선택
+                    }}
+                    aria-pressed={isSelected}
+                    aria-disabled={disabled}
+                    className={isSelected 
+                    ? styles['difficulty-card9']     // 선택
+                    : styles['difficulty-card15-f']  // 미선택
+                    }>
+                      {isSelected ? (
+                        <div className={styles['difficulty-card10']}>
+                          <p className={styles['difficulty-card11']}>{label}</p>
+
+                          <div className={styles['difficulty-card12']}>
+                            <div className={styles['difficulty-card13']}>
+                              <CheckIcon className={styles['difficulty-card14']} />
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className={styles['difficulty-card16-f']}>{label}</p>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
 
           <button 
           className={styles.level23}

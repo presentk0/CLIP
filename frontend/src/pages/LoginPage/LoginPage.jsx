@@ -26,7 +26,7 @@ function Button({
   // true가 되는 값인 클래스 이름을 합치고 빈 문자열 ''같은 값 제거
   // [.button, .primary, .medium, .fullWidth(조건부), 외부클래스]
   // .filter(Boolean) -> 빈 문자열/undefined/null 제거
-  // .join(' ') → "button primary medium" 형태로 합침
+  // .join(' ') -> "button primary medium" 형태로 합침
   const classNames = [
     styles.button,
     styles[variant],
@@ -64,10 +64,6 @@ export default function LoginPage() {
   const location = useLocation();
   // 인증 관련 함수 (백엔드에 토큰 보내고 유저 정보 받기)
   const { loginWithGoogle } = useAuth();
-
-
-
-
   // 로딩 상태 (버튼 비활성화 + 스피너 표시용)
   const [isLoading, setIsLoading] = useState(false);
   // 에러 메시지 (화면에 빨간 박스로 표시)
@@ -82,7 +78,6 @@ export default function LoginPage() {
     'TOKEN_EXPIRED': '토큰이 만료되었습니다',
     'USER_NOT_FOUND': '사용자 정보를 찾을 수 없습니다',
   };
-
 
   // 보호된 페이지 접근 시도 -> 로그인 페이지로 리다이렉트된 경우,
   // 원래 가려던 경로(location.state.from)를 기억해서 로그인 후 복귀.
@@ -102,143 +97,134 @@ export default function LoginPage() {
     // Google Cloud Console에서 발급받은 OAuth 클라이언트 ID
     // Vite는 VITE_ 접두사가 붙은 변수만 클라이언트에 노출시킴
     const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    try {
+      // OAuth 로그인의 흐름
+      // 1. 내 앱에서 Google에 사용자 로그인 시켜달라고 요청
+      // 2. Google에서 사용자에게 로그인 화면 보여줌
+      // 3. 사용자가 로그인 완료
+      // 4. Google에서 토큰을 결과 받을 주소(redirect URI)로 보냄
+      // 일반 웹사이트의 경우 redirect_uri = "https://myapp.com/auth/callback" 로 자기 도메인의 한 페이지를 결과 받는 곳으로 지정하지만 크롬 확장은 도메인이 없음
+      // getRedirectURL()을 쓰면 크롬이 확장 프로그램 전용 가상 주소를 만들어줌
+      // 크롬이 가짜 주소를 만들고, Google이 이 주소로 사용자를 보내려고 할 때 크롬이 중간에서 가로채서 내 확장 코드(launchWebAuthFlow의 콜백)로 결과를 전달
+      // 리다이렉트 URI (Google Console에 등록한 것과 같아야 함) 가져오기
+      // 형태: https://<extension-id>.chromiumapp.org/
+      // 크롬이 자동으로 만들어주는 확장프로그램 전용 주소
+      // Google이 로그인 후 이 주소로 결과를 보냄
+      // Google Console의 "승인된 리디렉션 URI"에 이 주소를 등록해놔야 함
+      // 구글 로그인 끝나면 -> 구글이 이 주소로 사용자를 보냄 -> 크롬이 그 신호를 잡아서 우리 코드에 전달
+      const redirectUri = chrome.identity.getRedirectURL();
 
-  try {
-    // OAuth 로그인의 흐름
-    // 1. 내 앱에서 Google에 사용자 로그인 시켜달라고 요청
-    // 2. Google에서 사용자에게 로그인 화면 보여줌
-    // 3. 사용자가 로그인 완료
-    // 4. Google에서 토큰을 결과 받을 주소(redirect URI)로 보냄
+      // 보안 토큰 nonce 생성 (재사용/재전송 공격 방지용 일회용 랜덤 문자열 값)
+      // 요청 시 보낸 nonce와 응답에 담긴 nonce가 같아야 정상 응답으로 인정
+      const nonce = crypto.randomUUID();
 
-    // 일반 웹사이트의 경우 redirect_uri = "https://myapp.com/auth/callback" 로 자기 도메인의 한 페이지를 결과 받는 곳으로 지정하지만 크롬 확장은 도메인이 없음
-    // getRedirectURL()을 쓰면 크롬이 확장 프로그램 전용 가상 주소를 만들어줌
-    // 크롬이 가짜 주소를 만들고, Google이 이 주소로 사용자를 보내려고 할 때 크롬이 중간에서 가로채서 내 확장 코드(launchWebAuthFlow의 콜백)로 결과를 전달
+      // Google에게 내 앱은 ${GOOGLE_CLIENT_ID}고, 결과는 ${redirectUri}로 보내줘
+      // Google OAuth URL 만들기
+      // encodeURIComponent는 URL에 못 들어가는 특수문자를 안전하게 변환해주는 함수 (예: : -> %3A)
+      const authUrl = 
+        // 구글 로그인 페이지
+        `https://accounts.google.com/o/oauth2/v2/auth` +
+        // 내 앱이 누군지
+        `?client_id=${GOOGLE_CLIENT_ID}` +
+        // ID Token 달라고 요청
+        `&response_type=id_token` +
+        // 결과 받을 주소
+        `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+        // 받고 싶은 정보
+        `&scope=${encodeURIComponent('openid email profile')}` +
+        // 보안용 일회용 코드
+        `&nonce=${nonce}` +
+        // prompt = 어떤 화면 보여줄지
+        // 매번 계정 선택 화면 표시
+        `&prompt=select_account`;
 
-    // 리다이렉트 URI (Google Console에 등록한 것과 같아야 함) 가져오기
-    // 형태: https://<extension-id>.chromiumapp.org/
-    // 크롬이 자동으로 만들어주는 확장프로그램 전용 주소
-    // Google이 로그인 후 이 주소로 결과를 보냄
-    // Google Console의 "승인된 리디렉션 URI"에 이 주소를 등록해놔야 함
-    // 구글 로그인 끝나면 -> 구글이 이 주소로 사용자를 보냄 -> 크롬이 그 신호를 잡아서 우리 코드에 전달
-    const redirectUri = chrome.identity.getRedirectURL();
-    
-    // 보안 토큰 nonce 생성 (재사용/재전송 공격 방지용 일회용 랜덤 문자열 값)
-    // 요청 시 보낸 nonce와 응답에 담긴 nonce가 같아야 정상 응답으로 인정
-    const nonce = crypto.randomUUID();
-
-    // Google에게 내 앱은 ${GOOGLE_CLIENT_ID}고, 결과는 ${redirectUri}로 보내줘
-    // Google OAuth URL 만들기
-    // encodeURIComponent는 URL에 못 들어가는 특수문자를 안전하게 변환해주는 함수 (예: : -> %3A)
-    const authUrl = 
-      // 구글 로그인 페이지
-      `https://accounts.google.com/o/oauth2/v2/auth` +
-      // 내 앱이 누군지
-      `?client_id=${GOOGLE_CLIENT_ID}` +
-      // ID Token 달라고 요청
-      `&response_type=id_token` +
-      // 결과 받을 주소
-      `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-      // 받고 싶은 정보
-      `&scope=${encodeURIComponent('openid email profile')}` +
-      // 보안용 일회용 코드
-      `&nonce=${nonce}` +
-      // prompt = 어떤 화면 보여줄지
-      // 매번 계정 선택 화면 표시
-      `&prompt=select_account`;
-
-    // 구글 로그인 팝업 열기
-    const responseUrl = await new Promise((resolve, reject) => {
-      // launchWebAuthFlow = 새 창을 띄워서 사용자가 구글 로그인하게 함
-      // interactive: true = 사용자에게 화면 보여줌 (false면 백그라운드에서 시도)
-      // 에러 (chrome.runtime.lastError), 취소 (!redirectUrl), 성공 (redirectUrl 있음) 시 콜백
-      // 크롬 API가 콜백 방식이라서, await로 쓰려고 Promise로 변환
-      chrome.identity.launchWebAuthFlow(
-        // 어떤 URL을 열지 + 사용자 보여줄지
-        { url: authUrl, interactive: true },
-        // 끝났을 때 콜백
-        (redirectUrl) => {
-          if (chrome.runtime.lastError) {
-            reject(new Error(chrome.runtime.lastError.message));
-          } else if (!redirectUrl) {
-            reject(new Error('로그인이 취소되었습니다'));
-          } else {
-            resolve(redirectUrl);
+      // 구글 로그인 팝업 열기
+      const responseUrl = await new Promise((resolve, reject) => {
+        // launchWebAuthFlow = 새 창을 띄워서 사용자가 구글 로그인하게 함
+        // interactive: true = 사용자에게 화면 보여줌 (false면 백그라운드에서 시도)
+        // 에러 (chrome.runtime.lastError), 취소 (!redirectUrl), 성공 (redirectUrl 있음) 시 콜백
+        // 크롬 API가 콜백 방식이라서, await로 쓰려고 Promise로 변환
+        chrome.identity.launchWebAuthFlow(
+          // 어떤 URL을 열지 + 사용자 보여줄지
+          { url: authUrl, interactive: true },
+          // 끝났을 때 콜백
+          (redirectUrl) => {
+            if (chrome.runtime.lastError) {
+              reject(new Error(chrome.runtime.lastError.message));
+            } else if (!redirectUrl) {
+              reject(new Error('로그인이 취소되었습니다'));
+            } else {
+              resolve(redirectUrl);
+            }
           }
-        }
-      );
-    });
+        );
+      });
 
-    // URL의 # 뒤에서 id_token 추출
-    // 구글이 보내주는 결과 URL 모양
-    // https://abcdefghijklmnop.chromiumapp.org/#id_token=eyJhbGc...&token_type=Bearer&...
-    // new URL(responseUrl) -> URL 객체로 변환
-    // .hash = "#id_token=eyJ...&token_type=Bearer&..." (# 포함)
-    // .substring(1) = "id_token=eyJ...&token_type=Bearer&..." (# 제거)
-    const hash = new URL(responseUrl).hash.substring(1);
-    // new URLSearchParams(hash) = 쿼리 파싱 객체로 변환
-    const params = new URLSearchParams(hash);
+      // URL의 # 뒤에서 id_token 추출
+      // 구글이 보내주는 결과 URL 모양
+      // https://abcdefghijklmnop.chromiumapp.org/#id_token=eyJhbGc...&token_type=Bearer&...
+      // new URL(responseUrl) -> URL 객체로 변환
+      // .hash = "#id_token=eyJ...&token_type=Bearer&..." (# 포함)
+      // .substring(1) = "id_token=eyJ...&token_type=Bearer&..." (# 제거)
+      const hash = new URL(responseUrl).hash.substring(1);
+      // new URLSearchParams(hash) = 쿼리 파싱 객체로 변환
+      const params = new URLSearchParams(hash);
+      const error = params.get('error');
 
+      if (error) {
+        throw new Error(`구글 인증 실패: ${error}`);
+      }
 
-    const error = params.get('error');
-    if (error) {
-      throw new Error(`구글 인증 실패: ${error}`);
+      // .get('id_token') = "eyJhbGc..." (실제 ID Token 값)
+      const idToken = params.get('id_token');
+
+      if (!idToken) {
+        throw new Error('ID Token을 받지 못했습니다');
+      }
+
+      // nonce 검증
+      const payload = decodeJwtPayload(idToken);
+      if (payload.nonce !== nonce) {
+        throw new Error('nonce 불일치');
+      }
+
+      const user = await loginWithGoogle(idToken);
+
+      if (user.needsOnboarding) {
+        // 신규 유저는 약관 동의부터
+        // replace: true 는 뒤로가기 해도 이 페이지에 못 오게 막기
+        navigate('/onboarding/terms', { replace: true });
+      } else {
+        // 기존 유저는 원래 가려던 곳 또는 디폴트
+        navigate(from, { replace: true });
+      }
+    } catch (error) {
+      setError(handleApiError(error, '로그인', SAFE_LOGIN_ERRORS) || '로그인에 실패했습니다');
+    } finally {
+      setIsLoading(false);
     }
-
-    // .get('id_token') = "eyJhbGc..." (실제 ID Token 값)
-    const idToken = params.get('id_token');
-
-    if (!idToken) {
-      throw new Error('ID Token을 받지 못했습니다');
-    }
-
-    // nonce 검증
-    const payload = decodeJwtPayload(idToken);
-    if (payload.nonce !== nonce) {
-      throw new Error('nonce 불일치');
-    }
-    
-
-    const user = await loginWithGoogle(idToken);
+  };
 
 
-    if (user.needsOnboarding) {
-      // 신규 유저는 약관 동의부터
-      // replace: true 는 뒤로가기 해도 이 페이지에 못 오게 막기
-      navigate('/onboarding/terms', { replace: true });
-    } else {
-      // 기존 유저는 원래 가려던 곳 또는 디폴트
-      navigate(from, { replace: true });
-    }
-  } catch (error) {
-    setError(handleApiError(error, '로그인', SAFE_LOGIN_ERRORS) || '로그인에 실패했습니다');
-  } finally {
-    setIsLoading(false);
+
+  function decodeJwtPayload(token) {
+    // payload 부분
+    const base64Url = token.split('.')[1];
+
+    // Base64URL -> Base64 변환
+    const base64 = base64Url
+      // - -> +
+      .replace(/-/g, '+')
+      // _ -> /
+      .replace(/_/g, '/');
+
+    // 패딩 추가 (4의 배수로 맞추기)
+    // 부족한 만큼 = 추가
+    const padded = base64 + '='.repeat((4 - base64.length % 4) % 4);
+
+    // 디코딩
+    return JSON.parse(atob(padded));
   }
-};
-
-
-
-function decodeJwtPayload(token) {
-  // payload 부분
-  const base64Url = token.split('.')[1];
-  
-  // Base64URL → Base64 변환
-  const base64 = base64Url
-    // - -> +
-    .replace(/-/g, '+')
-    // _ -> /
-    .replace(/_/g, '/');
-
-  // 패딩 추가 (4의 배수로 맞추기)
-  // 부족한 만큼 = 추가
-  const padded = base64 + '='.repeat((4 - base64.length % 4) % 4);
-
-  
-  // 디코딩
-  return JSON.parse(atob(padded));
-}
-
-
 
   return (
     <div className={styles.login}>
@@ -290,6 +276,7 @@ function decodeJwtPayload(token) {
                     </clipPath>
                   </defs>
                 </svg>
+
                 <div className={styles.login11}>
                   <p className={styles.login12}>Google</p>
                   <span className={styles.login13}>로 계속하기</span>
