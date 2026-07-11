@@ -4,8 +4,6 @@ on:
   pull_request:
     types: [closed]
     branches: [ "develop" ]
-    paths:
-      - 'backend/clip-server/**'
   workflow_dispatch:
 
 permissions:
