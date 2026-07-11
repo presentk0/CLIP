@@ -1,9 +1,11 @@
-name: Java CD with CodeDeploy for Production Environment
+name: Java CD with CodeDeploy for Development Environment
 
 on:
   pull_request:
     types: [closed]
-    branches: [ "main" ]
+    branches: [ "develop" ]
+    paths:
+      - 'backend/clip-server/**'
   workflow_dispatch:
 
 permissions:
@@ -12,6 +14,8 @@ permissions:
 
 env:
   CODE_DEPLOY_APP_NAME: CLIP-CodeDeploy-App
+  DEPLOYMENT_GROUP_NAME: CLIP-dev-Group
+  STAGE: dev
 
 jobs:
   deploy:
@@ -24,12 +28,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set deployment variables
+      - name: Set deployment time variable
         run: |
           export TZ='Asia/Seoul'
           echo "DEPLOY_DATE=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
-          echo "STAGE=prod" >> $GITHUB_ENV
-          echo "DEPLOY_GROUP_NAME=CLIP-prod-Group" >> $GITHUB_ENV
 
       - name: Set up JDK 17
         uses: actions/setup-java@v3
@@ -49,23 +51,19 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Copy Prod Infra Files
-        run: |
-          cp -r ../../infra/prod/* .
-
       - name: ZIP deployment package
         run: |
           chmod +x scripts/*.sh
           zip -r clip-${{ env.STAGE }}-deploy-${{ env.DEPLOY_DATE }}.zip .
         shell: bash
-
+      
       - name: Upload to S3
         run: aws s3 cp --region ${{ secrets.AWS_REGION }} clip-${{ env.STAGE }}-deploy-${{ env.DEPLOY_DATE }}.zip s3://${{ secrets.S3_DEPLOY_BUCKET_NAME }}/${{ env.STAGE }}/clip-${{ env.STAGE }}-deploy-${{ env.DEPLOY_DATE }}.zip
 
-      - name: CodeDeploy
+      - name: Activate CodeDeploy Deployment
         run: |
           aws deploy create-deployment \
-          --application-name ${{ env.CODE_DEPLOY_APP_NAME }} \
+          --application-name $CODE_DEPLOY_APP_NAME \
           --deployment-config-name CodeDeployDefault.AllAtOnce \
-          --deployment-group-name ${{ env.DEPLOY_GROUP_NAME }} \
+          --deployment-group-name $DEPLOYMENT_GROUP_NAME \
           --s3-location bucket=${{ secrets.S3_DEPLOY_BUCKET_NAME }},bundleType=zip,key=${{ env.STAGE }}/clip-${{ env.STAGE }}-deploy-${{ env.DEPLOY_DATE }}.zip
