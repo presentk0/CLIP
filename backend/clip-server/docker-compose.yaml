@@ -48,3 +48,7 @@ services:
     networks:
       - app_default
     restart: on-failure
+    
+networks:
+  app_default:
+    external: true
