@@ -6,6 +6,7 @@ on:
     branches: [ "main" ]
     paths:
       - 'backend/clip-server/**'
+  workflow_dispatch:
 
 permissions:
   id-token: write
