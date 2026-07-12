@@ -1,5 +1,4 @@
 /* global chrome */
-
 import nlp from 'compromise';
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { apiFetch } from '../../utils/api';
@@ -7,10 +6,8 @@ import { log } from '../../utils/logger';
 import styles from './QuizPage.module.css';
 import frog3 from '../../imgs/image_809.png';
 import { useNavigate } from 'react-router-dom';
-
 import SettlementPage from '../SettlementPage/SettlementPage';
 import { saveUserData, loadUserData, removeUserData } from '../../utils/userStorage';
-
 
 
 
@@ -39,9 +36,9 @@ const LOADING_TEXTS = [
 
 
 
-
 // 렌더링해도 1번만 셔플 (비교값을 -0.5 ~ 0.5으로 설정)
 const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
+
 
 
 // 10초 계산해서 로딩 텍스트 띄우기
@@ -49,31 +46,18 @@ function QuizLoadingText() {
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
-
     const timer = setInterval(() => {
-
       // (기존 + 1) 나누기 21 로 나온 자연수 값을 최소 1에서 최대 20으로 설정
       setIndex(prev => (prev + 1) % LOADING_TEXTS.length);
     }, 10000);
 
     return () => {
-
       clearInterval(timer);
     }  // 언마운트 시 정리
   }, []);
 
   return <p className={styles.ready7}>{LOADING_TEXTS[index]}</p>;
 }
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -183,6 +167,8 @@ function QuizPage({ videoId, videoTitle }) {
   // 실제로 보낼 state 저장
   const saveTimerRef = useRef();
 
+  // 퀴즈 나오면 자동 스크롤
+  const scrollRef = useRef(null);
 
 
   const DEFAULT_SUBTITLE = {
@@ -207,8 +193,6 @@ function QuizPage({ videoId, videoTitle }) {
     matchingSelectedWord, matchingSelectedMeaning,
     matchingMatchedPairs, matchingShuffledMeanings, submittedQuizIds, feedback
   };
-
-
 
 
 
@@ -315,7 +299,6 @@ function QuizPage({ videoId, videoTitle }) {
     // .popup의 padding-left가 16이라서 .wrapper는 그만큼 안쪽에 있음
     const arrowLeft = wordCenter - popupLeft - 16;
 
-
     // 단어 위에 표시할 때의 top 값 (기본 위치)
     // 단어 위에 + 여백 10
     const topAbove = wordRect.top - popupHeight - 10;
@@ -326,7 +309,6 @@ function QuizPage({ videoId, videoTitle }) {
 
     // 위쪽 공간이 부족하면 (화면 위로 삐져나가면) 아래쪽으로 반전
     const showBelow = topAbove < 10;  // 10px 여유 마진
-
     const finalTop = showBelow ? topBelow : topAbove;
 
     // 최종 위치 state 업데이트, JSX에 반영됨
@@ -343,17 +325,6 @@ function QuizPage({ videoId, videoTitle }) {
   // dictionaryData 바뀌면 팝업 내용 바뀜 -> 너비 변할 수 있음 -> 재계산 필요
   // wordRect 바뀌면 다른 단어 클릭한 것 -> 재계산 필요
   }, [dictionaryData, wordRect]);
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -422,12 +393,6 @@ function QuizPage({ videoId, videoTitle }) {
 
 
 
-
-
-
-
-
-
   // 품사명 매핑 테이블
   const posKor = {
     noun: '명사',
@@ -447,74 +412,65 @@ function QuizPage({ videoId, videoTitle }) {
     isProcessingRef.current = true;
 
     try {
+      // 다른 클릭 이벤트 막기
+      e.stopPropagation();
+      const wasAlreadyCollected = collectedWords.some(w => 
+        w.word?.toLowerCase() === word?.toLowerCase()
+      );
 
-    // 다른 클릭 이벤트 막기
-    e.stopPropagation();
-
-    const wasAlreadyCollected = collectedWords.some(w => 
-      w.word?.toLowerCase() === word?.toLowerCase()
-    );
-
-    // 이미 열려있으면 닫기
-    if (isPinned) {
-      setIsPinned(false);
-      setDictionaryData(null);
-      setClickedSubtitle(null);
-      setIsPositioned(false);
-    }
-
-
-
-    // 클릭 시점의 자막 정보 저장 (단어 수집용)
-    // set은 다음 렌더링에 반영되기에 즉시 사용해야 하는 api는 savedSubtitle로 사용
-    const savedSubtitle = { ...currentSubtitle };
-    setClickedSubtitle({ ...savedSubtitle });
-
-    // 클릭한 단어 위치만 저장 (너비 계산은 useLayoutEffect에서)
-    const rect = e.target.getBoundingClientRect();
-    // 측정 전
-    setIsPositioned(false);
-    setWordRect({
-      left: rect.left,
-      top: rect.top,
-      width: rect.width,
-      height: rect.height
-    });
-
-    // popupPosition 초기화 (측정 전)
-    // 보이지 않게 화면 밖으로 보내기
-    setPopupPosition({ top: -9999, left: -9999, arrowLeft: 0 });
-
-
-
-    // 서버에서 조회한 단어에서 찾기
-    const collected = collectedWords.find(w => w.word === word);
-    
-    if (collected) {
-      // 있는 정보 가져오기
-      if (collected.phonetic && collected.meaningsByPos?.length > 0) {
-        setDictionaryData({
-          word: collected.word,
-          phonetic: collected.phonetic,
-          partOfSpeech: collected.partOfSpeech || '',
-          meanings: collected.meanings,
-          meaningsByPos: collected.meaningsByPos,
-          wasAlreadyCollected,
-        });
-        setIsPinned(true);
-        return;
+      // 이미 열려있으면 닫기
+      if (isPinned) {
+        setIsPinned(false);
+        setDictionaryData(null);
+        setClickedSubtitle(null);
+        setIsPositioned(false);
       }
 
-      // 정보 부족하면 사전 API로 보완
+      // 클릭 시점의 자막 정보 저장 (단어 수집용)
+      // set은 다음 렌더링에 반영되기에 즉시 사용해야 하는 api는 savedSubtitle로 사용
+      const savedSubtitle = { ...currentSubtitle };
+      setClickedSubtitle({ ...savedSubtitle });
+
+      // 클릭한 단어 위치만 저장 (너비 계산은 useLayoutEffect에서)
+      const rect = e.target.getBoundingClientRect();
+      // 측정 전
+      setIsPositioned(false);
+      setWordRect({
+        left: rect.left,
+        top: rect.top,
+        width: rect.width,
+        height: rect.height
+      });
+
+      // popupPosition 초기화 (측정 전)
+      // 보이지 않게 화면 밖으로 보내기
+      setPopupPosition({ top: -9999, left: -9999, arrowLeft: 0 });
+
+      // 서버에서 조회한 단어에서 찾기
+      const collected = collectedWords.find(w => w.word === word);
+      if (collected) {
+        // 있는 정보 가져오기
+        if (collected.phonetic && collected.meaningsByPos?.length > 0) {
+          setDictionaryData({
+            word: collected.word,
+            phonetic: collected.phonetic,
+            partOfSpeech: collected.partOfSpeech || '',
+            meanings: collected.meanings,
+            meaningsByPos: collected.meaningsByPos,
+            wasAlreadyCollected,
+          });
+          setIsPinned(true);
+          return;
+        }
+
+        // 정보 부족하면 사전 API로 보완
         try {
           const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
           // 에러날 경우 기존 팝업 유지
           if (!response.ok) {
             return;
           }
-          
           const data = await response.json();
-          
           // API 응답이 없거나, 데이터가 없으면 종료
           if (!data || !data[0]) return;
 
@@ -565,10 +521,10 @@ function QuizPage({ videoId, videoTitle }) {
             meaningsByPos: meaningsByPos,
             wasAlreadyCollected,
           };
-          
+
           // 팝업 업데이트
           setDictionaryData(detail);
-          
+
           // 서버에 저장된 단어 추가
           setCollectedWords(prev => prev.map(w => 
             w.word === word ? { ...w, ...detail } : w
@@ -582,24 +538,20 @@ function QuizPage({ videoId, videoTitle }) {
           setClickedSubtitle(null);
           setIsPositioned(false);
         }
-
       return;
     }
 
     // 사전 API 호출
     try {
       const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
-      
       // 에러날 경우 기존 팝업 유지
       if (!response.ok) {
         return;
       }
-
       const data = await response.json();
 
       // API 응답이 없거나, 데이터가 없으면 종료
       if (!data || !data[0]) return;
-
         // 해당 품사의 목록 최대 3개 가져오기
         const result = {
           word: word,
@@ -644,15 +596,12 @@ function QuizPage({ videoId, videoTitle }) {
           };
         });
 
-
-
         // 자막 문맥 품사 골라서 result에 담기
         const filterKor = posKor[wordFilter] || wordFilter;
         const target = result.meaningsByPos.find(m => m.partOfSpeech === filterKor) || result.meaningsByPos[0];
 
         result.partOfSpeech = target.partOfSpeech;
         result.meanings = target.meanings;
-
         setDictionaryData(result);
         setIsPinned(true);
 
@@ -686,83 +635,79 @@ function QuizPage({ videoId, videoTitle }) {
           meaningsByPos: result.meaningsByPos,
         }]);
 
-    } catch (error) {
-      if (error.status === 409 && error.code === 'WORD_ALREADY_COLLECTED') {
-        log.debug('이미 수집된 단어', error);
+      } catch (error) {
+        if (error.status === 409 && error.code === 'WORD_ALREADY_COLLECTED') {
+          log.debug('이미 수집된 단어', error);
 
-        // 사전 API로 정보 채우기
-    try {
-      const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
-      const data = await response.json();
-      
-      const allByPos = data[0].meanings.map(m => ({
-        partOfSpeech: m.partOfSpeech,
-        definitions: m.definitions.slice(0, 3).map(d => d.definition),
-      }));
-      
-      if (allByPos.length === 0) {
-        setIsPinned(false);
-        setDictionaryData(null);
-        setClickedSubtitle(null);
-        setIsPositioned(false);
+          // 사전 API로 정보 채우기
+          try {
+            const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
+            const data = await response.json();
+
+            const allByPos = data[0].meanings.map(m => ({
+              partOfSpeech: m.partOfSpeech,
+              definitions: m.definitions.slice(0, 3).map(d => d.definition),
+            }));
+
+            if (allByPos.length === 0) {
+              setIsPinned(false);
+              setDictionaryData(null);
+              setClickedSubtitle(null);
+              setIsPositioned(false);
+              return;
+            }
+
+            const allDefinitions = allByPos.flatMap(m => m.definitions);
+            const translations = await fetchTranslation(word, allDefinitions);
+
+            let cursor = 0;
+            const meaningsByPos = allByPos.map(m => {
+              const slice = translations.slice(cursor, cursor + m.definitions.length);
+              cursor += m.definitions.length;
+              return {
+                partOfSpeech: posKor[m.partOfSpeech] || m.partOfSpeech,
+                meanings: slice
+              };
+            });
+
+            const filterKor = posKor[wordFilter] || wordFilter;
+            const target = meaningsByPos.find(m => m.partOfSpeech === filterKor) || meaningsByPos[0];
+            const detail = {
+              word: word,
+              phonetic: data[0].phonetic || '',
+              audio: data[0].phonetics?.find(p => p.audio)?.audio || '',
+              partOfSpeech: target.partOfSpeech,
+              meanings: target.meanings,
+              meaningsByPos: meaningsByPos,
+              wasAlreadyCollected: true,  // 409면 무조건 true
+            };
+
+            // 팝업 표시
+            setDictionaryData(detail);
+            setIsPinned(true);
+
+            // 로컬에도 추가 (다음엔 안 걸림)
+            setCollectedWords(prev => {
+              if (prev.some(w => w.word === word)) return prev;
+              return [...prev, detail];
+            });
+          } catch (e) {
+            log.debug('사전 조회 실패', e);
+            setIsPinned(false);
+            setDictionaryData(null);
+            setClickedSubtitle(null);
+            setIsPositioned(false);
+          }
+          return;
+        } else {
+          log.error('사전 조회 실패', error);
+          setIsPinned(false);
+          setDictionaryData(null);
+          setClickedSubtitle(null);
+          setIsPositioned(false);
+        }
         return;
       }
-      
-      const allDefinitions = allByPos.flatMap(m => m.definitions);
-      const translations = await fetchTranslation(word, allDefinitions);
-      
-      let cursor = 0;
-      const meaningsByPos = allByPos.map(m => {
-        const slice = translations.slice(cursor, cursor + m.definitions.length);
-        cursor += m.definitions.length;
-        return {
-          partOfSpeech: posKor[m.partOfSpeech] || m.partOfSpeech,
-          meanings: slice
-        };
-      });
-      
-      const filterKor = posKor[wordFilter] || wordFilter;
-      const target = meaningsByPos.find(m => m.partOfSpeech === filterKor) 
-        || meaningsByPos[0];
-      
-      const detail = {
-        word: word,
-        phonetic: data[0].phonetic || '',
-        audio: data[0].phonetics?.find(p => p.audio)?.audio || '',
-        partOfSpeech: target.partOfSpeech,
-        meanings: target.meanings,
-        meaningsByPos: meaningsByPos,
-        wasAlreadyCollected: true,  // 409면 무조건 true
-      };
-      
-      // 팝업 표시
-      setDictionaryData(detail);
-      setIsPinned(true);
-      
-      // 로컬에도 추가 (다음엔 안 걸림)
-      setCollectedWords(prev => {
-        if (prev.some(w => w.word === word)) return prev;
-        return [...prev, detail];
-      });
-      
-    } catch (e) {
-      log.debug('사전 조회 실패', e);
-      setIsPinned(false);
-      setDictionaryData(null);
-      setClickedSubtitle(null);
-      setIsPositioned(false);
-    }
-    
-    return;
-  } else {
-        log.error('사전 조회 실패', error);
-        setIsPinned(false);
-        setDictionaryData(null);
-        setClickedSubtitle(null);
-        setIsPositioned(false);
-      }
-      return;
-    }
     } catch(error) {
       log.error('사전 팝업 실행 실패', error);
       setIsPinned(false);
@@ -770,19 +715,14 @@ function QuizPage({ videoId, videoTitle }) {
       setClickedSubtitle(null);
       setIsPositioned(false);
     } finally {
-
       isProcessingRef.current = false;
     }
   };
 
 
 
-
-
-
   // 사전 팝업 닫기
   const closePopup = (e) => {
-
     e.stopPropagation();
     setIsPinned(false);
     setDictionaryData(null);
@@ -792,7 +732,7 @@ function QuizPage({ videoId, videoTitle }) {
 
 
 
-  // 시간 형식 변환 (초 → 00:00:00)
+  // 시간 형식 변환 (초 -> 00:00:00)
   const formatTime = (seconds) => {
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
@@ -819,8 +759,6 @@ function QuizPage({ videoId, videoTitle }) {
 
     // UI 전달
     setButtonState('processing');
-
-
     try {
       const collect = await apiFetch('/words/collect', {
         method: 'POST',
@@ -844,7 +782,6 @@ function QuizPage({ videoId, videoTitle }) {
       if (collect.success) {
         await saveUserData('hasWords', true);
       }
-
       // 서버에 저장된 단어 추가
       setCollectedWords(prev => [...prev, {
         word: dictionaryData.word,
@@ -854,9 +791,6 @@ function QuizPage({ videoId, videoTitle }) {
         meaningsByPos: dictionaryData.meaningsByPos,
       }]);
       setButtonState('collected');
-
-
-      // setIsCollected(true);
     } catch (error) {
       if (error.status === 409 && 
         error.code === 'WORD_ALREADY_COLLECTED') {
@@ -884,9 +818,6 @@ function QuizPage({ videoId, videoTitle }) {
       isProcessingRef.current = false;
     }
   };
-
-
-
 
 
 
@@ -929,12 +860,11 @@ function QuizPage({ videoId, videoTitle }) {
     // 가장 처음 품사 가져오기
     const tags = match.json()[0]?.terms?.[0]?.tags;
       if (tags && tags.length > 0) {
-        // Set → Array
+        // Set -> Array
         const firstTag = [...tags][0];
-        // 'Verb' → 'verb'
+        // 'Verb' -> 'verb'
         return firstTag.toLowerCase();
       }
-
     // 품사를 모르면 null
     return null;
   };
@@ -959,16 +889,30 @@ function QuizPage({ videoId, videoTitle }) {
   const currentQuiz = quizzes[currentIndex];
 
 
+
+  useEffect(() => {
+    if (currentQuiz?.quizType !== 'BLANK' && currentQuiz?.quizType !== 'OX' && currentQuiz?.quizType !== 'MATCHING') return;
+    if (!isConfirmed) return;
+
+    // 퀴즈 박스가 화면에 나타나면 자기 위치로 스크롤
+    scrollRef.current?.scrollIntoView({ 
+      behavior: 'smooth',
+      block: 'end',  // 하단에 위치
+    });
+  }, [currentQuiz?.quizType, isConfirmed]);
+
+
+
   // ox퀴즈용 특정 단어 강조하기
   const highlightWord = (text, word) => {
     // 퀴즈 문장 또는 단어 없으면 빈 화면 또는 퀴즈 문장 보이기
     if (!text || !word) return text;
-  
+
     // 퀴즈 문장에서 강조 단어 위치 찾기
     const index = text.toLowerCase().indexOf(word.toLowerCase());
     // 단어가 문장에 없으면 퀴즈 문장 보이기
     if (index === -1) return text;
-  
+
     // 위치별로 분리
     const before = text.slice(0, index);
     const highlight = text.slice(index, index + word.length);
@@ -998,11 +942,6 @@ function QuizPage({ videoId, videoTitle }) {
       </div>
     );
   };
-
-
-
-
-
 
 
 
@@ -1139,6 +1078,7 @@ function QuizPage({ videoId, videoTitle }) {
   };
 
 
+
   // 매칭 퀴즈 매칭확인
   const checkMatch = async (wordQuizId, meaningQuizId) => {
     // 같은 quizId면 정답 (단어와 뜻이 같은 퀴즈에 속함)
@@ -1268,10 +1208,11 @@ function QuizPage({ videoId, videoTitle }) {
       const finalResult = await apiFetch(`/quiz/sessions/${sessionId}/complete`, {
         method: 'POST'
       });
+
       // 해당 유저의 저장된 진행 상황 삭제
       await removeUserData('quizState');
       await removeUserData(`quizProgress_${videoId}`);
-      
+
       // 정산 데이터 저장
       setSettlementData(finalResult.data);
       // 정산 페이지 표시
@@ -1291,12 +1232,12 @@ function QuizPage({ videoId, videoTitle }) {
   };
 
 
+
   // 퀴즈 초기화 및 이전 진행 상황 복원
   useEffect(() => {
     const restoreQuiz = async () => {
       // 새로운 영상으로 전환되거나 복원을 시작할 때 정산/설문 화면 초기화
       setIsSettlement(false);
-
 
       // 크롬 저장소에서 유저 id에 맞는 이전 진행 상황 확인
       const quizState = await loadUserData('quizState');
@@ -1326,7 +1267,6 @@ function QuizPage({ videoId, videoTitle }) {
           });
         }
       }
-
       // 복원 완료 체크
       setIsRestoring(false);
     };
@@ -1334,90 +1274,87 @@ function QuizPage({ videoId, videoTitle }) {
 
 
 
-  // 비동기 처리 함수 분리
-  const processQuizReady = async (message) => {
-    // 새 퀴즈 시작 시 이전 저장 데이터 삭제
-    await removeUserData('quizState');
+    // 비동기 처리 함수 분리
+    const processQuizReady = async (message) => {
+      // 새 퀴즈 시작 시 이전 저장 데이터 삭제
+      await removeUserData('quizState');
 
-    // 새 퀴즈로 초기화할 때 정산 및 설문 페이지 상태도 확실하게 초기화
-    setIsSettlement(false);
+      // 새 퀴즈로 초기화할 때 정산 및 설문 페이지 상태도 확실하게 초기화
+      setIsSettlement(false);
+      // 새 퀴즈로 초기화
+      setSessionId(message.sessionId);
+      setQuizzes(message.quizzes);
 
+      if (message.quizzes[0]?.quizType === 'MATCHING') {
+        const meaningsWithId = message.quizzes.map(q => ({
+          quizId: q.quizId,
+          meaning: q.answer
+        }));
+        setMatchingShuffledMeanings(shuffle(meaningsWithId));
+      } else {
+        setMatchingShuffledMeanings([]);
+      }
+      setCurrentIndex(0);
+      setCorrectCount(0);
+      setWrongCount(0);
+      setAnswers([]);
+      setIsConfirmed(false);
+      setTempChoice(null);
+      setMatchingSelectedWord(null);
+      setMatchingSelectedMeaning(null);
+      setMatchingMatchedPairs([]);
+      setMatchingWrongPair(null);
+      setSubmittedQuizIds([]);
+      setFeedback(null);
 
-    // 새 퀴즈로 초기화
-    setSessionId(message.sessionId);
-    setQuizzes(message.quizzes);
-    
-    if (message.quizzes[0]?.quizType === 'MATCHING') {
-      const meaningsWithId = message.quizzes.map(q => ({
-        quizId: q.quizId,
-        meaning: q.answer
-      }));
-      setMatchingShuffledMeanings(shuffle(meaningsWithId));
-    } else {
-      setMatchingShuffledMeanings([]);
-    }
-    setCurrentIndex(0);
-    setCorrectCount(0);
-    setWrongCount(0);
-    setAnswers([]);
-    setIsConfirmed(false);
-    setTempChoice(null);
-    setMatchingSelectedWord(null);
-    setMatchingSelectedMeaning(null);
-    setMatchingMatchedPairs([]);
-    setMatchingWrongPair(null);
-    setSubmittedQuizIds([]);
-    setFeedback(null);
+      // 영상 일시정지 메시지 전송
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs[0]) chrome.tabs.sendMessage(tabs[0].id, { type: 'SET_QUIZ_MODE', active: true })
+          .catch((error) => log.debug('영상 일시정지 메시지 전송 오류', error));
+      });
+    };
 
-    // 영상 일시정지 메시지 전송
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs[0]) chrome.tabs.sendMessage(tabs[0].id, { type: 'SET_QUIZ_MODE', active: true })
-        .catch((error) => log.debug('영상 일시정지 메시지 전송 오류', error));
-    });
-  };
+    // 동기 리스너
+    const handleQuizMessage = (message) => {
+      if (message.type === 'QUIZ_READY') {
+        // 비동기 호출
+        processQuizReady(message);
+      }
+    };
 
-
-  // 동기 리스너
-  const handleQuizMessage = (message) => {
-    if (message.type === 'QUIZ_READY') {
-      // 비동기 호출
-      processQuizReady(message);
-    }
-  };
-  
-  chrome.runtime.onMessage.addListener(handleQuizMessage);
-  // cleanup
-  return () => chrome.runtime.onMessage.removeListener(handleQuizMessage);
-}, [videoId]);
+    chrome.runtime.onMessage.addListener(handleQuizMessage);
+    // cleanup
+    return () => chrome.runtime.onMessage.removeListener(handleQuizMessage);
+  }, [videoId]);
 
 
-useEffect(() => {
-  if (!sessionId || isRestoring) return;
-  
-  // 디바운스 패턴
-  clearTimeout(saveTimerRef.current);
-  saveTimerRef.current = setTimeout(() => {
-    saveUserData('quizState', stateRef.current);
-  }, 500);
-  
+
+  useEffect(() => {
+    if (!sessionId || isRestoring) return;
+    // 디바운스 패턴
+    clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      saveUserData('quizState', stateRef.current);
+    }, 500);
+
   return () => clearTimeout(saveTimerRef.current);
-}, [
+  }, [
   currentIndex, correctCount, wrongCount, answers, isConfirmed,
   sessionId, tempChoice, isRestoring,
   matchingSelectedWord, matchingSelectedMeaning, matchingMatchedPairs,
   submittedQuizIds, feedback
   // videoId, quizzes 제외 (별도 처리)
-]);
+  ]);
 
 
-// 영상 변경 시 즉시 저장
-useEffect(() => {
-  if (!sessionId || isRestoring || !videoId) return;
-  
-  // 디바운스 취소하고 즉시 저장
-  clearTimeout(saveTimerRef.current);
-  saveUserData('quizState', stateRef.current);
-}, [videoId, sessionId, isRestoring]);
+  // 영상 변경 시 즉시 저장
+  useEffect(() => {
+    if (!sessionId || isRestoring || !videoId) return;
+
+    // 디바운스 취소하고 즉시 저장
+    clearTimeout(saveTimerRef.current);
+    saveUserData('quizState', stateRef.current);
+  }, [videoId, sessionId, isRestoring]);
 
 
   // 답안 제출
@@ -1444,7 +1381,6 @@ useEffect(() => {
         isCorrect: result.data?.correct
       }]);
 
-
       // 정답/오답 카운트
       if (result.data?.correct) {
         setCorrectCount(prev => prev + 1);
@@ -1465,13 +1401,11 @@ useEffect(() => {
     if (isProcessing || isCompleting) return;
 
     setIsProcessing(true);
-
     try {
       // 매칭 퀴즈면 바로 정산 페이지
       if (currentQuiz?.quizType === 'MATCHING') {
         // 전송 완료 처리
         setIsCompleting(true);
-
         try {
           const finalResult = await apiFetch(`/quiz/sessions/${sessionId}/complete`, {
             method: 'POST'
@@ -1485,7 +1419,6 @@ useEffect(() => {
           setIsSettlement(true);
         } catch (error) {
           log.debug('complete 실패:', error);
-        
           // 400 = 이미 완료, 그 외 = 진짜 에러
           // error.status === 400은 HTTP 표준
           if (error.status === 400) {
@@ -1499,8 +1432,7 @@ useEffect(() => {
         return;
       }
 
-      // 빈칸/OX → 다음 문제 또는 종료
-
+      // 빈칸/OX -> 다음 문제 또는 종료
       if (currentIndex < quizzes.length - 1) {
         // 다음 문제로 이동
         setCurrentIndex(prev => prev + 1);
@@ -1557,6 +1489,7 @@ useEffect(() => {
   };
 
 
+
   // 뒤로가기 버튼
   const handleBack = () => {
     // 정산 했는지 체크
@@ -1573,9 +1506,10 @@ useEffect(() => {
     }
   };
 
+
+
   // 마이페이지 버튼
   const handleMyPage = () => {
-
     // 정산 했는지 체크
     if (isSettlement) {
       handleExitFromSettlement('/my');
@@ -1590,54 +1524,47 @@ useEffect(() => {
   };
 
 
-// 쿠키 확인 -> 설문조사 or 페이지 이동
-const handleExitFromSettlement = async (target = -1) => {
-  if (isExiting) return;
-  setIsExiting(true);
 
+  // 쿠키 확인 -> 설문조사 or 페이지 이동
+  const handleExitFromSettlement = async (target = -1) => {
+    if (isExiting) return;
+    setIsExiting(true);
 
-  try {
-    // 로컬 저장소 확인
+    try {
+      // 로컬 저장소 확인
+      const feedback = await loadUserData('submittedFeedback');
+      if (!feedback?.hasSubmittedFeedback) {
+        const check = await apiFetch('/feedback/check', { method: 'GET' });
+        const hasSubmitted = check?.data?.hasSubmittedFeedback === true;
 
-    const feedback = await loadUserData('submittedFeedback');
-
-    if (!feedback?.hasSubmittedFeedback) {
-
-      const check = await apiFetch('/feedback/check', { method: 'GET' });
-      const hasSubmitted = check?.data?.hasSubmittedFeedback === true;
-
-
-      if (!hasSubmitted) {
-
-        // 설문 안 했음 → 설문 페이지로
-        navigate('/feedback', { 
-          state: { returnTo: target }
-          , replace: true
-        });
-        return;
-      } else {
-
-        // 서버엔 제출됨 → 로컬에 저장
-        await saveUserData('submittedFeedback', { hasSubmittedFeedback: true });
+        if (!hasSubmitted) {
+          // 설문 안 했음 -> 설문 페이지로
+          navigate('/feedback', { 
+            state: { returnTo: target }
+            , replace: true
+          });
+          return;
+        } else {
+          // 서버엔 제출됨 -> 로컬에 저장
+          await saveUserData('submittedFeedback', { hasSubmittedFeedback: true });
+        }
       }
-    }
-    
-    // 설문 이미 했으면 바로 이동
-    if (target === -1) {
-      navigate(-1);
-    } else {
-      navigate(target, {replace: true});
-    }
-  } catch (error) {
-    log.debug('나가기 실패:', error);
-    // 에러 나도 일단 이동
-    if (target === -1) navigate(-1);
-    else navigate(target, {replace: true});
-  } finally {
-    setIsExiting(false);
-  }
-};
 
+      // 설문 이미 했으면 바로 이동
+      if (target === -1) {
+        navigate(-1);
+      } else {
+        navigate(target, {replace: true});
+      }
+    } catch (error) {
+      log.debug('나가기 실패:', error);
+      // 에러 나도 일단 이동
+      if (target === -1) navigate(-1);
+      else navigate(target, {replace: true});
+    } finally {
+      setIsExiting(false);
+    }
+  };
 
 
 
@@ -1666,11 +1593,11 @@ const handleExitFromSettlement = async (target = -1) => {
               </svg>
             </button>
           </div>
+
           <div className={styles.header4}>
             <p className={styles['header4-t']}>퀴즈</p>
           </div>
         </div>
-
 
         <div className={styles.bar}>
           <div className={styles.bar2}>
@@ -1678,173 +1605,163 @@ const handleExitFromSettlement = async (target = -1) => {
             className={styles.bar3}
             style={{ backgroundImage: `url(${frog3})` }}
             >
-              
             </div>
           </div>
 
           <div className={styles.bar4}>
-
-          {quizzes && quizzes.length > 0 && (
-            <div className={styles.bar5}>
-              {/* 0값이지만 1로 보이게 +1 */}
-              <p className={styles['bar5-t']}>{currentQuiz?.quizType === 'MATCHING' 
-              ? matchingMatchedPairs.length 
-              : currentIndex + 1}</p>
-              <span className={styles['bar5-t']}> / {quizzes?.length}</span>
-            </div>
+            {quizzes && quizzes.length > 0 && (
+              <div className={styles.bar5}>
+                {/* 0값이지만 1로 보이게 +1 */}
+                <p className={styles['bar5-t']}>{currentQuiz?.quizType === 'MATCHING' 
+                  ? matchingMatchedPairs.length 
+                  : currentIndex + 1}
+                </p>
+                <span className={styles['bar5-t']}> / {quizzes?.length}</span>
+              </div>
             )}
+
             <div className={styles.bar6}>
               <div className={styles.bar7}></div>
               <div 
               className={styles.bar8}
-
               style={{width: currentQuiz?.quizType === 'MATCHING' 
-                ? `${(matchingMatchedPairs.length / quizzes.length) * 100}%` 
-                : `${((currentIndex + (isConfirmed ? 1 : 0)) / quizzes.length) * 100}%`}}
+              ? `${(matchingMatchedPairs.length / quizzes.length) * 100}%` 
+              : `${((currentIndex + (isConfirmed ? 1 : 0)) / quizzes.length) * 100}%`}}
               ></div>
             </div>
           </div>
-
         </div>
+
 
 
         {/* 말풍선 */}
         {quizzes && quizzes.length > 0 && (
-        <div className={styles.balloon}>
-          <div className={styles.balloon2}>
-            <p className={styles['balloon2-t']}>
-              {settlementData?.feedback
-              ? settlementData.feedback
-              : <>
-                    {currentQuiz?.quizType === 'BLANK' && (!isConfirmed ? "이 자리에 어떤 단어가 들어갈까요?"  : feedback?.feedback)}
-                    {currentQuiz?.quizType === 'OX' && (!isConfirmed ? "맞으면 O, 아니면 X예요." : feedback?.feedback)}
-                    {currentQuiz?.quizType === 'MATCHING' && (!isConfirmed ? "오늘 영상 속 단어! 같이 정리해봐요" : matchingMatchedPairs.length === quizzes.length ? "수고했어! 이제 결과를 볼까?" : "방금 영상에서 나온 문장이에요. 이 자리에 어떤 단어가 들어갈까요?")}
-              </>
+          <div className={styles.balloon}>
+            <div className={styles.balloon2}>
+              <p className={styles['balloon2-t']}>
+                {settlementData?.feedback
+                ? 
+                settlementData.feedback
+                : 
+                <>
+                  {currentQuiz?.quizType === 'BLANK' && (!isConfirmed ? "이 자리에 어떤 단어가 들어갈까요?"  : feedback?.feedback)}
+                  {currentQuiz?.quizType === 'OX' && (!isConfirmed ? "맞으면 O, 아니면 X예요." : feedback?.feedback)}
+                  {currentQuiz?.quizType === 'MATCHING' && (!isConfirmed ? "오늘 영상 속 단어! 같이 정리해봐요" : matchingMatchedPairs.length === quizzes.length ? "수고했어! 이제 결과를 볼까?" : "방금 영상에서 나온 문장이에요. 이 자리에 어떤 단어가 들어갈까요?")}
+                </>
                 }
-            </p>
-          </div>
-        </div>
-        )}
-
-{/* 정산 상태에 따라 분기 */}
-      {isSettlement ? (
-        <>
-        <SettlementPage 
-        data={settlementData}
-        />
-        </>
-      ) : (
-        <>
-        <div className={styles.subtitles}>
-          <div className={styles['subtitles-badge']}>
-            <div className={styles['subtitles-badge2']}>
-              <p className={styles['subtitles-badge3']}>방금 자막</p>
+              </p>
             </div>
-          </div>
-          <div className={styles.subtitles2}>
-            <div className={styles.subtitles3}>
-              <div className={styles.subtitles4}>
-                <p className={styles['subtitles4-t']}>
-                  {/* 자막 문장을 공백으로 나눠서 단어별로 처리 */}
-                  {currentSubtitle.text.split(' ').map((word, index) => {
-                  // 해당 종류를 일반 따옴표로 변환(백틱, 오른쪽 작은따옴표, 왼쪽 작은따옴표, 수정 문자 아포스트로피)
-                    const normalized = word.replace(/[`''ʼ]/g, "'");
-                    // 특수문자만 제거
-                    const cleaned = normalized.replace(/[^a-zA-Z']/g, '');
-                    // 단어의 품사 구분 및 일부 단어 필터링
-                    const wordFilter = getWordFilter(currentSubtitle.text, cleaned);
-
-                    // 구동사는 있으면 클릭 시 구동사로 보이기
-                    const searchWord = wordFilter?.type === 'phrasal' ? wordFilter.phrase : cleaned;
-
-                    return (
-                      <span
-                      key={index}
-                      // 클릭 시 필터링이 아니면 팝업 고정
-                      onClick={(e) => wordFilter && togglePin(e, searchWord, wordFilter)}>
-                        {/* 원본 단어 그대로 표시 + 공백 추가 */}
-                        {word}{' '}
-                      </span>
-                    );
-                  })}
-                </p>
-              </div>
-              <div className={styles.subtitles5}>
-                <p className={styles.subtitles6}>
-                  {currentSubtitle.translation}
-                </p>
-              </div>
-            </div>
-            <div className={styles.subtitles7}>
-              {/* 전 스크립트 보기 */}
-              <button
-              onClick= {() => goPrev()}
-              className={styles.subtitles8}
-              >
-<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none">
-  <path d="M23.4961 5.75748C24.8252 4.87141 26.6055 5.82415 26.6055 7.42154V24.5788C26.6055 26.1762 24.8252 27.1289 23.4961 26.2428L10.6279 17.6647C9.44056 16.8731 9.44076 15.1283 10.6279 14.3366L23.4961 5.75748ZM6.89551 7.78971C7.7237 7.78997 8.39452 8.46146 8.39453 9.28971V22.7106C8.39453 23.539 7.72296 24.2106 6.89453 24.2106C6.06633 24.2103 5.39453 23.5389 5.39453 22.7106V9.28971C5.39455 8.46129 6.06709 7.78971 6.89551 7.78971Z" fill="#454440"/>
-</svg>
-              </button>
-
-
-
-
-
-              {/* 현재 스크립트 구간 반복 */}
-              <button 
-              onClick={() => toggleLoop()}
-              className={styles.subtitles8}
-              >
-<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none">
-  <path d="M5 16V10.6667C5 8.45753 6.79086 6.66667 9 6.66667H27M22.875 2L27 6.66667L22.875 11.3333" stroke="#454440" stroke-width="3" stroke-linecap="round"/>
-  <path d="M27 16V21.3333C27 23.5425 25.2091 25.3333 23 25.3333H5M9.125 30L5 25.3333L9.125 20.6667" stroke="#454440" stroke-width="3" stroke-linecap="round"/>
-</svg>
-              </button>
-
-
-              {/* 다음 스크립트 보기 */}
-              <button
-              onClick={() => goNext()}
-              className={styles.subtitles8}
-              >
-<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none">
-  <path d="M8.44385 5.68708C7.1148 4.80117 5.3346 5.7539 5.33447 7.35114V24.649C5.33468 26.2461 7.11483 27.1989 8.44385 26.3131L21.4175 17.6636C22.6044 16.8718 22.6038 15.127 21.4165 14.3355L8.44385 5.68708ZM25.1655 7.74274C24.3371 7.74274 23.6656 8.41436 23.6655 9.24274V22.7574C23.6657 23.5857 24.3372 24.2574 25.1655 24.2574C25.9938 24.2574 26.6653 23.5857 26.6655 22.7574V9.24274C26.6655 8.41436 25.9939 7.74274 25.1655 7.74274Z" fill="#454440"/>
-</svg>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {!['BLANK', 'OX', 'MATCHING'].includes(currentQuiz?.quizType) && (
-          <div className={styles.ready}>
-            <div className={styles.ready2}>
-              <div className={styles.ready3}></div>
-              <div className={styles.ready4}></div>
-              <div className={styles.ready5}></div>
-              <div className={styles.ready6}></div>
-            </div>
-
-            <QuizLoadingText />
           </div>
         )}
 
+        {/* 정산 상태에 따라 분기 */}
+          {isSettlement ? (
+            <>
+              <SettlementPage 
+              data={settlementData}
+              />
+            </>
+          ) : (
+            <>
+            <div className={styles.subtitles}>
+              <div className={styles['subtitles-badge']}>
+                <div className={styles['subtitles-badge2']}>
+                  <p className={styles['subtitles-badge3']}>방금 자막</p>
+                </div>
+              </div>
+              <div className={styles.subtitles2}>
+                <div className={styles.subtitles3}>
+                  <div className={styles.subtitles4}>
+                    <p className={styles['subtitles4-t']}>
+                      {/* 자막 문장을 공백으로 나눠서 단어별로 처리 */}
+                      {currentSubtitle.text.split(' ').map((word, index) => {
+                      // 해당 종류를 일반 따옴표로 변환(백틱, 오른쪽 작은따옴표, 왼쪽 작은따옴표, 수정 문자 아포스트로피)
+                        const normalized = word.replace(/[`''ʼ]/g, "'");
+                        // 특수문자만 제거
+                        const cleaned = normalized.replace(/[^a-zA-Z']/g, '');
+                        // 단어의 품사 구분 및 일부 단어 필터링
+                        const wordFilter = getWordFilter(currentSubtitle.text, cleaned);
+                        // 구동사는 있으면 클릭 시 구동사로 보이기
+                        const searchWord = wordFilter?.type === 'phrasal' ? wordFilter.phrase : cleaned;
 
-        {currentQuiz?.quizType === 'BLANK' && blankQuiz()}
-        {currentQuiz?.quizType === 'OX' && oxQuiz()}
-        {currentQuiz?.quizType === 'MATCHING' &&  matchingShuffledMeanings?.length > 0 &&  matchingQuiz()}
-      </>
-      )}
+                        return (
+                          <span
+                          key={index}
+                          // 클릭 시 필터링이 아니면 팝업 고정
+                          onClick={(e) => wordFilter && togglePin(e, searchWord, wordFilter)}>
+                           {/* 원본 단어 그대로 표시 + 공백 추가 */}
+                            {word}{' '}
+                          </span>
+                        );
+                      })}
+                    </p>
+                  </div>
+
+                  <div className={styles.subtitles5}>
+                    <p className={styles.subtitles6}>
+                      {currentSubtitle.translation}
+                    </p>
+                  </div>
+                </div>
+
+                <div className={styles.subtitles7}>
+                  {/* 전 스크립트 보기 */}
+                  <button
+                  onClick= {() => goPrev()}
+                  className={styles.subtitles8}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none">
+                      <path d="M23.4961 5.75748C24.8252 4.87141 26.6055 5.82415 26.6055 7.42154V24.5788C26.6055 26.1762 24.8252 27.1289 23.4961 26.2428L10.6279 17.6647C9.44056 16.8731 9.44076 15.1283 10.6279 14.3366L23.4961 5.75748ZM6.89551 7.78971C7.7237 7.78997 8.39452 8.46146 8.39453 9.28971V22.7106C8.39453 23.539 7.72296 24.2106 6.89453 24.2106C6.06633 24.2103 5.39453 23.5389 5.39453 22.7106V9.28971C5.39455 8.46129 6.06709 7.78971 6.89551 7.78971Z" fill="#454440"/>
+                    </svg>
+                  </button>
+
+                  {/* 현재 스크립트 구간 반복 */}
+                  <button 
+                  onClick={() => toggleLoop()}
+                  className={styles.subtitles8}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none">
+                      <path d="M5 16V10.6667C5 8.45753 6.79086 6.66667 9 6.66667H27M22.875 2L27 6.66667L22.875 11.3333" stroke="#454440" stroke-width="3" stroke-linecap="round"/>
+                      <path d="M27 16V21.3333C27 23.5425 25.2091 25.3333 23 25.3333H5M9.125 30L5 25.3333L9.125 20.6667" stroke="#454440" stroke-width="3" stroke-linecap="round"/>
+                    </svg>
+                  </button>
+
+                  {/* 다음 스크립트 보기 */}
+                  <button
+                  onClick={() => goNext()}
+                  className={styles.subtitles8}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none">
+                      <path d="M8.44385 5.68708C7.1148 4.80117 5.3346 5.7539 5.33447 7.35114V24.649C5.33468 26.2461 7.11483 27.1989 8.44385 26.3131L21.4175 17.6636C22.6044 16.8718 22.6038 15.127 21.4165 14.3355L8.44385 5.68708ZM25.1655 7.74274C24.3371 7.74274 23.6656 8.41436 23.6655 9.24274V22.7574C23.6657 23.5857 24.3372 24.2574 25.1655 24.2574C25.9938 24.2574 26.6653 23.5857 26.6655 22.7574V9.24274C26.6655 8.41436 25.9939 7.74274 25.1655 7.74274Z" fill="#454440"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* 퀴즈 준비중 애니메이션 */}
+            {!['BLANK', 'OX', 'MATCHING'].includes(currentQuiz?.quizType) && (
+              <div className={styles.ready}>
+                <div className={styles.ready2}>
+                  <div className={styles.ready3}></div>
+                  <div className={styles.ready4}></div>
+                  <div className={styles.ready5}></div>
+                  <div className={styles.ready6}></div>
+                </div>
+
+                <QuizLoadingText />
+              </div>
+            )}
+
+
+            {currentQuiz?.quizType === 'BLANK' && blankQuiz()}
+            {currentQuiz?.quizType === 'OX' && oxQuiz()}
+            {currentQuiz?.quizType === 'MATCHING' &&  matchingShuffledMeanings?.length > 0 &&  matchingQuiz()}
+          </>
+        )}
       </div>
     )
   }
-
-
-
-
-
-
-
-
 
 
 
@@ -1853,132 +1770,125 @@ const handleExitFromSettlement = async (target = -1) => {
     if (!currentQuiz?.options?.length) return null;
 
     return (
-          isConfirmed && !feedback?.correct ? (
-            // 틀린 경우 해설 보이기
-      <div className={styles.quiz}>
-        <div className={styles['quiz-a']}>
-          <div className={styles['quiz-badge-n']}>
-            <div className={styles['quiz-badge2']}>
-              <p className={styles['quiz-badge3']}>해설</p>
-            </div>
-          </div>
-
-          <div className={styles['quiz-b']}>
-            <div className={styles.explain}>
-              <div className={styles.explain2}>
-                <p className={styles.explain3}>{feedback?.correctAnswer}이(가) 정답인 이유!</p>
-              </div>
-              <div className={styles.explain4}>
-                <p className={styles.explain5}>{feedback?.explanation}</p>
+      isConfirmed && !feedback?.correct ? (
+        // 틀린 경우 해설 보이기
+        <div ref={scrollRef} className={styles.quiz}>
+          <div className={styles['quiz-a']}>
+            <div className={styles['quiz-badge-n']}>
+              <div className={styles['quiz-badge2']}>
+                <p className={styles['quiz-badge3']}>해설</p>
               </div>
             </div>
 
-
-            <div className={styles.information}>
-              <div className={styles.information2}>
-                <p className={styles.information3}>💡 함께 알아두면 좋은 표현</p>
-              </div>
-              <div className={styles.information4}>
-                <p className={styles.information5}>{feedback?.relatedExpressions}</p>
-
-              </div>
-            </div>
-
-
-            <div className={styles['quiz-s']}>
-              <div className={styles['quiz-s2']}>
-                <div className={styles['quiz-s3']}>
-                  <button
-                  onClick={handleNext}
-                  className={styles['quiz-s4']}>
-                    건너뛰기
-                  </button>
+            <div className={styles['quiz-b']}>
+              <div className={styles.explain}>
+                <div className={styles.explain2}>
+                  <p className={styles.explain3}>{feedback?.correctAnswer}이(가) 정답인 이유!</p>
                 </div>
 
+                <div className={styles.explain4}>
+                  <p className={styles.explain5}>{feedback?.explanation}</p>
+                </div>
+              </div>
 
+              <div className={styles.information}>
+                <div className={styles.information2}>
+                  <p className={styles.information3}>💡 함께 알아두면 좋은 표현</p>
+                </div>
 
+                <div className={styles.information4}>
+                  <p className={styles.information5}>{feedback?.relatedExpressions}</p>
+                </div>
+              </div>
 
-          {/* 제출 및 넘어가기 버튼 */}
-            {/* ox, 빈칸 채우기 전용 */}
-            {!isConfirmed ? (
-              <button
-              onClick={handleSubmit}
-              className={styles['quiz-s5']}>
-                <p className={styles['quiz-s6']}>
-                  정답확인
-                </p>
-              </button>
-            ) : (
-              <button
-              onClick={handleNext}
-              className={styles['quiz-s5']}>
-                <p className={styles['quiz-s6']}>
-                  계속하기
-                </p>
-              </button>
-            )}
+              <div className={styles['quiz-s']}>
+                <div className={styles['quiz-s2']}>
+                  <div className={styles['quiz-s3']}>
+                    <button
+                    onClick={handleNext}
+                    className={styles['quiz-s4']}>
+                      건너뛰기
+                    </button>
+                  </div>
 
+                  {/* 제출 및 넘어가기 버튼 */}
+                  {/* ox, 빈칸 채우기 전용 */}
+                  {!isConfirmed ? (
+                    <button
+                    onClick={handleSubmit}
+                    className={styles['quiz-s5']}>
+                      <p className={styles['quiz-s6']}>
+                        정답확인
+                      </p>
+                    </button>
+                  ) : (
+                    <button
+                    onClick={handleNext}
+                    className={styles['quiz-s5']}>
+                      <p className={styles['quiz-s6']}>
+                        계속하기
+                      </p>
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
       ) : (
-      <div className={styles.quiz}>
-        <div className={styles['quiz-a']}>
-          <div className={styles['quiz-badge-n']}>
-            <div className={styles['quiz-badge2']}>
-              <p className={styles['quiz-badge3']}>Q.<span>{currentIndex + 1}</span></p>
-            </div>
-          </div>
-
-          <div className={styles['quiz-b']}>
-            <div className={styles['quiz-c']}>
-              <div className={styles['quiz-d']}>
-                <div className={styles['quiz-e']}>
-                  <p className={styles['quiz2-q']}>
-                    {currentQuiz?.content.split('[ ]').map((part, index, array) => (
-                      <React.Fragment key={index}>
-                        {part}
-                        {/* 마지막 조각이 아니면 빈칸 삽입 */}
-                        {index < array.length - 1 && (
-                          tempChoice ? (
-                            <span className={styles['blank-t']}>{tempChoice}</span>
-                          ) : (
-                            <span className={styles['blank-n']}></span>
-                          )
-                        )}
-                      </React.Fragment>
-                    ))}
-                  </p>
-                </div>
-
-
-                <div className={styles.quiz5}>
-                  <p className={styles['quiz5-t']}>
-                    {currentQuiz?.translation}
-                  </p>
-                </div>
+        <div ref={scrollRef} className={styles.quiz}>
+          <div className={styles['quiz-a']}>
+            <div className={styles['quiz-badge-n']}>
+              <div className={styles['quiz-badge2']}>
+                <p className={styles['quiz-badge3']}>Q.<span>{currentIndex + 1}</span></p>
               </div>
+            </div>
 
+            <div className={styles['quiz-b']}>
+              <div className={styles['quiz-c']}>
+                <div className={styles['quiz-d']}>
+                  <div className={styles['quiz-e']}>
+                    <p className={styles['quiz2-q']}>
+                      {currentQuiz?.content.split('[ ]').map((part, index, array) => (
+                        <React.Fragment key={index}>
+                          {part}
+                          {/* 마지막 조각이 아니면 빈칸 삽입 */}
+                          {index < array.length - 1 && (
+                            tempChoice ? (
+                              <span className={styles['blank-t']}>{tempChoice}</span>
+                            ) : (
+                              <span className={styles['blank-n']}></span>
+                            )
+                          )}
+                        </React.Fragment>
+                      ))}
+                    </p>
+                  </div>
 
-              <div className={styles.quiz7}>
+                  <div className={styles.quiz5}>
+                    <p className={styles['quiz5-t']}>
+                      {currentQuiz?.translation}
+                    </p>
+                  </div>
+                </div>
 
-          {/* 보기 버튼 */}
-          {currentQuiz?.options.map((choice, i) => (
-            <button
-            key={i}
-            disabled={isConfirmed}
-            onClick={() => handleChoice(choice)}
-            className={styles['quiz8-bt']}
-            style={{
-              padding: buttonPositions[i].padding,
-              background: backgroundColor(choice),
-              color: textColor(choice),
-            }}>
-              {choice}
-            </button>
-          ))}
+                <div className={styles.quiz7}>
+
+                {/* 보기 버튼 */}
+                {currentQuiz?.options.map((choice, i) => (
+                  <button
+                  key={i}
+                  disabled={isConfirmed}
+                  onClick={() => handleChoice(choice)}
+                  className={styles['quiz8-bt']}
+                  style={{
+                    padding: buttonPositions[i].padding,
+                    background: backgroundColor(choice),
+                    color: textColor(choice),
+                  }}>
+                    {choice}
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -1992,28 +1902,25 @@ const handleExitFromSettlement = async (target = -1) => {
                   </button>
                 </div>
 
-
-
-          {/* 제출 및 넘어가기 버튼 */}
-            {/* ox, 빈칸 채우기 전용 */}
-            {!isConfirmed ? (
-              <button
-              onClick={handleSubmit}
-              className={styles['quiz-s5']}>
-                <p className={styles['quiz-s6']}>
-                  정답확인
-                </p>
-              </button>
-            ) : (
-              <button
-              onClick={handleNext}
-              className={styles['quiz-s5']}>
-                <p className={styles['quiz-s6']}>
-                  계속하기
-                </p>
-              </button>
-            )}
-
+                {/* 제출 및 넘어가기 버튼 */}
+                {/* ox, 빈칸 채우기 전용 */}
+                {!isConfirmed ? (
+                  <button
+                  onClick={handleSubmit}
+                  className={styles['quiz-s5']}>
+                    <p className={styles['quiz-s6']}>
+                      정답확인
+                    </p>
+                  </button>
+                ) : (
+                  <button
+                  onClick={handleNext}
+                  className={styles['quiz-s5']}>
+                    <p className={styles['quiz-s6']}>
+                      계속하기
+                    </p>
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -2025,12 +1932,11 @@ const handleExitFromSettlement = async (target = -1) => {
 
 
 
-
   // 실제 ox 퀴즈문제 테스트용 오류
   const oxQuiz = () => {
     if (!currentQuiz) return null;
     return (
-      <div className={styles.quiz}>
+      <div ref={scrollRef} className={styles.quiz}>
         <div className={styles['quiz-a']}>
           <div className={styles['quiz-badge-n']}>
             <div className={styles['quiz-badge2']}>
@@ -2047,14 +1953,12 @@ const handleExitFromSettlement = async (target = -1) => {
                   </p>
                 </div>
 
-
                 <div className={styles.quiz5}>
                   <p className={styles['quiz5-t']}>
                     {currentQuiz?.translation}
                   </p>
                 </div>
               </div>
-
 
               <div className={styles.ox}>
                 {/* O 버튼 */}
@@ -2065,7 +1969,6 @@ const handleExitFromSettlement = async (target = -1) => {
                 style={{
                   color: oxColor('O'),
                   background: oxBackgroundColor('O'),
-
                 }}>
                   O
                 </button>
@@ -2094,29 +1997,25 @@ const handleExitFromSettlement = async (target = -1) => {
                   </button>
                 </div>
 
-
-
-
-          {/* 제출 및 넘어가기 버튼 */}
-            {/* ox, 빈칸 채우기 전용 */}
-            {!isConfirmed ? (
-              <button
-              onClick={handleSubmit}
-              className={styles['quiz-s5']}>
-                <p className={styles['quiz-s6']}>
-                  정답확인
-                </p>
-              </button>
-            ) : (
-              <button
-              onClick={handleNext}
-              className={styles['quiz-s5']}>
-                <p className={styles['quiz-s6']}>
-                  계속하기
-                </p>
-              </button>
-            )}
-
+                {/* 제출 및 넘어가기 버튼 */}
+                {/* ox, 빈칸 채우기 전용 */}
+                {!isConfirmed ? (
+                  <button
+                  onClick={handleSubmit}
+                  className={styles['quiz-s5']}>
+                    <p className={styles['quiz-s6']}>
+                      정답확인
+                    </p>
+                  </button>
+                ) : (
+                  <button
+                  onClick={handleNext}
+                  className={styles['quiz-s5']}>
+                    <p className={styles['quiz-s6']}>
+                      계속하기
+                    </p>
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -2127,14 +2026,12 @@ const handleExitFromSettlement = async (target = -1) => {
 
 
 
-
-
   // 실제 매칭 퀴즈문제 테스트용 오류
   const matchingQuiz = () => {
     if (!quizzes?.length || !matchingShuffledMeanings?.length) return null;
 
     return (
-      <div className={styles.quiz} style={{ flex: 'none' }}>
+      <div ref={scrollRef} className={styles.quiz} style={{ flex: 'none' }}>
         <div className={styles['quiz-a']} style={{ gap: '20px' }}>
           <div className={styles['quiz-badge-n']}>
             <div className={styles['quiz-badge2']}>
@@ -2148,6 +2045,7 @@ const handleExitFromSettlement = async (target = -1) => {
                 {/* 매칭 퀴즈 보기 버튼 */}
                 {quizzes?.map((quiz, i) => {
                   const meaningItem = matchingShuffledMeanings[i]; // { quizId, meaning }
+
                   return (
                     <React.Fragment key={quiz.quizId}>
                       {/* 영어 단어 */}
@@ -2185,20 +2083,17 @@ const handleExitFromSettlement = async (target = -1) => {
                   </button>
                 </div>
 
-
-
-
-          {/* 제출 및 넘어가기 버튼 */}
-            {/* 매칭 퀴즈는 결과 보기만 나옴 */}
-            <button
-            onClick={handleMatchingComplete}
-            disabled={isCompleting || matchingMatchedPairs.length < quizzes.length}
-            className={styles['quiz-s5']}
-            >
-              <p className={styles['quiz-s6']}>
-                결과 보기
-              </p>
-            </button>
+                {/* 제출 및 넘어가기 버튼 */}
+                {/* 매칭 퀴즈는 결과 보기만 나옴 */}
+                <button
+                onClick={handleMatchingComplete}
+                disabled={isCompleting || matchingMatchedPairs.length < quizzes.length}
+                className={styles['quiz-s5']}
+                >
+                  <p className={styles['quiz-s6']}>
+                    결과 보기
+                  </p>
+                </button>
               </div>
             </div>
           </div>
@@ -2209,56 +2104,41 @@ const handleExitFromSettlement = async (target = -1) => {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// 실제 퀴즈나가기 테스트용 오류
+  // 실제 퀴즈나가기
   const testExit= () => {
     return (
       <div className={styles.overlay}>
-      <div className={styles.exit}>
-        <div className={styles.exit2}>
-          <p className={styles.exit3}>지금 끝내기에는 아쉬워요! <br />조금만 더 가봐요!</p>
-          <div className={styles.exit4}>
-            <p className={styles.exit5}>지금까지의 진행 상황을 저장해두고 <br />나중에 이어서 다시 할 수 있어요</p>
+        <div className={styles.exit}>
+          <div className={styles.exit2}>
+            <p className={styles.exit3}>지금 끝내기에는 아쉬워요! <br />조금만 더 가봐요!</p>
+
+            <div className={styles.exit4}>
+              <p className={styles.exit5}>지금까지의 진행 상황을 저장해두고 <br />나중에 이어서 다시 할 수 있어요</p>
+            </div>
+          </div>
+
+          <div className={styles.exit6}>
+            <button 
+            className={styles.exit7}
+            onClick={() => setExitModal(null)}>
+              <p className={styles.exit8}>퀴즈 계속하기</p>
+            </button>
+
+            <button 
+            className={styles.exit9}
+            onClick={handleExit}
+            >
+              <p className={styles.exit10}>저장하고 나가기</p>
+            </button>
           </div>
         </div>
-
-
-        <div className={styles.exit6}>
-          <button 
-          className={styles.exit7}
-          onClick={() => setExitModal(null)}>
-            <p className={styles.exit8}>퀴즈 계속하기</p>
-          </button>
-          <button 
-          className={styles.exit9}
-          onClick={handleExit}
-          >
-            <p className={styles.exit10}>저장하고 나가기</p>
-          </button>
-        </div>
-      </div>
       </div>
     )
   }
 
 
 
-
-
-// 단어 사전
+  // 단어 사전
   const testDictionary= () => {
     return (
       <div 
@@ -2309,12 +2189,12 @@ const handleExitFromSettlement = async (target = -1) => {
                         )}
                       </div>
                     </div>
+
                     <div className={styles.popup14}>
                       <p className={styles.popup15}>단어 수집</p>
                     </div>
                   </div>
                 </button>
-
 
                 <button 
                 onClick= {(e) => closePopup(e)}
@@ -2326,7 +2206,6 @@ const handleExitFromSettlement = async (target = -1) => {
                   </div>
                 </button>
               </div>
-
 
               <div className={styles.popup19}>
                 <div className={styles.popup20}>
@@ -2347,7 +2226,6 @@ const handleExitFromSettlement = async (target = -1) => {
                   </div>
                 </div>
 
-
                 <div className={styles.popup29}>
                   <div className={styles.popup30}>
                     <div className={styles.popup31}>
@@ -2355,6 +2233,7 @@ const handleExitFromSettlement = async (target = -1) => {
                         <div className={styles.popup33}>
                           <p className={styles.popup34}>US</p>
                         </div>
+
                         <div className={styles.popup35}>
                           <div className={styles.popup36}>
                             <svg className={styles.popup37} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -2366,13 +2245,11 @@ const handleExitFromSettlement = async (target = -1) => {
                         </div>
                       </div>
 
-
                       <div className={styles.popup38}>
                         <p className={styles.popup39}>{dictionaryData.phonetic}</p>
                       </div>
                     </div>
                   </div>
-
 
                   <div className={styles.popup40}>
                     <p className={styles.popup41}>{dictionaryData.partOfSpeech || ''}</p>
@@ -2386,12 +2263,7 @@ const handleExitFromSettlement = async (target = -1) => {
     )
   }
 
-const navigate = useNavigate();
-
-
-
-
-
+  const navigate = useNavigate();
 
   return (
     // 사이드패널 고정
@@ -2408,8 +2280,8 @@ const navigate = useNavigate();
       {dictionaryData && (
         testDictionary()
       )}
-
     </>
   );  // return 끝
 }  // 함수 끝
+
 export default QuizPage;

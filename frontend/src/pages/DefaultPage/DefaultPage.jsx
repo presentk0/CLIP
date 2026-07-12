@@ -8,7 +8,6 @@ import style from './DefaultPage.module.css';
 import { Spinner } from "../../components/Spinner/Spinner";
 import { openYoutubeVideo } from "../../utils/openInTab";
 import { log } from "../../utils/logger";
-
 import { saveUserData, loadUserData } from "../../utils/userStorage";
 import { TestSpinner } from "../../components/Spinner/Spinner";
 import { Toast } from "../../contexts/Toast";
@@ -137,7 +136,6 @@ const BADGE_ICONS = {
 
 
 
-
 function formatDuration (duration) {
   if (duration == null) return '00:00';
 
@@ -164,19 +162,15 @@ function formatDuration (duration) {
   const pad = (n) => String(n).padStart(2, '0');
 
   return hours > 0
-    ? `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`
-    : `${pad(minutes)}:${pad(seconds)}`;
+  ? `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`
+  : `${pad(minutes)}:${pad(seconds)}`;
 };
-
-
-
-
 
 
 
 function truncateEmail(email, maxLength) {
   if (email.length <= maxLength) return email;
-  
+
   const [local, domain] = email.split('@');
   const domainPart = '@' + domain;
 
@@ -187,7 +181,6 @@ function truncateEmail(email, maxLength) {
 
   return local.slice(0, remaining) + '...' + domainPart;
 }
-
 
 
 
@@ -202,6 +195,7 @@ const AVATAR_COLORS = [
   'var(--semantic-avatar-7)',
   'var(--semantic-avatar-8)',
 ];
+
 
 
 // 한글 이름 대응 첫글자 가져오기
@@ -233,7 +227,6 @@ function getAvatarColor(char) {
 
 function UserAvatar({ imageUrl, name }) {
   const [hasError, setHasError] = useState(false);
-
   const initial = getInitial(name);
   const color = getAvatarColor(initial);
 
@@ -252,6 +245,7 @@ function UserAvatar({ imageUrl, name }) {
       </div>
     );
   }
+
   return (
     <img 
       src={imageUrl}
@@ -264,9 +258,6 @@ function UserAvatar({ imageUrl, name }) {
 
 
 
-
-
-
 function TutorialPopup({setShowTutorial, setIsAiBlocked, isAiBlocked}) {
   // 지금 보기
   const handleTutorialConfirm = async () => {
@@ -275,12 +266,10 @@ function TutorialPopup({setShowTutorial, setIsAiBlocked, isAiBlocked}) {
     setIsAiBlocked(true);
 
     try {
-
       await apiFetch('/users/me/ui-state', { 
         method: 'PATCH',
         body: JSON.stringify({ tutorialCompleted: true }),
       });
-
       setShowTutorial(false);
       openExternalLink(TUTORIAL_URL);
     } catch (error) {
@@ -291,21 +280,19 @@ function TutorialPopup({setShowTutorial, setIsAiBlocked, isAiBlocked}) {
       setIsAiBlocked(false);
     }
   };
-  
+
+
 
   // 나중에 보기
   const handleTutorialSkip = async () => {
     if (isAiBlocked) return;
     // 버튼 비활성화
     setIsAiBlocked(true);
-
-
     try {
       await apiFetch('/users/me/ui-state', {
         method: 'PATCH',
         body: JSON.stringify({ tutorialCompleted: true }),
       });
-
       setShowTutorial(false);
     } catch (error) {
       log.debug('튜토리얼 스킵 전송 실패', error);
@@ -316,28 +303,29 @@ function TutorialPopup({setShowTutorial, setIsAiBlocked, isAiBlocked}) {
     }
   };
 
+
+
   // 튜토리얼 이동
   const TUTORIAL_URL = 'https://clipzyguide.netlify.app/';
 
-const openExternalLink = (url) => {
-  if (url !== TUTORIAL_URL) {  // 단일 URL이면 직접 비교가 더 명확
-    log.error('허용되지 않은 URL');
-    return;
-  }
+  const openExternalLink = (url) => {
+    if (url !== TUTORIAL_URL) {  // 단일 URL이면 직접 비교가 더 명확
+      log.error('허용되지 않은 URL');
+      return;
+    }
 
-  if (typeof chrome !== 'undefined' && chrome.tabs) {
-    chrome.tabs.create({ url });
-  } else {
-    window.open(url, '_blank', 'noopener,noreferrer');
-  }
-};
-
+    if (typeof chrome !== 'undefined' && chrome.tabs) {
+      chrome.tabs.create({ url });
+    } else {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  };
 
   return (
-      <>
+    <>
       {/* 어두워지기 */}
       <div className={style['exit-overlay']}></div>
-      
+
       <div className={style.exit}>
         <div className={style.exit2}>
           <p className={style.exit3}>시작하기 전에 간단한 안내 도와드릴까요?</p>
@@ -346,13 +334,13 @@ const openExternalLink = (url) => {
           </div>
         </div>
 
-
         <div className={style.exit6}>
           <button 
           className={style.exit7}
           onClick={handleTutorialConfirm}>
             <p className={style.exit8}>도움말 바로가기</p>
           </button>
+
           <button 
           className={style.exit9}
           onClick={handleTutorialSkip}
@@ -361,15 +349,9 @@ const openExternalLink = (url) => {
           </button>
         </div>
       </div>
-      </>
+    </>
   );
 }
-
-
-
-
-
-
 
 
 
@@ -384,43 +366,40 @@ function SectionBadgeCard({ currentBadge, videoId, videoTitle, videoDuration, ch
     openYoutubeVideo(videoId);
   };
 
-
-
   return (
     <article className={style.masteryCard}>
+      <div className={style.masteryVideo}>
+        <a 
+        className={style.masteryThumbnail}
+        href={`https://youtube.com/watch?v=${videoId}`}
+        onClick={handleClick}
+        rel="noopener noreferrer"
+        >
+          <img
+            src={`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`}
+            alt={`${videoTitle} 영상 썸네일`}
+            onError={(e) => {
+              e.target.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+            }}
+          />
 
-        <div className={style.masteryVideo}>
-          <a 
-          className={style.masteryThumbnail}
-          href={`https://youtube.com/watch?v=${videoId}`}
-          onClick={handleClick}
-          rel="noopener noreferrer"
-          >
-            <img
-              src={`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`}
-              alt={`${videoTitle} 영상 썸네일`}
-              onError={(e) => {
-                e.target.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
-              }}
-            />
+          <span className={style.masteryDurationWrapper}>
+            <div className={style.masteryDuration}>
+              <p className={style.masteryDurationText}>{formatDuration(videoDuration)}</p>
+            </div>
+          </span>
+        </a>
 
-            <span className={style.masteryDurationWrapper}>
-              <div className={style.masteryDuration}>
-                <p className={style.masteryDurationText}>{formatDuration(videoDuration)}</p>
-              </div>
-            </span>
-          </a>
+        <div className={style.masteryInfo}>
+          <h3 className={style.masteryTitle}>{videoTitle}</h3>
 
-          <div className={style.masteryInfo}>
-            <h3 className={style.masteryTitle}>{videoTitle}</h3>
-            
-            <p className={style.masteryChannel}>
-              <div>{channelName}</div>
-            </p>
-          </div>
+          <p className={style.masteryChannel}>
+            <div>{channelName}</div>
+          </p>
+        </div>
 
         <div className={style.sectionBadge}>
-            {BADGE_ICONS[currentBadge] || null}
+          {BADGE_ICONS[currentBadge] || null}
           <span className={style.sectionBadgeLabel}>
             <p className={style.sectionBadgeLabelText}>
               도전 중인 마스터리
@@ -458,9 +437,8 @@ function BigVideoCard({ videoId, thumbnailUrl, title, duration, channelName }) {
           alt={`${title} 영상 썸네일`} 
           // 고화질 실패하면 저화질로
           onError={(e) => {
-              e.target.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
-          }}
-          />
+            e.target.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+          }}/>
 
           <div className={style.recommendedSectionDuration}>
             <p className={style.recommendedSectionDuration3}>{formatDuration(duration)}</p>
@@ -475,6 +453,7 @@ function BigVideoCard({ videoId, thumbnailUrl, title, duration, channelName }) {
             src={thumbnailUrl}
             alt={`${channelName} 프로필`}
           />
+
           <div className={style.recommendedSectionTitle}>
             <h3 className={style.recommendedSectionTitle2}>{title}</h3>
             <span className={style.recommendedSectionChannelName}>{channelName}</span>
@@ -509,9 +488,9 @@ function SmallVideoCard({ videoId, title, duration, channelName }) {
         alt={`${title} 영상 썸네일`} 
         // 고화질 실패하면 저화질로
         onError={(e) => {
-            e.target.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
-        }}
-        />
+          e.target.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+        }}/>
+
         <span className={style.smallVideoCardDuration}>
           <div className={style.smallVideoCardDuration2}>
             <p className={style.smallVideoCardDuration3}>{formatDuration(duration)}</p>
@@ -529,13 +508,11 @@ function SmallVideoCard({ videoId, title, duration, channelName }) {
 
 
 
-
-
-
-
 function DefaultPage({ onMyPage }) {
   const { logout } = useAuth();
   const navigate = useNavigate();
+
+
 
   const handleLogout = async () => {
     await logout();
@@ -545,21 +522,18 @@ function DefaultPage({ onMyPage }) {
 
   // 상태로 내 정보 조회 데이터 관리 (마스터리 뱃지 영상)
   const [usersData, setUsersData] = useState(null);
-
   const [showTutorial, setShowTutorial] = useState(false);
-
   // 추천 영상 관리, 나중에 다시 넣기
   const [recommendedData, setRecommendedData] = useState([]);
-
   // 첫 번째와 나머지 분리, 나중에 다시 넣기
   const [firstVideo, ...restVideos] = recommendedData;
-
   // ai 채팅방 중복 클릭 막기
   const [isAiBlocked, setIsAiBlocked] = useState(false);
-
   // 팝업 메시지
   const [popupMessage, setPopupMessage] = useState('');
   const [popupCount, setPopupCount] = useState(0);
+
+
 
   const showPopup = (msg) => {
     setPopupMessage(msg);
@@ -567,24 +541,19 @@ function DefaultPage({ onMyPage }) {
   };
 
 
+
   // 컴포넌트 mount 시 내 정보 조회 API 호출
   useEffect(() => {
     const fetchData = async () => {
       try {
         const result = await apiFetch('/users/me', { method: 'GET' });
-
         setUsersData(result.data);
       } catch (error) {
         log.debug('데이터 로딩 실패:', error);
       }
     };
-
     fetchData();
   }, []);
-
-
-
-
 
 
 
@@ -598,7 +567,6 @@ function DefaultPage({ onMyPage }) {
         log.debug('데이터 로딩 실패:', error);
       }
     };
-
     fetchData();
   }, []);
 
@@ -608,7 +576,6 @@ function DefaultPage({ onMyPage }) {
   useEffect(() => {
     const check = async () => {
       const res = await apiFetch('/users/me/ui-state', { method: 'GET' });
-
       if (!res.data?.tutorialCompleted) {
         setShowTutorial(true);
       }
@@ -618,81 +585,64 @@ function DefaultPage({ onMyPage }) {
 
 
 
-
-
   // 데이터 없으면 무한 로딩 화면
   if (!usersData) {
     return <Spinner showLabel={false} />;
   }
 
-
-
   const MAX_LEVEL = 99;
-
   // 소수점 첫 자리만 남기기
   const progress = 100 - usersData.progressPercentage;
   // Math.floor는 정수 단위로만 처리해서 10을 곱한 뒤에 나누기
   const display = Math.floor(progress * 10) / 10;
 
+  // 디폴트 페이지의 AI 방 입장 버튼
+  const onAiChatPage = async () => {
+    if (isAiBlocked) return;
+    // 버튼 비활성화
+    setIsAiBlocked(true);
 
-// 디폴트 페이지의 AI 방 입장 버튼
-const onAiChatPage = async () => {
-  if (isAiBlocked) return;
-
-
-  // 버튼 비활성화
-  setIsAiBlocked(true);
-
-try {
-  // 유저별 캐시 확인
-  const hasWords = await loadUserData('hasWords');
-
-  // true면 바로 진입하기 (API 호출 없음)
-  if (hasWords === true) {
-    navigate('/ai');
-    return;
-  }
-
-  // false면 API 호출 없이 바로 차단 (나중에 단어 삭제 생기면 전부 삭제됐을 때 false로 되돌리는것도 필요함)
-  if (hasWords === false) {
-    showPopup('수집된 단어가 없습니다!');
-
-    
-    return;
-  }
-
-  // undefined면 API로 확인 최초 1회
   try {
-    const res = await apiFetch('/chats/words', { method: 'GET' });
+    // 유저별 캐시 확인
+    const hasWords = await loadUserData('hasWords');
 
-    // 결과를 유저별 캐시에 저장
-    await saveUserData('hasWords', res.data.hasWords);
-
-    if (!res.data.hasWords) {
-      showPopup(res.data.guideMessage || '수집된 단어가 없습니다!');
+    // true면 바로 진입하기 (API 호출 없음)
+    if (hasWords === true) {
+      navigate('/ai');
       return;
     }
 
-    // 단어 있으면 AI 방으로 이동 (받은 데이터도 같이 전달)
-    navigate('/ai', { state: { wordsData: res.data } });
-    
+    // false면 API 호출 없이 바로 차단 (나중에 단어 삭제 생기면 전부 삭제됐을 때 false로 되돌리는것도 필요함)
+    if (hasWords === false) {
+      showPopup('수집된 단어가 없습니다!');
+      return;
+    }
+
+    // undefined면 API로 확인 최초 1회
+    try {
+      const res = await apiFetch('/chats/words', { method: 'GET' });
+      // 결과를 유저별 캐시에 저장
+      await saveUserData('hasWords', res.data.hasWords);
+
+      if (!res.data.hasWords) {
+        showPopup(res.data.guideMessage || '수집된 단어가 없습니다!');
+        return;
+      }
+
+      // 단어 있으면 AI 방으로 이동 (받은 데이터도 같이 전달)
+      navigate('/ai', { state: { wordsData: res.data } });
+    } catch (error) {
+      showPopup('단어 조회에 실패했습니다');
+      log.debug('단어 조회 실패', error);
+    }
   } catch (error) {
-    showPopup('단어 조회에 실패했습니다');
-    log.debug('단어 조회 실패', error);
+    showPopup('AI 채팅방 입장에 실패했습니다');
+    log.debug('ai 방 입장 실패', error)
+  } finally {
+    // 버튼 활성화
+    setIsAiBlocked(false);
   }
-} catch (error) {
-  showPopup('AI 채팅방 입장에 실패했습니다');
-  log.debug('ai 방 입장 실패', error)
-} finally {
-  // 버튼 활성화
-  setIsAiBlocked(false);
-}
 };
-
-
-
-
-
 
   return (
     // 전체 박스
@@ -702,11 +652,12 @@ try {
       {isAiBlocked && <TestSpinner />}
 
       {popupMessage && 
-      <Toast 
+        <Toast 
         message={popupMessage}
         count={popupCount}
         onClose={() => setPopupMessage('')}
-      />}
+        />
+      }
 
       {showTutorial && <TutorialPopup setShowTutorial={setShowTutorial} setIsAiBlocked={setIsAiBlocked} isAiBlocked={isAiBlocked} />}
 
@@ -726,6 +677,7 @@ try {
             />
           </svg>
         </div>
+
         <div className={style.topButtonBox}>
           <button 
           className={style.tutorial}
@@ -736,42 +688,35 @@ try {
             </svg>
           </button>
 
-          
           <button className={style.topLeftButton}
           disabled={isAiBlocked}
           onClick={onAiChatPage}
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
-  <path d="M14 5C17.866 5 21 8.13401 21 12C21 15.866 17.866 19 14 19H10.9883C10.8533 19.0676 10.7192 19.1432 10.582 19.2295C9.99809 19.6424 9.58506 20.2014 8.83203 21.0166C8.09716 21.4857 7.09185 21.0021 7.0918 20.1797V18.3662C4.67828 17.2617 3.00098 14.8278 3.00098 12C3.00098 8.13417 6.13423 5.00026 10 5H14Z" fill="#FEFDF9"/>
-  <path d="M13.3047 14.8281H12.0469L11.6211 13.5234H9.57422L9.14844 14.8281H7.88281L9.84375 9.17188H11.3516L13.3047 14.8281ZM15.1172 14.8281H13.9453V9.17188H15.1172V14.8281ZM9.87109 12.6094H11.3242L10.6172 10.4453H10.5781L9.87109 12.6094Z" fill="#08B682"/>
-</svg>
+              <path d="M14 5C17.866 5 21 8.13401 21 12C21 15.866 17.866 19 14 19H10.9883C10.8533 19.0676 10.7192 19.1432 10.582 19.2295C9.99809 19.6424 9.58506 20.2014 8.83203 21.0166C8.09716 21.4857 7.09185 21.0021 7.0918 20.1797V18.3662C4.67828 17.2617 3.00098 14.8278 3.00098 12C3.00098 8.13417 6.13423 5.00026 10 5H14Z" fill="#FEFDF9"/>
+              <path d="M13.3047 14.8281H12.0469L11.6211 13.5234H9.57422L9.14844 14.8281H7.88281L9.84375 9.17188H11.3516L13.3047 14.8281ZM15.1172 14.8281H13.9453V9.17188H15.1172V14.8281ZM9.87109 12.6094H11.3242L10.6172 10.4453H10.5781L9.87109 12.6094Z" fill="#08B682"/>
+            </svg>
           </button>
+
           <button 
           className={style.topRightButton}
           onClick={onMyPage}
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="15" height="16" viewBox="0 0 15 16" fill="none">
-  <path d="M8.45801 9.1426C11.9924 9.1428 14.8574 12.0085 14.8574 15.543C14.8574 15.7954 14.6528 16 14.4004 16H0.45801C0.20556 16 5e-05 15.7954 0 15.543C0 12.0084 2.86581 9.1426 6.40041 9.1426H8.45801ZM7.42871 0C9.63781 0 11.4287 1.79086 11.4287 4C11.4287 6.2091 9.63781 8 7.42871 8C5.21972 7.9998 3.42871 6.209 3.42871 4C3.42871 1.79096 5.21972 0.00016 7.42871 0Z" fill="#FEFDF9"/>
-</svg>
+              <path d="M8.45801 9.1426C11.9924 9.1428 14.8574 12.0085 14.8574 15.543C14.8574 15.7954 14.6528 16 14.4004 16H0.45801C0.20556 16 5e-05 15.7954 0 15.543C0 12.0084 2.86581 9.1426 6.40041 9.1426H8.45801ZM7.42871 0C9.63781 0 11.4287 1.79086 11.4287 4C11.4287 6.2091 9.63781 8 7.42871 8C5.21972 7.9998 3.42871 6.209 3.42871 4C3.42871 1.79096 5.21972 0.00016 7.42871 0Z" fill="#FEFDF9"/>
+            </svg>
           </button>
         </div>
       </div>
 
-
-
-
       {/* 전체 내용 */}
       <div className={style.container}>
-
         {/* 유저 프로필 */}
         <div className={style.userProfile}>
-
           {/* 프로필 박스 */}
           <div className={style.userProfileBox}>
-          
             {/* 유저 정보 박스 */}
             <div className={style.userInfo}>
-
               {/* 유저 프로필 이미지 */}
               <div>
                 <UserAvatar 
@@ -782,7 +727,6 @@ try {
 
               {/* 유저 정보 박스 */}
               <div className={style.userText}>
-
                 {/* 유저 이름 박스 */}
                 <div className={style.userNameRow}>
                   <div className={style.userNameBox}>
@@ -822,8 +766,6 @@ try {
                 </div>
               </button>
             </div>
-
-
           </div>
 
           {/* 레벨 카드 전체 */}
@@ -846,6 +788,7 @@ try {
 
               <div className={style.levelBar}>
                 <div className={style.levelBarTrack}></div>
+
                 <div 
                 className={style.levelBarFill}
                 style={{ width: `${usersData.progressPercentage}%` }}
@@ -861,43 +804,34 @@ try {
           </div>
         </div>
 
-
-
-
         <div className={style.videoSection}>
           {usersData?.ongoingMastery?.currentBadge ? <SectionBadgeCard { ...usersData.ongoingMastery }></SectionBadgeCard> : null }
 
           <div className={style.recommendedSection}>
-
-
             <div className={style.recommendedSectionBox}>
               <div className={style.recommendedTitle}>
                 <div className={style.recommendedTitle2}>
                   <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 23 23" fill="none">
-  <path d="M11.6471 0.41721C17.744 0.417582 22.6862 5.36163 22.6862 11.4592C22.6858 17.5565 17.7438 22.4994 11.6471 22.4997C5.55012 22.4997 0.606941 17.5567 0.606581 11.4592C0.606581 11.1755 0.618045 10.8936 0.640273 10.6155C0.665945 10.2954 0.940283 10.0573 1.26137 10.0573C1.64929 10.0577 1.94593 10.4012 1.91908 10.7883C1.90366 11.0097 1.89564 11.2339 1.89564 11.4592C1.896 16.8453 6.26146 21.2107 11.6471 21.2107C17.0324 21.2103 21.3967 16.8451 21.3971 11.4592C21.3971 6.07304 17.0327 1.70665 11.6471 1.70627C11.422 1.70627 11.1975 1.71454 10.9762 1.72971C10.589 1.75601 10.2453 1.45871 10.2453 1.07053C10.2454 0.749618 10.4835 0.476337 10.8034 0.450901C11.0815 0.428973 11.3635 0.41721 11.6471 0.41721ZM13.736 15.1404H12.3239L11.7086 13.321H8.93861L8.32777 15.1404H6.91566L9.50697 7.77951H11.1344L13.736 15.1404ZM15.9318 15.1404H14.6105V7.77951H15.9318V15.1404ZM9.29457 12.2531H11.3527L10.3507 9.28537H10.2907L9.29457 12.2531ZM4.4767 0.311741C4.54544 -0.0972571 5.13007 -0.106529 5.21205 0.300022L5.27943 0.635472C5.68492 2.64634 7.33556 4.16964 9.37221 4.41477C9.7578 4.46151 9.80116 5.00459 9.42787 5.11203L8.96058 5.2468C7.10696 5.77891 5.68432 7.26854 5.23842 9.14475L5.21937 9.21946C5.12358 9.62014 4.54946 9.60923 4.46937 9.20481C4.09333 7.30606 2.6786 5.78225 0.813124 5.26584L0.260878 5.11203C-0.115769 5.00773 -0.0731594 4.46129 0.315077 4.41623C2.41283 4.17267 4.09713 2.57156 4.4474 0.488987L4.4767 0.311741Z" fill="#F5F9F8"/>
-</svg>
+                    <path d="M11.6471 0.41721C17.744 0.417582 22.6862 5.36163 22.6862 11.4592C22.6858 17.5565 17.7438 22.4994 11.6471 22.4997C5.55012 22.4997 0.606941 17.5567 0.606581 11.4592C0.606581 11.1755 0.618045 10.8936 0.640273 10.6155C0.665945 10.2954 0.940283 10.0573 1.26137 10.0573C1.64929 10.0577 1.94593 10.4012 1.91908 10.7883C1.90366 11.0097 1.89564 11.2339 1.89564 11.4592C1.896 16.8453 6.26146 21.2107 11.6471 21.2107C17.0324 21.2103 21.3967 16.8451 21.3971 11.4592C21.3971 6.07304 17.0327 1.70665 11.6471 1.70627C11.422 1.70627 11.1975 1.71454 10.9762 1.72971C10.589 1.75601 10.2453 1.45871 10.2453 1.07053C10.2454 0.749618 10.4835 0.476337 10.8034 0.450901C11.0815 0.428973 11.3635 0.41721 11.6471 0.41721ZM13.736 15.1404H12.3239L11.7086 13.321H8.93861L8.32777 15.1404H6.91566L9.50697 7.77951H11.1344L13.736 15.1404ZM15.9318 15.1404H14.6105V7.77951H15.9318V15.1404ZM9.29457 12.2531H11.3527L10.3507 9.28537H10.2907L9.29457 12.2531ZM4.4767 0.311741C4.54544 -0.0972571 5.13007 -0.106529 5.21205 0.300022L5.27943 0.635472C5.68492 2.64634 7.33556 4.16964 9.37221 4.41477C9.7578 4.46151 9.80116 5.00459 9.42787 5.11203L8.96058 5.2468C7.10696 5.77891 5.68432 7.26854 5.23842 9.14475L5.21937 9.21946C5.12358 9.62014 4.54946 9.60923 4.46937 9.20481C4.09333 7.30606 2.6786 5.78225 0.813124 5.26584L0.260878 5.11203C-0.115769 5.00773 -0.0731594 4.46129 0.315077 4.41623C2.41283 4.17267 4.09713 2.57156 4.4474 0.488987L4.4767 0.311741Z" fill="#F5F9F8"/>
+                  </svg>
                 </div>
+
                 <div className={style.recommendedTitle3}>
                   <p className={style.recommendedTitle4}>추천 영상</p>
                 </div>
               </div>
 
-
-
               <div className={style.recommendedSectionBox2}>
                 {firstVideo && <BigVideoCard {...firstVideo} />}
               </div>
 
-                {restVideos.length > 0 && (
-                  <div className={style.smallVideoCard}>
-                    {restVideos.map(video => (
-                      <SmallVideoCard key={video.videoId} {...video} />
-                    ))}
-                  </div>
-                )}
-
-
-
+              {restVideos.length > 0 && (
+                <div className={style.smallVideoCard}>
+                  {restVideos.map(video => (
+                    <SmallVideoCard key={video.videoId} {...video} />
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -230,9 +230,34 @@ public class OpenAIService {
               "relatedExpressions": "go : 단순 이동을 의미해요 (I go to school. 나는 학교에 가요.)\\ntravel to : ~로 여행하다 (I travel to Japan. 나는 일본으로 여행해요.)",
               "options": null
             }
-            """, hintSection, answerSection, difficultySection, word, meaning, answerType, word, word, answerType);
+     ## ⚠️ 최종 확인 (반드시 준수)
+        JSON 응답 전에 다음을 스스로 확인하세요:
+        1. 이번 문제 정답이 "%s"인지 확인
+        2. content 문장이 이 정답에 논리적으로 맞는지 확인
+        3. answer 필드가 반드시 "%s"인지 확인
+        
+        만약 하나라도 불일치하면 처음부터 다시 생성하세요.
+        """,
+                hintSection,          // 1. %s
+                answerSection,        // 2. %s
+                difficultySection,    // 3. %s
+                word,                 // 4. %s (입력)
+                meaning,              // 5. %s (입력)
+                answerType,           // 6. %s (규칙 4 answer)
+                word,                 // 7. %s (규칙 5 word 필드)
+                word,                 // 8. %s (JSON word)
+                answerType,           // 9. %s (JSON answer)
+                answerType,           // 10. %s  최종 확인 1번
+                answerType);          // 11. %s  최종 확인 3번
+        // 정답 일치 검증
+        OpenAIQuizDataResponse result = processSingle(prompt);
 
-        return processSingle(prompt);
+        if (result != null && !answerType.equalsIgnoreCase(result.getAnswer())) {
+            log.warn("[OX] 정답 불일치 감지 - word: {}, 지정: {}, LLM응답: {}. null 반환하여 재시도 유도.",
+                    word, answerType, result.getAnswer());
+            return null;  // null 반환 시 QuizGenerator가 재시도함
+        }
+        return result;
     }
 
     // ==================== 빈칸 퀴즈 생성 ====================
