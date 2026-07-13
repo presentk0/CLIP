@@ -203,18 +203,24 @@ function Header ({ handleAiReset, currentStep, onBack, onMyPage, onStartMessageR
           <div className={styles.head3}>
             <button 
             onClick={onBack}
+            aria-label="뒤로 가기"
             className={styles.head4}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <svg 
+              aria-hidden="true"
+              xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
                 <path d="M16.5014 4.35565C16.9756 4.82987 16.9756 5.59871 16.5014 6.07292L10.0743 12.5L16.5014 18.9271C16.9756 19.4013 16.9756 20.1702 16.5014 20.6444C16.0272 21.1185 15.2584 21.1185 14.7842 20.6444L7.49848 13.3586C7.02427 12.8845 7.02427 12.1156 7.49848 11.6414L14.7842 4.35565C15.2584 3.88145 16.0272 3.88145 16.5014 4.35565Z" fill="#454440"/>
               </svg>
             </button>
 
             <button 
             onClick={onMyPage}
+            aria-label="마이페이지로 이동"
             className={styles.head4}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <svg 
+              aria-hidden="true"
+              xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
                 <path d="M10.125 16.8572V20.0001C10.125 20.5524 9.67728 21.0001 9.125 21.0001H5.5C4.94772 21.0001 4.5 20.5524 4.5 20.0001V10.3485C4.5 9.76471 4.75512 9.21001 5.19842 8.83005L10.6984 4.11576C11.4474 3.47378 12.5526 3.47378 13.3016 4.11576L18.8016 8.83005C19.2449 9.21001 19.5 9.76471 19.5 10.3485V20.0001C19.5 20.5524 19.0523 21.0001 18.5 21.0001H14.875C14.3227 21.0001 13.875 20.5524 13.875 20.0001V16.8572C13.875 16.305 13.4273 15.8572 12.875 15.8572H11.125C10.5727 15.8572 10.125 16.305 10.125 16.8572Z" fill="#454440"/>
               </svg>
             </button>
@@ -232,18 +238,24 @@ function Header ({ handleAiReset, currentStep, onBack, onMyPage, onStartMessageR
           <div className={styles['chat-head3']}>
             <button 
             onClick={onBack}
+            aria-label="뒤로 가기"
             className={styles['chat-head4']}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <svg 
+              aria-hidden="true"
+              xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
                 <path d="M16.5014 4.35565C16.9756 4.82987 16.9756 5.59871 16.5014 6.07292L10.0743 12.5L16.5014 18.9271C16.9756 19.4013 16.9756 20.1702 16.5014 20.6444C16.0272 21.1185 15.2584 21.1185 14.7842 20.6444L7.49848 13.3586C7.02427 12.8845 7.02427 12.1156 7.49848 11.6414L14.7842 4.35565C15.2584 3.88145 16.0272 3.88145 16.5014 4.35565Z" fill="#454440"/>
               </svg>
             </button>
 
             <button 
             onClick={onMyPage}
+            aria-label="마이페이지로 이동"
             className={styles['chat-head4']}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <svg 
+              aria-hidden="true"
+              xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
                 <path d="M10.125 16.8572V20.0001C10.125 20.5524 9.67728 21.0001 9.125 21.0001H5.5C4.94772 21.0001 4.5 20.5524 4.5 20.0001V10.3485C4.5 9.76471 4.75512 9.21001 5.19842 8.83005L10.6984 4.11576C11.4474 3.47378 12.5526 3.47378 13.3016 4.11576L18.8016 8.83005C19.2449 9.21001 19.5 9.76471 19.5 10.3485V20.0001C19.5 20.5524 19.0523 21.0001 18.5 21.0001H14.875C14.3227 21.0001 13.875 20.5524 13.875 20.0001V16.8572C13.875 16.305 13.4273 15.8572 12.875 15.8572H11.125C10.5727 15.8572 10.125 16.305 10.125 16.8572Z" fill="#454440"/>
               </svg>
             </button>
@@ -263,8 +275,10 @@ function Header ({ handleAiReset, currentStep, onBack, onMyPage, onStartMessageR
             </button>
           ) : (
             !showReportModal && (
-              <button onClick={handleSeeMore} className={styles['chat-more']}>
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <button aria-label="더보기 메뉴" aria-expanded={isMoreOpen} aria-haspopup="menu" onClick={handleSeeMore} className={styles['chat-more']}>
+                <svg 
+                aria-hidden="true"
+                xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
                   <path d="M12.5 11.25C12.5 11.9404 11.9404 12.5 11.25 12.5C10.5596 12.5 10 11.9404 10 11.25C10 10.5596 10.5596 10 11.25 10C11.9404 10 12.5 10.5596 12.5 11.25Z" fill="#454440"/>
                   <path opacity="0.8" d="M12.5 6.25C12.5 6.94036 11.9404 7.5 11.25 7.5C10.5596 7.5 10 6.94036 10 6.25C10 5.55964 10.5596 5 11.25 5C11.9404 5 12.5 5.55964 12.5 6.25Z" fill="#454440"/>
                   <path opacity="0.8" d="M12.5 16.25C12.5 16.9404 11.9404 17.5 11.25 17.5C10.5596 17.5 10 16.9404 10 16.25C10 15.5596 10.5596 15 11.25 15C11.9404 15 12.5 15.5596 12.5 16.25Z" fill="#454440"/>
@@ -476,6 +490,7 @@ function TestDictionary ({ wordData, currentIndex }) {
                               <div className={styles['dictionary11-e']}>
                                 <div className={styles['dictionary11-f']}>
                                   <svg 
+                                  aria-hidden="true"
                                   className={styles['dictionary11-f2']}
                                   xmlns="http://www.w3.org/2000/svg" 
                                   width="16" 
@@ -506,6 +521,7 @@ function TestDictionary ({ wordData, currentIndex }) {
                               <div className={styles['dictionary11-e']}>
                                 <div className={styles['dictionary11-f']}>
                                   <svg 
+                                  aria-hidden="true"
                                   className={styles['dictionary11-f2']}
                                   xmlns="http://www.w3.org/2000/svg" 
                                   width="16" 
@@ -647,6 +663,7 @@ function StepCircle({ stepNum, currentStep }) {
     return (
       <div className={styles['step-active']}>
         <svg 
+        aria-hidden="true"
         className={styles['step-active3']}
         xmlns="http://www.w3.org/2000/svg" width="13" height="10" viewBox="0 0 13 10" fill="none">
           <path d="M10.6367 0.384385C11.0656 -0.090327 11.7972 -0.13124 12.2763 0.294542C12.7576 0.72254 12.8017 1.45953 12.374 1.94103L12.3672 1.94884L5.58778 9.28185L5.58681 9.28087C5.36583 9.52548 5.05245 9.66645 4.72254 9.66661C4.38947 9.66661 4.07184 9.52383 3.85046 9.27501L0.294745 5.27501C-0.133297 4.79347 -0.0900501 4.05564 0.391426 3.62755C0.873018 3.1997 1.6109 3.24371 2.03891 3.72521L4.72937 6.75255L10.6367 0.383409V0.384385Z" fill="white"/>
@@ -670,6 +687,7 @@ function StepDots() {
     <div className={styles.step4}>
       {[0, 1, 2].map((i) => (
         <svg
+        aria-hidden="true"
           key={i}
           className={styles.step5}
           xmlns="http://www.w3.org/2000/svg"
@@ -690,13 +708,18 @@ function StepDots() {
 // 시나리오 선택
 function Scenario ({ scenarioData, selectedScenario, onSelect }) {
   return (
-    <div className={styles.scenario}>
+    <div 
+    role="radiogroup"
+    aria-label="시나리오 선택"
+    className={styles.scenario}>
       {scenarioData.map(({ scenarioId, title }) => {
         const isSelected = selectedScenario === scenarioId;
 
         return (
           <button key={scenarioId}
           onClick={() => onSelect(scenarioId)}
+          role="radio"
+          aria-checked={isSelected}
           className={`${styles.scenario2} ${isSelected ? styles['scenario2-selected'] : ''}`}>
             <div className={styles.scenario3}>
               <div className={styles.scenario4}>
@@ -706,6 +729,7 @@ function Scenario ({ scenarioData, selectedScenario, onSelect }) {
               {isSelected === true && (
                 <div className={styles.scenario6}>
                   <svg 
+                  aria-hidden="true"
                   className={styles.scenario8}
                   xmlns="http://www.w3.org/2000/svg" width="13" height="10" viewBox="0 0 13 10" fill="none">
                     <path d="M10.6367 0.384385C11.0656 -0.090327 11.7972 -0.13124 12.2763 0.294542C12.7576 0.72254 12.8017 1.45953 12.374 1.94103L12.3672 1.94884L5.58778 9.28185L5.58681 9.28087C5.36583 9.52548 5.05245 9.66645 4.72254 9.66661C4.38947 9.66661 4.07184 9.52383 3.85046 9.27501L0.294745 5.27501C-0.133297 4.79347 -0.0900501 4.05564 0.391426 3.62755C0.873018 3.1997 1.6109 3.24371 2.03891 3.72521L4.72937 6.75255L10.6367 0.383409V0.384385Z" fill="white"/>
@@ -728,6 +752,7 @@ function Voice ({ selectedVoice, onSelect }) {
     { id: 'FEMALE', label: '여성', description: 'Jenny', icon: (<div className={styles.female}>
   <div className={styles.female2}>
     <svg 
+    aria-hidden="true"
     className={styles.female3}
     xmlns="http://www.w3.org/2000/svg" width="40" height="36" viewBox="0 0 40 36" fill="none">
       <path d="M20 0C31.0457 0 40 7.55943 40 16.8845C40 26.2095 31.0457 33.7689 20 33.7689C18.0376 33.7689 16.1412 33.5299 14.3493 33.0852C11.3853 35.4658 8.61324 36.0685 6.61858 35.994C5.35998 35.947 5.15315 34.4579 5.98521 33.4946C6.85849 32.4835 7.61779 31.3546 8.06975 30.437C3.17237 27.3594 0 22.4348 0 16.8845C0 7.55943 8.95431 0 20 0Z" fill="#FEE3A3"/>
@@ -740,6 +765,7 @@ function Voice ({ selectedVoice, onSelect }) {
     { id: 'MALE', label: '남성', description: 'Guy', icon: (<div className={styles.male}>
   <div className={styles.male2}>
     <svg 
+    aria-hidden="true"
     className={styles.male3}
     xmlns="http://www.w3.org/2000/svg" width="40" height="36" viewBox="0 0 40 36" fill="none">
       <path d="M20 0C31.0457 0 40 7.55943 40 16.8845C40 26.2095 31.0457 33.7689 20 33.7689C18.0376 33.7689 16.1412 33.5299 14.3493 33.0852C11.3853 35.4658 8.61324 36.0685 6.61858 35.994C5.35998 35.947 5.15315 34.4579 5.98521 33.4946C6.85849 32.4835 7.61779 31.3546 8.06975 30.437C3.17237 27.3594 0 22.4348 0 16.8845C0 7.55943 8.95431 0 20 0Z" fill="#FF9D98"/>
@@ -752,7 +778,10 @@ function Voice ({ selectedVoice, onSelect }) {
   ];
 
   return (
-    <div className={styles.voiceList}>
+    <div 
+    role="radiogroup"
+    aria-label="음성 선택"
+    className={styles.voiceList}>
       {voices.map(voice => {
         const isSelected = selectedVoice === voice.id;
 
@@ -760,6 +789,8 @@ function Voice ({ selectedVoice, onSelect }) {
           <button
           className={`${styles.voice} ${isSelected ? styles['voice-selected'] : ''}`}
           onClick={() => onSelect(voice.id)}
+          role="radio"
+          aria-checked={isSelected}
           key={voice.id}
           >
             <div className={styles.voice2}>
@@ -776,6 +807,7 @@ function Voice ({ selectedVoice, onSelect }) {
                 <div
                 className={styles.voice7}>
                   <svg 
+                  aria-hidden="true"
                   className={styles.voice9}
                   xmlns="http://www.w3.org/2000/svg" width="13" height="10" viewBox="0 0 13 10" fill="none">
                     <path d="M10.6367 0.384385C11.0656 -0.090327 11.7972 -0.13124 12.2763 0.294542C12.7576 0.72254 12.8017 1.45953 12.374 1.94103L12.3672 1.94884L5.58778 9.28185L5.58681 9.28087C5.36583 9.52548 5.05245 9.66645 4.72254 9.66661C4.38947 9.66661 4.07184 9.52383 3.85046 9.27501L0.294745 5.27501C-0.133297 4.79347 -0.0900501 4.05564 0.391426 3.62755C0.873018 3.1997 1.6109 3.24371 2.03891 3.72521L4.72937 6.75255L10.6367 0.383409V0.384385Z" fill="white"/>
@@ -1169,7 +1201,7 @@ function Recommendation() {
         <div className={styles['recommendation-card2']}>
           <div className={styles['recommendation-card3']}>
             <div className={styles['recommendation-card4']}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 23 23" fill="none">
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 23 23" fill="none">
                 <path d="M11.6471 0.41721C17.744 0.417582 22.6862 5.36163 22.6862 11.4592C22.6858 17.5565 17.7438 22.4994 11.6471 22.4997C5.55012 22.4997 0.606941 17.5567 0.606581 11.4592C0.606581 11.1755 0.618045 10.8936 0.640273 10.6155C0.665945 10.2954 0.940283 10.0573 1.26137 10.0573C1.64929 10.0577 1.94593 10.4012 1.91908 10.7883C1.90366 11.0097 1.89564 11.2339 1.89564 11.4592C1.896 16.8453 6.26146 21.2107 11.6471 21.2107C17.0324 21.2103 21.3967 16.8451 21.3971 11.4592C21.3971 6.07304 17.0327 1.70665 11.6471 1.70627C11.422 1.70627 11.1975 1.71454 10.9762 1.72971C10.589 1.75601 10.2453 1.45871 10.2453 1.07053C10.2454 0.749618 10.4835 0.476337 10.8034 0.450901C11.0815 0.428973 11.3635 0.41721 11.6471 0.41721ZM13.736 15.1404H12.3239L11.7086 13.321H8.93861L8.32777 15.1404H6.91566L9.50697 7.77951H11.1344L13.736 15.1404ZM15.9318 15.1404H14.6105V7.77951H15.9318V15.1404ZM9.29457 12.2531H11.3527L10.3507 9.28537H10.2907L9.29457 12.2531ZM4.4767 0.311741C4.54544 -0.0972571 5.13007 -0.106529 5.21205 0.300022L5.27943 0.635472C5.68492 2.64634 7.33556 4.16964 9.37221 4.41477C9.7578 4.46151 9.80116 5.00459 9.42787 5.11203L8.96058 5.2468C7.10696 5.77891 5.68432 7.26854 5.23842 9.14475L5.21937 9.21946C5.12358 9.62014 4.54946 9.60923 4.46937 9.20481C4.09333 7.30606 2.6786 5.78225 0.813124 5.26584L0.260878 5.11203C-0.115769 5.00773 -0.0731594 4.46129 0.315077 4.41623C2.41283 4.17267 4.09713 2.57156 4.4474 0.488987L4.4767 0.311741Z" fill="#7F7569"/>
               </svg>
             </div>
@@ -1195,7 +1227,7 @@ function Recommendation() {
             <div className={styles.recommendedSectionThumbnail}>
               <img 
               src={`https://img.youtube.com/vi/${recommendedData?.videoId}/maxresdefault.jpg`} 
-              alt={`${recommendedData?.title} 영상 썸네일`} 
+              alt={`${recommendedData?.title ?? '추천'} 영상 썸네일`} 
               // 고화질 실패하면 저화질로
               onError={(e) => {
                 e.target.src = `https://img.youtube.com/vi/${recommendedData?.videoId}/hqdefault.jpg`;
@@ -1212,7 +1244,7 @@ function Recommendation() {
               <img
                 className={styles.recommendedSectionChannel}
                 src={recommendedData?.thumbnailUrl}
-                alt={`${recommendedData?.channelName} 프로필`}
+                alt={`${recommendedData?.channelName ?? '채널'} 프로필 이미지`}
               />
 
               <div className={styles.recommendedSectionTitle}>
@@ -1363,6 +1395,7 @@ function ReportPage({ reportData, chatData, handleAiSound }) {
                     <div className={styles.reportPage41}>
                       <div className={styles.reportPage42}>
                         <svg 
+                        aria-hidden="true"
                         className={styles.reportPage43}
                         xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
                           <path d="M11 6.27788C11 5.31233 9.91769 4.74216 9.12137 5.2882L6.15336 7.32341C6.05346 7.39191 5.93517 7.42857 5.81405 7.42857H3.2C2.53726 7.42857 2 7.96583 2 8.62857V15.3714C2 16.0342 2.53726 16.5714 3.2 16.5714H5.81405C5.93517 16.5714 6.05346 16.6081 6.15336 16.6766L9.12137 18.7118C9.91769 19.2578 11 18.6877 11 17.7221V6.27788Z" fill="#5E5A4E"/>
@@ -1379,6 +1412,7 @@ function ReportPage({ reportData, chatData, handleAiSound }) {
                     <div className={styles.reportPage46}>
                       <div className={styles.reportPage47}>
                         <svg 
+                        aria-hidden="true"
                         className={styles.reportPage48}
                         xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
                           <path d="M11 6.27788C11 5.31233 9.91769 4.74216 9.12137 5.2882L6.15336 7.32341C6.05346 7.39191 5.93517 7.42857 5.81405 7.42857H3.2C2.53726 7.42857 2 7.96583 2 8.62857V15.3714C2 16.0342 2.53726 16.5714 3.2 16.5714H5.81405C5.93517 16.5714 6.05346 16.6081 6.15336 16.6766L9.12137 18.7118C9.91769 19.2578 11 18.6877 11 17.7221V6.27788Z" fill="#01CF8A"/>
@@ -1417,6 +1451,7 @@ function ReportPage({ reportData, chatData, handleAiSound }) {
                     <div className={styles.reportPage61}>
                       <div className={styles.reportPage62}>
                         <svg 
+                        aria-hidden="true"
                         className={styles.reportPage63}
                         xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
                           <path d="M11 6.2779C11 5.31234 9.91769 4.74217 9.12137 5.28822L6.15336 7.32342C6.05346 7.39192 5.93517 7.42859 5.81405 7.42859H3.2C2.53726 7.42859 2 7.96584 2 8.62859V15.3714C2 16.0342 2.53726 16.5714 3.2 16.5714H5.81405C5.93517 16.5714 6.05346 16.6081 6.15336 16.6766L9.12137 18.7118C9.91769 19.2579 11 18.6877 11 17.7221V6.2779Z" fill="#5E5A4E"/>
@@ -1444,6 +1479,7 @@ function ReportPage({ reportData, chatData, handleAiSound }) {
               <div className={styles.reportPage70}>
                 <div className={styles.reportPage71}>
                   <svg 
+                  aria-hidden="true"
                   className={styles.reportPage72}
                   xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
                     <path d="M11 6.27787C11 5.31231 9.91769 4.74214 9.12137 5.28819L6.15336 7.32339C6.05346 7.39189 5.93517 7.42855 5.81405 7.42855H3.2C2.53726 7.42855 2 7.96581 2 8.62855V15.3714C2 16.0342 2.53726 16.5714 3.2 16.5714H5.81405C5.93517 16.5714 6.05346 16.6081 6.15336 16.6766L9.12137 18.7118C9.91769 19.2578 11 18.6877 11 17.7221V6.27787Z" fill="#01CF8A"/>
@@ -2539,6 +2575,7 @@ const handleHintAccept = (messageId) => {
       <div className={styles['chat-ai-bubbles']}>
       <div className={styles['chat-ai']}>
         <svg 
+        aria-hidden="true"
         className={styles['chat-ai2']}
         xmlns="http://www.w3.org/2000/svg" width="10" height="22" viewBox="0 0 10 22" fill="none">
           <path d="M9.7251 22C9.2251 19.5 8.57193 17.6624 7.49432 15.644C5.92429 13.0261 3.79898 11.1746 0.698629 7.79894C-1.08475 4.50573 0.752297 0.000253982 3.87887 -3.15072e-07L9.7251 -8.74231e-07L9.7251 22Z" fill="#FEFDF9"/>
@@ -2720,10 +2757,12 @@ function ChatInput({ sendTextMessage, showToast, startRecording, stopRecording, 
                 {/* 텍스트 모드로 전환 */}
                 <button className={styles['chat-change3']}
                 onClick={() => cancelRecording()}
+                aria-label="텍스트 입력으로 전환"
                 disabled={isWaiting}
                 >
                   <svg 
                   className={styles['chat-change4']}
+                  aria-hidden="true"
                   xmlns="http://www.w3.org/2000/svg" width="13" height="16" viewBox="0 0 13 16" fill="none">
                     <path d="M11.5536 6.31641C11.9925 6.36462 12.3095 6.75923 12.2616 7.19824C12.1653 8.08089 11.7446 9.35571 10.7899 10.4229C9.93662 11.3767 8.67914 12.1357 6.93253 12.3145V14.4004H8.88858C9.33022 14.4006 9.68839 14.7585 9.68839 15.2002C9.68828 15.6418 9.33015 15.9998 8.88858 16H3.37686C2.93535 15.9997 2.57716 15.6417 2.57706 15.2002C2.57706 14.7586 2.93529 14.4007 3.37686 14.4004H5.33292V12.3145C3.58665 12.1356 2.32976 11.3765 1.47647 10.4229C0.521883 9.35573 0.101168 8.08089 0.00479101 7.19824C-0.0431171 6.75908 0.273677 6.36442 0.712799 6.31641C1.15193 6.26853 1.54663 6.58531 1.59463 7.02441C1.66001 7.62323 1.96715 8.57101 2.66885 9.35547C3.34697 10.1134 4.4237 10.7558 6.13272 10.7559C7.84194 10.7558 8.91942 10.1135 9.59756 9.35547C10.2992 8.57104 10.6054 7.62319 10.6708 7.02441C10.7188 6.58526 11.1144 6.2685 11.5536 6.31641ZM6.13272 0C7.60548 0 8.79971 1.19423 8.79971 2.66699V6.22266C8.79948 7.69522 7.60533 8.88867 6.13272 8.88867C4.66022 8.88854 3.46694 7.69513 3.46671 6.22266V2.66699C3.46671 1.19432 4.66007 0.000133481 6.13272 0Z" fill="#454440"/>
                   </svg>
@@ -2741,10 +2780,12 @@ function ChatInput({ sendTextMessage, showToast, startRecording, stopRecording, 
                 {/* 음성 모드로 전환 */}
                 <button className={styles['chat-change']}
                 onClick={() => startRecording()}
+                aria-label="음성으로 입력"
                 disabled={isWaiting}
                 >
                   
                   <svg 
+                  aria-hidden="true"
                   className={styles['chat-change2']}
                   xmlns="http://www.w3.org/2000/svg" width="20" height="13" viewBox="0 0 20 13" fill="none">
                     <path d="M17.2727 0H2.72727C1.22104 0 0 1.22104 0 2.72727V10C0 11.5063 1.22104 12.7273 2.72727 12.7273H17.2727C18.779 12.7273 20 11.5063 20 10V2.72727C20 1.22104 18.779 0 17.2727 0Z" fill="#454440"/>
@@ -2766,48 +2807,53 @@ function ChatInput({ sendTextMessage, showToast, startRecording, stopRecording, 
             {isRecording ? (
               // 녹음 정지 + 음성 전송 버튼
               <button 
-          className={styles.send}
-          onClick={() => stopRecording()}
-          disabled={isWaiting}
-        >
-          <div className={styles.send2}>
-            <svg 
-            className={styles.send3}
-            xmlns="http://www.w3.org/2000/svg" width="22" height="16" viewBox="0 0 22 16" fill="none">
-  <path d="M2 7C2 6.44772 1.55228 6 1 6C0.447715 6 0 6.44772 0 7V9C0 9.55228 0.447715 10 1 10C1.55228 10 2 9.55228 2 9V7Z" fill="#454440"/>
-  <path d="M6 5C6 4.44772 5.55228 4 5 4C4.44772 4 4 4.44772 4 5V11C4 11.5523 4.44772 12 5 12C5.55228 12 6 11.5523 6 11V5Z" fill="#454440"/>
-  <path d="M10 2.85714C10 2.38376 9.55228 2 9 2C8.44772 2 8 2.38376 8 2.85714V13.1429C8 13.6162 8.44772 14 9 14C9.55228 14 10 13.6162 10 13.1429V2.85714Z" fill="#454440"/>
-  <path d="M14 4.8C14 4.35817 13.5523 4 13 4C12.4477 4 12 4.35817 12 4.8V11.2C12 11.6418 12.4477 12 13 12C13.5523 12 14 11.6418 14 11.2V4.8Z" fill="#454440"/>
-  <path d="M18 0.888889C18 0.397969 17.5523 0 17 0C16.4477 0 16 0.397969 16 0.888889V15.1111C16 15.602 16.4477 16 17 16C17.5523 16 18 15.602 18 15.1111V0.888889Z" fill="#454440"/>
-  <path d="M22 5C22 4.44772 21.5523 4 21 4C20.4477 4 20 4.44772 20 5V11C20 11.5523 20.4477 12 21 12C21.5523 12 22 11.5523 22 11V5Z" fill="#454440"/>
-</svg>
-          </div>
+              className={styles.send}
+              onClick={() => stopRecording()}
+              aria-label="음성 입력 완료"
+              disabled={isWaiting}
+              >
+                <div className={styles.send2}>
+                  <svg 
+                  aria-hidden="true"
+                  className={styles.send3}
+                  xmlns="http://www.w3.org/2000/svg" width="22" height="16" viewBox="0 0 22 16" fill="none">
+                    <path d="M2 7C2 6.44772 1.55228 6 1 6C0.447715 6 0 6.44772 0 7V9C0 9.55228 0.447715 10 1 10C1.55228 10 2 9.55228 2 9V7Z" fill="#454440"/>
+                    <path d="M6 5C6 4.44772 5.55228 4 5 4C4.44772 4 4 4.44772 4 5V11C4 11.5523 4.44772 12 5 12C5.55228 12 6 11.5523 6 11V5Z" fill="#454440"/>
+                    <path d="M10 2.85714C10 2.38376 9.55228 2 9 2C8.44772 2 8 2.38376 8 2.85714V13.1429C8 13.6162 8.44772 14 9 14C9.55228 14 10 13.6162 10 13.1429V2.85714Z" fill="#454440"/>
+                    <path d="M14 4.8C14 4.35817 13.5523 4 13 4C12.4477 4 12 4.35817 12 4.8V11.2C12 11.6418 12.4477 12 13 12C13.5523 12 14 11.6418 14 11.2V4.8Z" fill="#454440"/>
+                    <path d="M18 0.888889C18 0.397969 17.5523 0 17 0C16.4477 0 16 0.397969 16 0.888889V15.1111C16 15.602 16.4477 16 17 16C17.5523 16 18 15.602 18 15.1111V0.888889Z" fill="#454440"/>
+                    <path d="M22 5C22 4.44772 21.5523 4 21 4C20.4477 4 20 4.44772 20 5V11C20 11.5523 20.4477 12 21 12C21.5523 12 22 11.5523 22 11V5Z" fill="#454440"/>
+                  </svg>
+                </div>
 
-          <div className={styles.send4}>
-            <div className={styles.send5}>
-              <svg 
-              className={styles.send6}
-              xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none">
-  <path d="M4.15818 0.579287C4.93062 -0.193096 6.18356 -0.193096 6.95589 0.579287L10.8246 4.44795C11.2106 4.83421 11.2107 5.46117 10.8246 5.84734C10.4385 6.23291 9.81234 6.23291 9.42627 5.84734L6.77344 2.73865V11.0111C6.77324 11.5571 6.33061 12 5.78453 12C5.23846 11.9998 4.79573 11.5571 4.79563 11.0111V2.73865L1.68787 5.84734C1.30178 6.23282 0.675554 6.23291 0.289506 5.84734C-0.0965911 5.46117 -0.0964131 4.83421 0.289506 4.44795L4.15818 0.579287Z" fill="#FEFDF9"/>
-</svg>
-            </div>
-          </div>
-        </button>
+                <div className={styles.send4}>
+                  <div className={styles.send5}>
+                    <svg 
+                    aria-hidden="true"
+                    className={styles.send6}
+                    xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none">
+                      <path d="M4.15818 0.579287C4.93062 -0.193096 6.18356 -0.193096 6.95589 0.579287L10.8246 4.44795C11.2106 4.83421 11.2107 5.46117 10.8246 5.84734C10.4385 6.23291 9.81234 6.23291 9.42627 5.84734L6.77344 2.73865V11.0111C6.77324 11.5571 6.33061 12 5.78453 12C5.23846 11.9998 4.79573 11.5571 4.79563 11.0111V2.73865L1.68787 5.84734C1.30178 6.23282 0.675554 6.23291 0.289506 5.84734C-0.0965911 5.46117 -0.0964131 4.83421 0.289506 4.44795L4.15818 0.579287Z" fill="#FEFDF9"/>
+                    </svg>
+                  </div>
+                </div>
+              </button>
             ) : (
               <button 
-          onClick={() => handleSend()}
-          disabled={isWaiting || !inputText.trim()}
-        >
-          <div className={styles.send4}>
-            <div className={styles.send5}>
-              <svg 
-              className={styles.send6}
-              xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none">
-                <path d="M4.15818 0.579287C4.93062 -0.193096 6.18356 -0.193096 6.95589 0.579287L10.8246 4.44795C11.2106 4.83421 11.2107 5.46117 10.8246 5.84734C10.4385 6.23291 9.81234 6.23291 9.42627 5.84734L6.77344 2.73865V11.0111C6.77324 11.5571 6.33061 12 5.78453 12C5.23846 11.9998 4.79573 11.5571 4.79563 11.0111V2.73865L1.68787 5.84734C1.30178 6.23282 0.675554 6.23291 0.289506 5.84734C-0.0965911 5.46117 -0.0964131 4.83421 0.289506 4.44795L4.15818 0.579287Z" fill="#FEFDF9"/>
-              </svg>
-            </div>
-          </div>
-        </button>
+              onClick={() => handleSend()}
+              aria-label="메시지 전송"
+              disabled={isWaiting || !inputText.trim()}
+              >
+                <div className={styles.send4}>
+                  <div className={styles.send5}>
+                    <svg 
+                    className={styles.send6}
+                    aria-hidden="true"
+                    xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none">
+                      <path d="M4.15818 0.579287C4.93062 -0.193096 6.18356 -0.193096 6.95589 0.579287L10.8246 4.44795C11.2106 4.83421 11.2107 5.46117 10.8246 5.84734C10.4385 6.23291 9.81234 6.23291 9.42627 5.84734L6.77344 2.73865V11.0111C6.77324 11.5571 6.33061 12 5.78453 12C5.23846 11.9998 4.79573 11.5571 4.79563 11.0111V2.73865L1.68787 5.84734C1.30178 6.23282 0.675554 6.23291 0.289506 5.84734C-0.0965911 5.46117 -0.0964131 4.83421 0.289506 4.44795L4.15818 0.579287Z" fill="#FEFDF9"/>
+                    </svg>
+                  </div>
+                </div>
+              </button>
             )}
           </div>
         </div>
@@ -2840,12 +2886,15 @@ const AI = React.memo(function AI({ msg, highlightWord, isFirst, isMessage, onSe
       {isMessage && (
         <button 
           onClick={onSelect} 
+          aria-pressed={isSelected}
+          aria-label="신고 대상으로 선택"
           className={styles['report-select-btn']}
         >
           {isSelected
           ? <div className={styles.agreement16}>
             {/* 선택됨 */}
             <svg 
+            aria-hidden="true"
             className={styles.agreement17}
             xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
               <path d="M12.137 3.77574C12.566 3.30103 13.2975 3.26012 13.7767 3.6859C14.2579 4.1139 14.302 4.85088 13.8743 5.33238L13.8675 5.3402L7.08809 12.6732L7.08711 12.6722C6.86614 12.9168 6.55276 13.0578 6.22284 13.058C5.88978 13.058 5.57214 12.9152 5.35076 12.6664L1.79505 8.66637C1.36701 8.18483 1.41026 7.44699 1.89173 7.01891C2.37332 6.59106 3.11121 6.63506 3.53921 7.11656L6.22968 10.1439L12.137 3.77477V3.77574Z" fill="white"/>
@@ -2853,6 +2902,7 @@ const AI = React.memo(function AI({ msg, highlightWord, isFirst, isMessage, onSe
           </div>
 
           : <svg 
+          aria-hidden="true"
           className={styles.agreement22}
           xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
             <g clip-path="url(#clip0_935_1154)">
@@ -2883,6 +2933,7 @@ const AI = React.memo(function AI({ msg, highlightWord, isFirst, isMessage, onSe
         {/* 첫 메시지에만 svg 꼬리 */}
         {isFirst && (
           <svg 
+          aria-hidden="true"
           className={styles['chat-ai2']}
           xmlns="http://www.w3.org/2000/svg" width="10" height="22" viewBox="0 0 10 22" fill="none">
             <path d="M9.7251 22C9.2251 19.5 8.57193 17.6624 7.49432 15.644C5.92429 13.0261 3.79898 11.1746 0.698629 7.79894C-1.08475 4.50573 0.752297 0.000253982 3.87887 -3.15072e-07L9.7251 -8.74231e-07L9.7251 22Z" fill="#FEFDF9"/>
@@ -2898,10 +2949,12 @@ const AI = React.memo(function AI({ msg, highlightWord, isFirst, isMessage, onSe
 
       <button className={styles['ai-audio']}
       onClick={() => onPlaySound(message)}
+      aria-label="메시지 음성 재생"
       >
         <div className={styles['ai-audio2']}>
           <div className={styles['ai-audio3']}>
             <svg 
+            aria-hidden="true"
             className={styles['ai-audio4']}
             xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none">
               <path d="M8.25 4.51859C8.25 3.87489 7.52846 3.49477 6.99758 3.8588L4.60224 5.50132C4.53564 5.54699 4.45678 5.57143 4.37603 5.57143H2.3C1.85817 5.57143 1.5 5.9296 1.5 6.37143V11.6286C1.5 12.0704 1.85817 12.4286 2.3 12.4286H4.37603C4.45678 12.4286 4.53564 12.453 4.60224 12.4987L6.99758 14.1412C7.52846 14.5052 8.25 14.1251 8.25 13.4814V4.51859Z" fill="#5CC49D"/>
@@ -2935,6 +2988,7 @@ const User = React.memo(function User({ msg, highlightWord, remainingTurn, messa
         </div>
       </div>
       <svg 
+      aria-hidden="true"
       className={styles['chat-user2']}
       xmlns="http://www.w3.org/2000/svg" width="8" height="18" viewBox="0 0 8 18" fill="none">
         <path d="M-1.43091e-07 18C0.411308 15.9545 0.948612 14.4511 1.83507 12.7996C3.1266 10.6577 4.87491 9.14286 7.4253 6.38095C8.89233 3.6865 7.38115 0.000207803 4.80919 -2.59289e-07L1.43051e-06 -7.19048e-07L-1.43091e-07 18Z" fill="#0AC290"/>
@@ -2950,10 +3004,12 @@ const User = React.memo(function User({ msg, highlightWord, remainingTurn, messa
         </div>
 
         <button className={styles['user-audio2']}
+        aria-label="메시지 음성 재생"
         onClick={() => onPlaySound(message)}
         >
           <div className={styles['user-audio3']}>
             <svg 
+            aria-hidden="true"
             className={styles['user-audio4']}
             xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none">
               <path d="M8.25 4.51859C8.25 3.87489 7.52846 3.49477 6.99758 3.8588L4.60224 5.50132C4.53564 5.54699 4.45678 5.57143 4.37603 5.57143H2.3C1.85817 5.57143 1.5 5.9296 1.5 6.37143V11.6286C1.5 12.0704 1.85817 12.4286 2.3 12.4286H4.37603C4.45678 12.4286 4.53564 12.453 4.60224 12.4987L6.99758 14.1412C7.52846 14.5052 8.25 14.1251 8.25 13.4814V4.51859Z" fill="#5CC49D"/>
@@ -3568,22 +3624,28 @@ const passedData = location.state?.wordsData;
     <div className={styles.pagination}>
       <button 
       className={styles.pagination2}
+      aria-label="이전 단어"
       onClick={() => setCurrentIndex(i => Math.max(0, i - 1))}>
         <svg 
+        aria-hidden="true"
         className={styles.pagination3}
         xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
           <path d="M14.7071 5.29289C15.0976 5.68342 15.0976 6.31658 14.7071 6.70711L9.41421 12L14.7071 17.2929C15.0976 17.6834 15.0976 18.3166 14.7071 18.7071C14.3166 19.0976 13.6834 19.0976 13.2929 18.7071L7.29289 12.7071C6.90237 12.3166 6.90237 11.6834 7.29289 11.2929L13.2929 5.29289C13.6834 4.90237 14.3166 4.90237 14.7071 5.29289Z" fill="#BDB4AB"/>
         
           <svg 
+          aria-hidden="true"
           className={styles.pagination4}
           xmlns="http://www.w3.org/2000/svg" width="8" height="14" viewBox="0 0 8 14" fill="none">
             <path d="M7.70711 0.292893C8.09763 0.683418 8.09763 1.31658 7.70711 1.70711L2.41421 7L7.70711 12.2929C8.09763 12.6834 8.09763 13.3166 7.70711 13.7071C7.31658 14.0976 6.68342 14.0976 6.29289 13.7071L0.292893 7.70711C-0.0976318 7.31658 -0.0976317 6.68342 0.292893 6.29289L6.29289 0.292893C6.68342 -0.0976312 7.31658 -0.0976311 7.70711 0.292893Z" fill="#BDB4AB"/>
           </svg>
         </svg>
       </button>
+
         {words.map((_, i) => (
           <button 
             key={i}
+            aria-label={`${i + 1}번 단어`}
+            aria-current={i === currentIndex ? 'true' : undefined}
             className={i === currentIndex ? styles['pagination7-t'] : styles['pagination5-n']}
             onClick={() => setCurrentIndex(i)}
           >
@@ -3592,16 +3654,20 @@ const passedData = location.state?.wordsData;
             </p>
           </button>
         ))}
+  
       <button 
       className={styles.pagination2}
+      aria-label="다음 단어"
       onClick={() => setCurrentIndex(i => Math.min(words.length - 1, i + 1))}>
         <svg 
+        aria-hidden="true"
         className={styles.pagination3}
         xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
           <path d="M9.29289 18.7071C8.90237 18.3166 8.90237 17.6834 9.29289 17.2929L14.5858 12L9.29289 6.70711C8.90237 6.31658 8.90237 5.68342 9.29289 5.29289C9.68342 4.90237 10.3166 4.90237 10.7071 5.29289L16.7071 11.2929C17.0976 11.6834 17.0976 12.3166 16.7071 12.7071L10.7071 18.7071C10.3166 19.0976 9.68342 19.0976 9.29289 18.7071Z" fill="#7F7569"/>
 
           <svg 
           className={styles.pagination9}
+          aria-hidden="true"
           xmlns="http://www.w3.org/2000/svg" width="8" height="14" viewBox="0 0 8 14" fill="none">
             <path d="M0.292893 13.7071C-0.0976311 13.3166 -0.0976312 12.6834 0.292893 12.2929L5.58579 7L0.292893 1.70711C-0.0976317 1.31658 -0.0976317 0.683417 0.292893 0.292893C0.683417 -0.0976315 1.31658 -0.0976315 1.70711 0.292893L7.70711 6.29289C8.09763 6.68342 8.09763 7.31658 7.70711 7.70711L1.70711 13.7071C1.31658 14.0976 0.683418 14.0976 0.292893 13.7071Z" fill="#7F7569"/>
           </svg>

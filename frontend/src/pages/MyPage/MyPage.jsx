@@ -22,7 +22,7 @@ const GOAL_LABELS = {
 
 
 const GOALS = [
-  { value: 'TRAVEL',           icon: (<svg xmlns="http://www.w3.org/2000/svg" width="50" height="36" viewBox="0 0 50 36" fill="none">
+  { value: 'TRAVEL',           icon: (<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="50" height="36" viewBox="0 0 50 36" fill="none">
   <g clip-path="url(#clip0_1439_799)">
     <path d="M8.29829 4.45696C6.12902 -3.02 19.82 0.513582 27.8567 3.53537C23.0875 5.42701 18.0133 7.82738 13.7716 10.5877C10.2965 8.13019 8.68494 5.53701 8.29829 4.45696Z" fill="#A8D2F1"/>
     <path d="M4.04914 24.4545C2.19347 13.3459 25.4409 3.71162 37.2965 0.283047C46.5749 -1.7741 61.7813 7.64182 34.2038 20.0831C10.4925 30.7802 4.22097 27.4545 4.04914 24.4545Z" fill="#E7E6EB"/>
@@ -38,24 +38,24 @@ const GOALS = [
     </clipPath>
   </defs>
 </svg>) },
-  { value: 'BUSINESS',         icon: (<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36" fill="none">
+  { value: 'BUSINESS',         icon: (<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36" fill="none">
   <path d="M0 12.5582C0 9.78391 2.27545 7.53491 5.08235 7.53491H30.9176C33.7245 7.53491 36 9.78391 36 12.5582V30.9768C36 33.751 33.7245 36 30.9176 36H5.08235C2.27545 36 0 33.751 0 30.9768V12.5582Z" fill="#CBDDF1"/>
   <path d="M0 12.5582C0 9.78391 2.27545 7.53491 5.08235 7.53491H30.9176C33.7245 7.53491 36 9.78391 36 12.5582V17.5814C36 21.2805 32.9661 24.2791 29.2235 24.2791H6.77647C3.03393 24.2791 0 21.2805 0 17.5814V12.5582Z" fill="#76B9F0"/>
   <path d="M14.4004 23.0233C14.4004 21.6362 15.5381 20.5117 16.9416 20.5117H18.6357C20.0391 20.5117 21.1769 21.6362 21.1769 23.0233V25.535C21.1769 26.9221 20.0391 28.0466 18.6357 28.0466H16.9416C15.5381 28.0466 14.4004 26.9221 14.4004 25.535V23.0233Z" fill="#3D91B3"/>
   <path d="M21.6004 0C24.4073 0 26.6828 2.24899 26.6828 5.02326V7.53488H22.871V5.44186C22.871 4.51712 22.1125 3.76744 21.1769 3.76744H14.4004C13.4648 3.76744 12.7063 4.51712 12.7063 5.44186V7.53488H8.89453V5.02326C8.89453 2.24899 11.17 1.2136e-07 13.9769 0H21.6004Z" fill="#3D91B3"/>
 </svg>) },
-  { value: 'SELF_DEVELOPMENT', icon: (<svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 34 34" fill="none">
+  { value: 'SELF_DEVELOPMENT', icon: (<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 34 34" fill="none">
   <path d="M12.4412 7.18685C12.9005 6.19781 14.2995 6.19781 14.7588 7.18685L16.9097 11.8195C17.9258 14.0083 19.676 15.7676 21.8533 16.7891L26.4621 18.9511C27.446 19.4127 27.446 20.8191 26.4621 21.2808L21.8533 23.4429C19.676 24.4643 17.9258 26.2236 16.9097 28.4123L14.7588 33.0451C14.2995 34.0341 12.9005 34.0341 12.4412 33.0451L10.2903 28.4123C9.27416 26.2236 7.52397 24.4643 5.34666 23.4429L0.737949 21.2808C-0.245983 20.8191 -0.245983 19.4127 0.737949 18.9511L5.34666 16.7891C7.52402 15.7676 9.2742 14.0083 10.2903 11.8195L12.4412 7.18685Z" fill="#FFC229"/>
   <path d="M26.578 0.370897C26.8076 -0.123633 27.5072 -0.123632 27.7368 0.370898L28.8122 2.68725C29.3203 3.78161 30.1954 4.66127 31.2841 5.17202L33.5885 6.25306C34.0804 6.48383 34.0804 7.18706 33.5885 7.41782L31.2841 8.49887C30.1954 9.00961 29.3203 9.88929 28.8122 10.9836L27.7368 13.3C27.5072 13.7945 26.8076 13.7945 26.578 13.3L25.5026 10.9836C24.9945 9.88929 24.1194 9.00961 23.0307 8.49887L20.7264 7.41782C20.2344 7.18706 20.2344 6.48383 20.7264 6.25306L23.0307 5.17202C24.1194 4.66127 24.9945 3.78161 25.5026 2.68725L26.578 0.370897Z" fill="#FFD26C"/>
 </svg>) },
-  { value: 'EXAM',             icon: (<svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36" fill="none">
+  { value: 'EXAM',             icon: (<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36" fill="none">
   <path d="M28 10.5V32.25C28 34.321 26.3059 36 24.2162 36H3.78378C1.69406 36 0 34.321 0 32.25V3.75C3.90048e-07 1.67893 1.69406 0 3.78378 0H17.4054L28 10.5Z" fill="#CBDDF1"/>
   <path d="M19.7161 10.6466L27.9999 10.5L17.4053 0V8.39696C17.4053 9.65531 18.4466 10.6691 19.7161 10.6466Z" fill="#70C1EE"/>
   <path d="M16.6491 13.5H6.05453C5.21864 13.5 4.54102 14.1716 4.54102 15C4.54102 15.8284 5.21864 16.5 6.05453 16.5H16.6491C17.485 16.5 18.1626 15.8284 18.1626 15C18.1626 14.1716 17.485 13.5 16.6491 13.5Z" fill="#3D91B3"/>
   <path d="M16.6491 18.75H6.05453C5.21864 18.75 4.54102 19.4216 4.54102 20.25C4.54102 21.0784 5.21864 21.75 6.05453 21.75H16.6491C17.485 21.75 18.1626 21.0784 18.1626 20.25C18.1626 19.4216 17.485 18.75 16.6491 18.75Z" fill="#3D91B3"/>
   <path d="M12.1086 24H6.05453C5.21864 24 4.54102 24.6716 4.54102 25.5C4.54102 26.3284 5.21864 27 6.05453 27H12.1086C12.9445 27 13.6221 26.3284 13.6221 25.5C13.6221 24.6716 12.9445 24 12.1086 24Z" fill="#3D91B3"/>
 </svg>) },
-  { value: 'DAILY',            icon: (<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36" fill="none">
+  { value: 'DAILY',            icon: (<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36" fill="none">
   <path d="M17.9999 27.6922C23.3528 27.6922 27.6922 23.3528 27.6922 17.9999C27.6922 12.647 23.3528 8.30762 17.9999 8.30762C12.647 8.30762 8.30762 12.647 8.30762 17.9999C8.30762 23.3528 12.647 27.6922 17.9999 27.6922Z" fill="#FFD26C"/>
   <path d="M16.2695 4.15385V1.73077C16.2695 0.774893 17.0444 0 18.0003 0C18.9562 0 19.7311 0.774893 19.7311 1.73077V4.15385C19.7311 5.10972 18.9562 5.88462 18.0003 5.88462C17.0444 5.88462 16.2695 5.10972 16.2695 4.15385Z" fill="#FFC229"/>
   <path d="M16.2695 34.2693V31.8462C16.2695 30.8904 17.0444 30.1155 18.0003 30.1155C18.9562 30.1155 19.7311 30.8904 19.7311 31.8462V34.2693C19.7311 35.2251 18.9562 36.0001 18.0003 36.0001C17.0444 36.0001 16.2695 35.2251 16.2695 34.2693Z" fill="#FFC229"/>
@@ -66,7 +66,7 @@ const GOALS = [
   <path d="M7.19957 26.3629C7.93387 25.751 9.02525 25.8501 9.63719 26.5843C10.2491 27.3186 10.15 28.41 9.41579 29.0219L7.33886 30.7527C6.60457 31.3646 5.51318 31.2655 4.90125 30.5313C4.28932 29.797 4.38842 28.7056 5.12265 28.0937L7.19957 26.3629Z" fill="#FFC229"/>
   <path d="M28.6615 5.24744C29.3958 4.63551 30.4872 4.73461 31.0991 5.46884C31.711 6.20313 31.6119 7.29452 30.8777 7.90645L28.8008 9.63722C28.0665 10.2492 26.9751 10.15 26.3632 9.41582C25.7512 8.68153 25.8503 7.59014 26.5846 6.97821L28.6615 5.24744Z" fill="#FFC229"/>
 </svg>) },
-  { value: 'NONE',             icon: (<svg xmlns="http://www.w3.org/2000/svg" width="29" height="32" viewBox="0 0 29 32" fill="none">
+  { value: 'NONE',             icon: (<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="29" height="32" viewBox="0 0 29 32" fill="none">
   <path d="M22.6106 1.145C23.8713 -0.274811 26.0289 -0.390066 27.4292 0.888242C28.8295 2.16668 28.9424 4.35436 27.6816 5.77423L18.8698 15.6974L27.635 25.5682C28.8956 26.9879 28.7826 29.1748 27.3826 30.4533C25.9823 31.7317 23.8248 31.6172 22.564 30.1974L14.2786 20.8671L5.99407 30.1974C4.73324 31.6172 2.57573 31.7317 1.17545 30.4533C-0.224494 29.1748 -0.337519 26.9879 0.92306 25.5682L9.68736 15.6974L0.876421 5.77423C-0.384402 4.35436 -0.27148 2.16668 1.12881 0.888242C2.52909 -0.390107 4.68663 -0.274826 5.94742 1.145L14.2786 10.5268L22.6106 1.145Z" fill="#FA5757"/>
 </svg>) },
 ];
@@ -110,6 +110,7 @@ const MAX_LEVEL = 3;
 function CheckIcon({ className, fill = "#A0A08A" }) {
   return (
     <svg 
+    aria-hidden="true"
       className={className}
       xmlns="http://www.w3.org/2000/svg" 
       width="16" 
@@ -184,6 +185,7 @@ function GrowthChart({ weeklyData = [], growthRate = 0 }) {
                       </div>
 
                       <svg 
+                      aria-hidden="true"
                         className={styles.chart16}
                         xmlns="http://www.w3.org/2000/svg" 
                         width="52" 
@@ -419,18 +421,24 @@ export function MyPage ({ onExitPage }) {
             <div className={styles.top3}>
               <button 
               onClick={handleBack}
+              aria-label="뒤로 가기"
               className={styles['top4-l']}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="17" viewBox="0 0 10 17" fill="none">
+                <svg 
+                aria-hidden="true"
+                xmlns="http://www.w3.org/2000/svg" width="10" height="17" viewBox="0 0 10 17" fill="none">
                   <path d="M9.35862 0.35565C9.83282 0.82987 9.83282 1.59871 9.35862 2.07292L2.93152 8.5L9.35862 14.9271C9.83282 15.4013 9.83282 16.1702 9.35862 16.6444C8.88442 17.1185 8.11562 17.1185 7.64142 16.6444L0.355657 9.3586C-0.118553 8.8845 -0.118553 8.1156 0.355657 7.6414L7.64142 0.35565C8.11562 -0.11855 8.88442 -0.11855 9.35862 0.35565Z" fill="#454440"/>
                 </svg>
               </button>
 
               <button 
               className={styles['top5-r']}
+              aria-label="홈으로 이동"
               onClick={handleHomeClick}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <svg 
+                aria-hidden="true"
+                xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
                   <path d="M10.125 16.8572V20.0001C10.125 20.5524 9.67728 21.0001 9.125 21.0001H5.5C4.94772 21.0001 4.5 20.5524 4.5 20.0001V10.3485C4.5 9.76471 4.75512 9.21001 5.19842 8.83005L10.6984 4.11576C11.4474 3.47378 12.5526 3.47378 13.3016 4.11576L18.8016 8.83005C19.2449 9.21001 19.5 9.76471 19.5 10.3485V20.0001C19.5 20.5524 19.0523 21.0001 18.5 21.0001H14.875C14.3227 21.0001 13.875 20.5524 13.875 20.0001V16.8572C13.875 16.305 13.4273 15.8572 12.875 15.8572H11.125C10.5727 15.8572 10.125 16.305 10.125 16.8572Z" fill="#454440"/>
                 </svg>
               </button>
@@ -469,6 +477,7 @@ export function MyPage ({ onExitPage }) {
                   <div className={styles['week-attendance']}>
                     {attended && (
                       <svg 
+                      aria-hidden="true"
                       className={styles.check}
                       xmlns="http://www.w3.org/2000/svg" 
                       width="16" 
@@ -500,9 +509,11 @@ export function MyPage ({ onExitPage }) {
               {/* 열고 닫기 버튼 */}
               <button
               onClick={() => setIsInfor(false)}
+              aria-label="레벨 정보 닫기"
               className={styles['infor-card6']}>
                 <svg 
                 className={styles['infor-card7']}
+                aria-hidden="true"
                 xmlns="http://www.w3.org/2000/svg" 
                 width="13" 
                 height="8" 
@@ -602,9 +613,11 @@ export function MyPage ({ onExitPage }) {
               {/* 열고 닫기 버튼 */}
               <button
               onClick={() => setIsInfor(true)}
+              aria-label="레벨 정보 열기"
               className={styles['infor-card6']}>
                 <svg 
                 className={styles['infor-card7']}
+                aria-hidden="true"
                 xmlns="http://www.w3.org/2000/svg" 
                 width="13" 
                 height="8" 
@@ -662,10 +675,13 @@ export function MyPage ({ onExitPage }) {
         <button
         onClick={() => onVocaPage()}
         className={styles['collection-card2']}
+        aria-label="단어장 열기"
         >
           <div className={styles['collection-card3']}>
             <div className={styles['collection-card4']}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="28" viewBox="0 0 18 28" fill="none">
+              <svg 
+              aria-hidden="true"
+              xmlns="http://www.w3.org/2000/svg" width="18" height="28" viewBox="0 0 18 28" fill="none">
                 <path d="M16 0H2C0.895431 0 0 0.895431 0 2V24.0357C0 25.4752 1.75253 26.1826 2.75175 25.1463L7.56031 20.1597C8.34682 19.344 9.65318 19.344 10.4397 20.1597L15.2482 25.1463C16.2475 26.1826 18 25.4752 18 24.0357V2C18 0.895431 17.1046 0 16 0Z" fill="#454440"/>
               </svg>
             </div>
@@ -681,7 +697,7 @@ export function MyPage ({ onExitPage }) {
         <div className={styles['collection-card-v']}>
           <div className={styles['collection-card-v2']}>
             <div className={styles['collection-card-v3']}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36" fill="none">
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36" fill="none">
                 <path d="M25.8193 14.4883C27.9325 14.5956 29.6132 16.3435 29.6133 18.4834V25.9678L29.6074 26.1738C29.5036 28.2188 27.8643 29.858 25.8193 29.9619L25.6133 29.9678H10.3867L10.1807 29.9619C8.1356 29.8581 6.49546 28.2189 6.3916 26.1738L6.38672 25.9678V18.4834C6.38681 16.3434 8.06734 14.5955 10.1807 14.4883L10.3867 14.4834H25.6133L25.8193 14.4883ZM10.3867 16.4834C9.28221 16.4834 8.38682 17.3789 8.38672 18.4834V25.9678C8.38682 27.0723 9.28221 27.9678 10.3867 27.9678H25.6133C26.7177 27.9676 27.6132 27.0722 27.6133 25.9678V18.4834C27.6132 17.379 26.7177 16.4835 25.6133 16.4834H10.3867ZM16 20.0684C16.0003 19.27 16.8903 18.7936 17.5547 19.2363L20.5586 21.2393C21.1521 21.6351 21.1522 22.5075 20.5586 22.9033L17.5547 24.9053C16.8901 25.3483 16 24.8719 16 24.0732V20.0684ZM24.7422 9.90332C25.2944 9.90344 25.7422 10.3511 25.7422 10.9033C25.7419 11.4553 25.2942 11.9032 24.7422 11.9033H11.2578C10.7057 11.9033 10.2581 11.4554 10.2578 10.9033C10.2578 10.351 10.7055 9.90332 11.2578 9.90332H24.7422ZM22.1621 6.03223C22.714 6.03268 23.1621 6.48022 23.1621 7.03223C23.1619 7.58405 22.7139 8.03177 22.1621 8.03223H13.8389C13.2867 8.03223 12.8391 7.58433 12.8389 7.03223C12.8389 6.47994 13.2866 6.03223 13.8389 6.03223H22.1621Z" fill="#454440"/>
               </svg>
             </div>
@@ -705,9 +721,11 @@ export function MyPage ({ onExitPage }) {
 
               <button 
               onClick={() => setIsGrowth(false)}
+              aria-label="성장 지표 닫기"
               className={styles['growth-card6']}>
                 <svg 
                 className={styles['growth-card7']}
+                aria-hidden="true"
                 xmlns="http://www.w3.org/2000/svg" 
                 width="13" 
                 height="8" 
@@ -722,7 +740,7 @@ export function MyPage ({ onExitPage }) {
               <div className={styles['growth-card9']}>
                 <div className={styles['growth-card10']}>
                   <div className={styles['growth-card11']}>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28" fill="none">
+                    <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28" fill="none">
                       <path d="M14 0C15.0881 0 16.1474 0.12515 17.1641 0.360352C17.6639 0.476204 18 0.933159 18 1.44629C18 2.25287 17.1936 2.8155 16.4043 2.64941C15.6287 2.48601 14.8242 2.40039 14 2.40039C7.5935 2.40039 2.40039 7.5935 2.40039 14C2.40039 20.4065 7.5935 25.5996 14 25.5996C20.4065 25.5996 25.5996 20.4065 25.5996 14C25.5996 13.1759 25.5132 12.372 25.3496 11.5967C25.183 10.807 25.7467 10 26.5537 10C27.0671 10.0001 27.5239 10.3367 27.6396 10.8369C27.8748 11.8534 28 12.9121 28 14C28 21.732 21.732 28 14 28C6.26801 28 0 21.732 0 14C0 6.26801 6.26801 0 14 0ZM23.0215 5.14355C23.4943 4.60336 24.3162 4.54874 24.8564 5.02148C25.3966 5.49429 25.4513 6.31616 24.9785 6.85645L15.2383 17.9873C14.3158 19.0412 12.6734 19.033 11.7617 17.9697L8.0127 13.5957C7.54575 13.0506 7.60928 12.2299 8.1543 11.7627C8.69942 11.2957 9.52015 11.3593 9.9873 11.9043L13.5098 16.0146L23.0215 5.14355Z" fill="#454440"/>
                     </svg>
                   </div>
@@ -739,7 +757,7 @@ export function MyPage ({ onExitPage }) {
               <div className={styles['growth-card15']}>
                 <div className={styles['growth-card16']}>
                   <div className={styles['growth-card17']}>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="28" viewBox="0 0 24 28" fill="none">
+                    <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="28" viewBox="0 0 24 28" fill="none">
                       <path d="M10.5 0C13.3168 0 16.1336 4.54771 17.0879 8.7627C17.1714 9.1304 17.5924 9.27976 17.8506 9.00488C18.1729 8.66156 18.5552 8.21746 18.9502 7.73438C19.9183 6.5505 21.839 6.69566 22.3672 8.13086C23.2944 10.6502 24 13.6626 24 16.9473C24 21.38 21.1473 25.1023 17.0675 26.8789C16.5891 27.0872 16.1129 26.384 16.3238 25.9068C16.4891 25.5328 16.6119 25.1332 16.6855 24.7158C17.8506 20.9292 15 16.9292 14 16.9473C12.9307 16.9976 12 18.4292 11.0322 20.0273C10.9312 20.2748 10.5829 20.3904 10.3857 20.21C9.82794 19.6992 9.5 18.9292 8.84277 20.168C8.41062 20.9848 8.03627 21.9389 7.82227 23.1523C7.62175 24.2895 7.83022 25.3846 8.33321 26.2968C8.58786 26.7586 8.17766 27.5339 7.67764 27.3663C3.0555 25.8171 0 21.6139 0 16.9473C6.35363e-05 8.84203 7.50001 5.62125e-06 10.5 0Z" fill="#454440"/>
                     </svg>
                   </div>
@@ -787,9 +805,11 @@ export function MyPage ({ onExitPage }) {
 
             <button 
             onClick={() => setIsGrowth(true)}
+            aria-label="성장 지표 열기"
             className={styles['growth-card6']}>
               <svg 
               className={styles['growth-card7']}
+              aria-hidden="true"
               xmlns="http://www.w3.org/2000/svg" 
               width="13" 
               height="8" 
@@ -812,8 +832,10 @@ export function MyPage ({ onExitPage }) {
 
             <button 
             onClick={() => setIsObjectives(false)}
+            aria-label="학습목표 닫기"
             className={styles['objectives-card5']}>
               <svg 
+              aria-hidden="true"
               className={styles['objectives-card6']}
               xmlns="http://www.w3.org/2000/svg" 
               width="13" 
@@ -826,7 +848,10 @@ export function MyPage ({ onExitPage }) {
           </div>
 
           {/* 목표 선택 */}
-          <div className={styles['objectives-card7']}>
+          <div 
+          role="radiogroup"
+          aria-label="목표 선택"
+          className={styles['objectives-card7']}>
             {GOALS.map(({ value, icon }) => {
               const isSelected = selectedGoal === value;
 
@@ -834,6 +859,8 @@ export function MyPage ({ onExitPage }) {
                 <button
                   key={value}
                   type="button"
+                  role="radio"
+                  aria-checked={isSelected}
                   onClick={() => handleGoalChange(value)}
                   className={isSelected 
                     ? styles['objectives-card8-t']   // 선택 (초록 배경)
@@ -870,8 +897,10 @@ export function MyPage ({ onExitPage }) {
 
             <button 
             onClick={() => setIsObjectives(true)}
+            aria-label="학습목표 열기"
             className={styles['objectives-card5']}>
               <svg 
+              aria-hidden="true"
               className={styles['objectives-card6']}
               xmlns="http://www.w3.org/2000/svg" 
               width="13" 
@@ -897,9 +926,11 @@ export function MyPage ({ onExitPage }) {
 
               <button 
               onClick={() => setIsDifficulty(false)}
+              aria-label="학습 난이도 닫기"
               className={styles['difficulty-card6']}>
                 <svg 
                 className={styles['difficulty-card7']}
+                aria-hidden="true"
                 xmlns="http://www.w3.org/2000/svg" 
                 width="13" 
                 height="8" 
@@ -910,7 +941,10 @@ export function MyPage ({ onExitPage }) {
               </button>
             </div>
 
-            <div className={styles['difficulty-card8']}>
+            <div 
+            role="radiogroup"
+            aria-label="학습 난이도 선택"
+            className={styles['difficulty-card8']}>
               {DIFFICULTY_OPTIONS.map(({ value, label }) => {
                 const isSelected = selectedDifficulty === value;
                 const { disabled, reason } = isOptionDisabled(value);
@@ -919,6 +953,8 @@ export function MyPage ({ onExitPage }) {
                   <button
                     key={value}
                     type="button"
+                    role="radio"
+                    aria-checked={isSelected}
                     onClick={() => {
                       if (disabled) {
                         showPopup(reason);
@@ -959,8 +995,10 @@ export function MyPage ({ onExitPage }) {
 
             <button 
             onClick={() => setIsDifficulty(true)}
+            aria-label="학습 난이도 열기"
             className={styles['difficulty-card6']}>
               <svg 
+              aria-hidden="true"
               className={styles['difficulty-card7']}
               xmlns="http://www.w3.org/2000/svg" 
               width="13" 
