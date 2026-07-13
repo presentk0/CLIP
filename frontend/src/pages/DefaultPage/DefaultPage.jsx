@@ -13,7 +13,7 @@ import { TestSpinner } from "../../components/Spinner/Spinner";
 import { Toast } from "../../contexts/Toast";
 
 const BADGE_ICONS = {
-  BRONZE: (<svg className={style.bronze} xmlns="http://www.w3.org/2000/svg" width="21" height="24" viewBox="0 0 21 24" fill="none">
+  BRONZE: (<svg aria-hidden="true" className={style.bronze} xmlns="http://www.w3.org/2000/svg" width="21" height="24" viewBox="0 0 21 24" fill="none">
   <g filter="url(#filter0_i_1435_11641)">
     <path d="M10.3921 0L20.7844 6V18L10.3921 24L-0.000214577 18V6L10.3921 0Z" fill="#F7D4AE"/>
   </g>
@@ -31,7 +31,7 @@ const BADGE_ICONS = {
     </filter>
   </defs>
 </svg>),
-  SILVER: (<svg className={style.silver} xmlns="http://www.w3.org/2000/svg" width="29" height="32" viewBox="0 0 29 32" fill="none">
+  SILVER: (<svg aria-hidden="true" className={style.silver} xmlns="http://www.w3.org/2000/svg" width="29" height="32" viewBox="0 0 29 32" fill="none">
   <path d="M24.2847 6.28809V17.7109L14.3921 23.4229L4.49951 17.7109V6.28809L14.3921 0.576172L24.2847 6.28809Z" fill="#DCD6C6" stroke="#E5E0D2"/>
   <g filter="url(#filter0_di_1435_11627)">
     <path d="M14.3921 0L24.7844 6V18L14.3921 24L3.99979 18V6L14.3921 0Z" fill="#CDC6B9"/>
@@ -79,7 +79,7 @@ const BADGE_ICONS = {
     </filter>
   </defs>
 </svg>),
-  GOLD: (<svg className={style.gold} xmlns="http://www.w3.org/2000/svg" width="29" height="32" viewBox="0 0 29 32" fill="none">
+  GOLD: (<svg aria-hidden="true" className={style.gold} xmlns="http://www.w3.org/2000/svg" width="29" height="32" viewBox="0 0 29 32" fill="none">
   <g filter="url(#filter0_di_1435_11642)">
     <path d="M14.3921 0L24.7844 6V18L14.3921 24L3.99979 18V6L14.3921 0Z" fill="#FFC229"/>
     <path d="M23.7847 6.57715V17.4219L14.3921 22.8447L4.99951 17.4219V6.57715L14.3921 1.1543L23.7847 6.57715Z" stroke="#F4D78E" stroke-width="2"/>
@@ -665,6 +665,7 @@ function DefaultPage({ onMyPage }) {
       <div className={style.top}>
         <div className={style.logobox}>
           <svg 
+          aria-hidden="true"
           className={style.logo}
           xmlns="http://www.w3.org/2000/svg" 
           width="76" 
@@ -681,8 +682,11 @@ function DefaultPage({ onMyPage }) {
         <div className={style.topButtonBox}>
           <button 
           className={style.tutorial}
+          aria-label="튜토리얼 안내 보기"
           onClick={() => setShowTutorial(true)}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <svg 
+            aria-hidden="true"
+            xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
               <path d="M12 3C7.041 3 3 7.041 3 12C3 16.959 7.041 21 12 21C16.959 21 21 16.959 21 12C21 7.041 16.959 3 12 3ZM12 19.2C8.031 19.2 4.8 15.969 4.8 12C4.8 8.031 8.031 4.8 12 4.8C15.969 4.8 19.2 8.031 19.2 12C19.2 15.969 15.969 19.2 12 19.2Z" fill="#F9F8F1"/>
               <path d="M11.2471 14.4983H12.7758V16H11.2471V14.4983ZM12.9822 7.17725C11.3924 6.61409 9.56561 7.44005 9 8.98685L10.4369 9.49744C10.5745 9.12201 10.865 8.82166 11.2548 8.64896C11.6446 8.47626 12.0803 8.45373 12.4624 8.58889C12.7548 8.69385 13.0079 8.8836 13.188 9.133C13.3682 9.38241 13.467 9.67971 13.4713 9.98551C13.4713 10.7664 12.2025 11.3821 11.7592 11.5398C11.4535 11.6449 11.2471 11.9303 11.2471 12.2456V14H12.7758V12.7412C13.5707 12.3583 15 11.4722 15 9.978C14.9934 9.36498 14.7968 8.7685 14.4362 8.2681C14.0757 7.7677 13.5685 7.38716 12.9822 7.17725Z" fill="#F9F8F1"/>
             </svg>
@@ -690,9 +694,12 @@ function DefaultPage({ onMyPage }) {
 
           <button className={style.topLeftButton}
           disabled={isAiBlocked}
+          aria-label="AI 채팅방 입장"
           onClick={onAiChatPage}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <svg 
+            aria-hidden="true"
+            xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
               <path d="M14 5C17.866 5 21 8.13401 21 12C21 15.866 17.866 19 14 19H10.9883C10.8533 19.0676 10.7192 19.1432 10.582 19.2295C9.99809 19.6424 9.58506 20.2014 8.83203 21.0166C8.09716 21.4857 7.09185 21.0021 7.0918 20.1797V18.3662C4.67828 17.2617 3.00098 14.8278 3.00098 12C3.00098 8.13417 6.13423 5.00026 10 5H14Z" fill="#FEFDF9"/>
               <path d="M13.3047 14.8281H12.0469L11.6211 13.5234H9.57422L9.14844 14.8281H7.88281L9.84375 9.17188H11.3516L13.3047 14.8281ZM15.1172 14.8281H13.9453V9.17188H15.1172V14.8281ZM9.87109 12.6094H11.3242L10.6172 10.4453H10.5781L9.87109 12.6094Z" fill="#08B682"/>
             </svg>
@@ -700,9 +707,12 @@ function DefaultPage({ onMyPage }) {
 
           <button 
           className={style.topRightButton}
+          aria-label="마이페이지로 이동"
           onClick={onMyPage}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="16" viewBox="0 0 15 16" fill="none">
+            <svg 
+            aria-hidden="true"
+            xmlns="http://www.w3.org/2000/svg" width="15" height="16" viewBox="0 0 15 16" fill="none">
               <path d="M8.45801 9.1426C11.9924 9.1428 14.8574 12.0085 14.8574 15.543C14.8574 15.7954 14.6528 16 14.4004 16H0.45801C0.20556 16 5e-05 15.7954 0 15.543C0 12.0084 2.86581 9.1426 6.40041 9.1426H8.45801ZM7.42871 0C9.63781 0 11.4287 1.79086 11.4287 4C11.4287 6.2091 9.63781 8 7.42871 8C5.21972 7.9998 3.42871 6.209 3.42871 4C3.42871 1.79096 5.21972 0.00016 7.42871 0Z" fill="#FEFDF9"/>
             </svg>
           </button>
@@ -811,7 +821,7 @@ function DefaultPage({ onMyPage }) {
             <div className={style.recommendedSectionBox}>
               <div className={style.recommendedTitle}>
                 <div className={style.recommendedTitle2}>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 23 23" fill="none">
+                  <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 23 23" fill="none">
                     <path d="M11.6471 0.41721C17.744 0.417582 22.6862 5.36163 22.6862 11.4592C22.6858 17.5565 17.7438 22.4994 11.6471 22.4997C5.55012 22.4997 0.606941 17.5567 0.606581 11.4592C0.606581 11.1755 0.618045 10.8936 0.640273 10.6155C0.665945 10.2954 0.940283 10.0573 1.26137 10.0573C1.64929 10.0577 1.94593 10.4012 1.91908 10.7883C1.90366 11.0097 1.89564 11.2339 1.89564 11.4592C1.896 16.8453 6.26146 21.2107 11.6471 21.2107C17.0324 21.2103 21.3967 16.8451 21.3971 11.4592C21.3971 6.07304 17.0327 1.70665 11.6471 1.70627C11.422 1.70627 11.1975 1.71454 10.9762 1.72971C10.589 1.75601 10.2453 1.45871 10.2453 1.07053C10.2454 0.749618 10.4835 0.476337 10.8034 0.450901C11.0815 0.428973 11.3635 0.41721 11.6471 0.41721ZM13.736 15.1404H12.3239L11.7086 13.321H8.93861L8.32777 15.1404H6.91566L9.50697 7.77951H11.1344L13.736 15.1404ZM15.9318 15.1404H14.6105V7.77951H15.9318V15.1404ZM9.29457 12.2531H11.3527L10.3507 9.28537H10.2907L9.29457 12.2531ZM4.4767 0.311741C4.54544 -0.0972571 5.13007 -0.106529 5.21205 0.300022L5.27943 0.635472C5.68492 2.64634 7.33556 4.16964 9.37221 4.41477C9.7578 4.46151 9.80116 5.00459 9.42787 5.11203L8.96058 5.2468C7.10696 5.77891 5.68432 7.26854 5.23842 9.14475L5.21937 9.21946C5.12358 9.62014 4.54946 9.60923 4.46937 9.20481C4.09333 7.30606 2.6786 5.78225 0.813124 5.26584L0.260878 5.11203C-0.115769 5.00773 -0.0731594 4.46129 0.315077 4.41623C2.41283 4.17267 4.09713 2.57156 4.4474 0.488987L4.4767 0.311741Z" fill="#F5F9F8"/>
                   </svg>
                 </div>

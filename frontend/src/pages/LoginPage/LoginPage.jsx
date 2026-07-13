@@ -112,10 +112,17 @@ export default function LoginPage() {
       // Google이 로그인 후 이 주소로 결과를 보냄
       // Google Console의 "승인된 리디렉션 URI"에 이 주소를 등록해놔야 함
       // 구글 로그인 끝나면 -> 구글이 이 주소로 사용자를 보냄 -> 크롬이 그 신호를 잡아서 우리 코드에 전달
+      // chrome.identity는 크롬 확장프로그램 전용 인증 API. OAuth2 인증을 도와주는 기능들을 제공
+      // 일반 웹페이지에서는 사용 불가. 오직 크롬 확장프로그램에서만 쓸 수 있음
       const redirectUri = chrome.identity.getRedirectURL();
 
       // 보안 토큰 nonce 생성 (재사용/재전송 공격 방지용 일회용 랜덤 문자열 값)
       // 요청 시 보낸 nonce와 응답에 담긴 nonce가 같아야 정상 응답으로 인정
+      // crypto 는 브라우저에 내장된 암호학 관련 API예요. 정식 명칭은 Web Crypto API
+      // crypto 는 암호화, 해싱, 랜덤 값 생성 등 보안 관련 기능을 제공
+      // crypto.randomUUID() - 고유 ID 생성 (Nonce, 토큰 등)
+      // crypto.getRandomValues() - 랜덤 바이트 생성
+      // crypto.subtle - 해싱, 암호화, 서명
       const nonce = crypto.randomUUID();
 
       // Google에게 내 앱은 ${GOOGLE_CLIENT_ID}고, 결과는 ${redirectUri}로 보내줘
@@ -147,11 +154,13 @@ export default function LoginPage() {
         chrome.identity.launchWebAuthFlow(
           // 어떤 URL을 열지 + 사용자 보여줄지
           { url: authUrl, interactive: true },
-          // 끝났을 때 콜백
+          // Google이 인증 결과를 redirectUrl로 반환
           (redirectUrl) => {
             if (chrome.runtime.lastError) {
+              // 시스템 에러
               reject(new Error(chrome.runtime.lastError.message));
             } else if (!redirectUrl) {
+              // 사용자 취소
               reject(new Error('로그인이 취소되었습니다'));
             } else {
               resolve(redirectUrl);
@@ -160,6 +169,7 @@ export default function LoginPage() {
         );
       });
 
+      // OAuth는 보통 해시(#)에 토큰을 담아서 반환
       // URL의 # 뒤에서 id_token 추출
       // 구글이 보내주는 결과 URL 모양
       // https://abcdefghijklmnop.chromiumapp.org/#id_token=eyJhbGc...&token_type=Bearer&...
@@ -168,6 +178,13 @@ export default function LoginPage() {
       // .substring(1) = "id_token=eyJ...&token_type=Bearer&..." (# 제거)
       const hash = new URL(responseUrl).hash.substring(1);
       // new URLSearchParams(hash) = 쿼리 파싱 객체로 변환
+      // URLSearchParams 는 URL의 쿼리스트링(?key=value&key2=value2)을 다루기 편하게 만들어주는 도구
+      // params.get() - 값 조회 (없으면 null, 값이 빈 문자열이면 ""), 값은 항상 문자열(숫자로 필요하면 const page = Number(params.get('page'));), 자동 디코딩임
+      // params.has() - 존재 여부 확인
+      // params.set() - 값 설정/변경
+      // params.append() - 값 추가 (중복 허용)
+      // params.delete() - 값 삭제
+      // params.toString() - 문자열로 변환
       const params = new URLSearchParams(hash);
       const error = params.get('error');
 
@@ -206,23 +223,47 @@ export default function LoginPage() {
   };
 
 
-
+  // JWT 토큰에서 페이로드(payload) 부분을 추출해서 원래 정보로 복원하는 함수
   function decodeJwtPayload(token) {
     // payload 부분
+    // JWT의 페이로드는 Base64URL로 인코딩되어 있고, 패딩(=)이 제거된 상태
     const base64Url = token.split('.')[1];
 
     // Base64URL -> Base64 변환
+    // Base64 문자표
+    // 64개 문자만 사용
+    // A-Z (26개)
+    // a-z (26개)
+    // 0-9 (10개)
+    // + / (2개)
+    // = (패딩용)
     const base64 = base64Url
       // - -> +
       .replace(/-/g, '+')
       // _ -> /
       .replace(/_/g, '/');
 
-    // 패딩 추가 (4의 배수로 맞추기)
+    // atob()은 표준 Base64를 요구
+    // 인코딩 시 원본을 2진수(16비트)로 변환하고 6비트씩 그룹을 만들 때 마지막 그룹이 6비트가 안 됨 -> 패딩 필요
+    // 컴퓨터가 문자를 저장하는 방식(모든 문자는 숫자로 저장): 1바이트 = 8비트 (0 또는 1이 8개), 문자 하나는 보통 1바이트
+    // 바이너리 데이터(0과 1의 나열)를 텍스트로 표현하고 싶을 때 8비트씩 묶인 데이터를 6비트씩 다시 묶어서, 64가지 문자로 표현하면 됨
+    // 6비트로 묶는 이유: 6비트로 표현 가능한 경우의 수가 64가지 -> 64개 문자로 표현 가능
+
+    // Base64의 규칙: Base64는 항상 4의 배수 길이
+    // 패딩 문자 = 추가 (4의 배수로 맞추기)
     // 부족한 만큼 = 추가
+    // base64.length % 4    // 나머지 계산
+    // 4 - (나머지)          // 필요한 패딩 개수
+    // % 4                  // 0이면 패딩 불필요 (0으로 유지)
+    // '='.repeat(개수)      // 패딩 문자열 생성
+    // base64 + 패딩        // 뒤에 붙이기
     const padded = base64 + '='.repeat((4 - base64.length % 4) % 4);
 
     // 디코딩
+    // atob() 는 Base64 문자열을 원본 문자열로 디코딩하는 함수
+    // btoa/atob는 ASCII만 지원(만약 한글 같은게 있다면 따로 추가 처리가 필요함)
+    // atob: ASCII to Binary
+    // btoa: Binary to ASCII (반대 방향)
     return JSON.parse(atob(padded));
   }
 
@@ -232,6 +273,7 @@ export default function LoginPage() {
         <div className={styles.login3}>
           <div className={styles.login4}>
             <svg 
+            aria-hidden="true"
             className={styles.login5}
             xmlns="http://www.w3.org/2000/svg" width="41" height="24" viewBox="0 0 41 24" fill="none">
               <path d="M28.194 0C30.9105 0 33.2725 1.88063 33.9643 4.42123C37.963 5.13258 40.9999 8.65481 41 12.8551V15.4305C40.9997 20.1556 37.1703 23.9998 32.4632 24H16.6534C13.5995 24 11.1023 21.4932 11.1023 18.4276C11.1024 15.362 13.5996 12.8551 16.6534 12.8551H23.4024C24.7522 12.8551 26.0177 12.1771 26.777 11.0423C27.3001 10.2469 28.3622 10.0447 29.1381 10.5693C29.9142 11.0943 30.1339 12.1604 29.611 12.9395C28.2275 15.0227 25.8995 16.2773 23.4024 16.2773H16.6534C15.4724 16.2773 14.5099 17.2421 14.5097 18.4276C14.5097 19.6132 15.4723 20.5795 16.6534 20.5795H32.4467C35.2639 20.579 37.5741 18.2754 37.5744 15.4305V12.8551C37.5743 10.027 35.2809 7.70657 32.4467 7.70613C31.5019 7.70613 30.7414 6.94433 30.7414 5.99587C30.7414 4.57324 29.5947 3.42072 28.1775 3.42054C26.7602 3.42054 25.612 4.57313 25.612 5.99587C25.612 6.94433 24.8531 7.70613 23.9083 7.70613H17.0752C16.1304 7.70613 15.3715 6.94433 15.3715 5.99587C15.3715 4.57313 14.2233 3.42054 12.806 3.42054C11.3888 3.42068 10.2422 4.57322 10.2422 5.99587C10.2421 6.94433 9.48164 7.70613 8.53679 7.70613C5.7195 7.70653 3.40762 10.01 3.40747 12.8551V15.4305C3.40779 18.2585 5.70274 20.5791 8.53679 20.5795C9.48166 20.5795 10.2422 21.3412 10.2422 22.2897C10.242 23.2381 9.48157 24 8.53679 24C3.82988 23.9996 0.000321159 20.1554 0 15.4305V12.8551C0.000137234 8.63796 3.054 5.13267 7.03573 4.42123C7.72748 1.88072 10.0559 0.000120259 12.806 0C15.5562 0 17.801 1.81275 18.5433 4.2856H22.4567C23.199 1.81277 25.4775 2.86267e-05 28.194 0Z" fill="#FEFDF9"/>
@@ -262,6 +304,7 @@ export default function LoginPage() {
             <>
               <div className={styles.login9}>
                 <svg 
+                aria-hidden="true"
                 className={styles.login10}
                 xmlns="http://www.w3.org/2000/svg" width="19" height="20" viewBox="0 0 19 20" fill="none">
                   <g clip-path="url(#clip0_935_1141)">
