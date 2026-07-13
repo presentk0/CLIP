@@ -1,0 +1,37 @@
+{
+    "family": "clip-server-prod-task",
+    "networkMode": "awsvpc",
+    "requiresCompatibilities": ["FARGATE"],
+    "cpu": "512",
+    "memory": "1024",
+    "executionRoleArn": "arn:aws:iam::813003568690:role/ecs-task-execution-role",
+    "taskRoleArn": "arn:aws:iam::813003568690:role/ecs-task-role",
+    "containerDefinitions": [
+        {
+            "name": "spring-app",
+            "image": "813003568690.dkr.ecr.ap-northeast-2.amazonaws.com/clipzy-server-prod:latest",
+            "essential": true,
+            "portMappings": [
+                {
+                    "containerPort": 8080,
+                    "hostPort": 8080,
+                    "protocol": "tcp"
+                }
+            ],
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-group": "/ecs/clipzy-server-prod-task",
+                    "awslogs-region": "ap-northeast-2",
+                    "awslogs-stream-prefix": "ecs"
+                }
+            },
+            "environment": [
+                {
+                    "name": "SPRING_PROFILES_ACTIVE",
+                    "value": "prod"
+                }
+            ]
+        }
+    ]
+}

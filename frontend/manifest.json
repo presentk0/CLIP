@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Clipzy: YouTube로 이중자막 번역 & AI 영어 학습",
-  "version": "1.0.13",
+  "version": "1.0.14",
   "description": "유튜브 이중자막 번역과 AI 영어 학습을 한 번에!",
   "action": {
     "default_title": "CLIPZY 열기"
