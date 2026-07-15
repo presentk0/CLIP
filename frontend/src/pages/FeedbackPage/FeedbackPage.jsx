@@ -99,7 +99,9 @@ const FeedbackPage = () => {
         />
       }
 
-      <button className={styles.closeBtn} onClick={handleClose}>x</button>
+      <button className={styles.closeBtn} onClick={handleClose} aria-label="닫기">
+        x
+      </button>
 
       <div className={styles.frog1}>
         <div 
@@ -170,6 +172,7 @@ const FeedbackPage = () => {
           placeholder="퀴즈, 채팅에 상관 없이 작성해주세요"
           value={goodPoint}
           onChange={(e) => setGoodPoint(e.target.value)}
+          aria-label="가장 좋았던 점"
         />
       </div>
 
@@ -180,6 +183,7 @@ const FeedbackPage = () => {
           className={styles.card17}
           placeholder="퀴즈, 채팅에 상관 없이 작성해주세요"
           value={improvePoint}
+          aria-label="가장 불편했던 점"
           onChange={(e) => setImprovePoint(e.target.value)}
         />
       </div>

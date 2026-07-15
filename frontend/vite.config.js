@@ -19,7 +19,9 @@ export default defineConfig(({ mode }) => ({
     chunkSizeWarningLimit: 1000,
     // 운영 시 소스맵 설정 false (배포본에 소스맵을 포함하면 원본 코드가 그대로 노출됨)
     sourcemap: mode !== 'production',
+    // rollupOptions: Vite가 내부 Rollup에게 전달하는 옵션
     rollupOptions: {
+      // input: 빌드할 진입점(entry point) 지정(기본값: index.html)
       input: {
         sidepanel: 'sidepanel.html',
         recorder: 'recorder.html',

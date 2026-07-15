@@ -6,7 +6,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { handleApiError } from '../../utils/errorHandler';
 import styles from '../LoginPage/LoginPage.module.css'
 import { Spinner } from '../../components/Spinner/Spinner';
-
+import { log } from '../../utils/logger';
 
 function Button({
   variant = 'primary',
@@ -225,46 +225,52 @@ export default function LoginPage() {
 
   // JWT 토큰에서 페이로드(payload) 부분을 추출해서 원래 정보로 복원하는 함수
   function decodeJwtPayload(token) {
-    // payload 부분
-    // JWT의 페이로드는 Base64URL로 인코딩되어 있고, 패딩(=)이 제거된 상태
-    const base64Url = token.split('.')[1];
+    // atob, JSON.parse, split 에서 에러날 수 있어서 try/catch로 감싸기
+    try {
+      // payload 부분
+      // JWT의 페이로드는 Base64URL로 인코딩되어 있고, 패딩(=)이 제거된 상태
+      const base64Url = token.split('.')[1];
 
-    // Base64URL -> Base64 변환
-    // Base64 문자표
-    // 64개 문자만 사용
-    // A-Z (26개)
-    // a-z (26개)
-    // 0-9 (10개)
-    // + / (2개)
-    // = (패딩용)
-    const base64 = base64Url
+      // Base64URL -> Base64 변환
+      // Base64 문자표
+      // 64개 문자만 사용
+      // A-Z (26개)
+      // a-z (26개)
+      // 0-9 (10개)
+      // + / (2개)
+      // = (패딩용)
+      const base64 = base64Url
       // - -> +
       .replace(/-/g, '+')
       // _ -> /
       .replace(/_/g, '/');
 
-    // atob()은 표준 Base64를 요구
-    // 인코딩 시 원본을 2진수(16비트)로 변환하고 6비트씩 그룹을 만들 때 마지막 그룹이 6비트가 안 됨 -> 패딩 필요
-    // 컴퓨터가 문자를 저장하는 방식(모든 문자는 숫자로 저장): 1바이트 = 8비트 (0 또는 1이 8개), 문자 하나는 보통 1바이트
-    // 바이너리 데이터(0과 1의 나열)를 텍스트로 표현하고 싶을 때 8비트씩 묶인 데이터를 6비트씩 다시 묶어서, 64가지 문자로 표현하면 됨
-    // 6비트로 묶는 이유: 6비트로 표현 가능한 경우의 수가 64가지 -> 64개 문자로 표현 가능
+      // atob()은 표준 Base64를 요구
+      // 인코딩 시 원본을 2진수(16비트)로 변환하고 6비트씩 그룹을 만들 때 마지막 그룹이 6비트가 안 됨 -> 패딩 필요
+      // 컴퓨터가 문자를 저장하는 방식(모든 문자는 숫자로 저장): 1바이트 = 8비트 (0 또는 1이 8개), 문자 하나는 보통 1바이트
+      // 바이너리 데이터(0과 1의 나열)를 텍스트로 표현하고 싶을 때 8비트씩 묶인 데이터를 6비트씩 다시 묶어서, 64가지 문자로 표현하면 됨
+      // 6비트로 묶는 이유: 6비트로 표현 가능한 경우의 수가 64가지 -> 64개 문자로 표현 가능
 
-    // Base64의 규칙: Base64는 항상 4의 배수 길이
-    // 패딩 문자 = 추가 (4의 배수로 맞추기)
-    // 부족한 만큼 = 추가
-    // base64.length % 4    // 나머지 계산
-    // 4 - (나머지)          // 필요한 패딩 개수
-    // % 4                  // 0이면 패딩 불필요 (0으로 유지)
-    // '='.repeat(개수)      // 패딩 문자열 생성
-    // base64 + 패딩        // 뒤에 붙이기
-    const padded = base64 + '='.repeat((4 - base64.length % 4) % 4);
+      // Base64의 규칙: Base64는 항상 4의 배수 길이
+      // 패딩 문자 = 추가 (4의 배수로 맞추기)
+      // 부족한 만큼 = 추가
+      // base64.length % 4    // 나머지 계산
+      // 4 - (나머지)          // 필요한 패딩 개수
+      // % 4                  // 0이면 패딩 불필요 (0으로 유지)
+      // '='.repeat(개수)      // 패딩 문자열 생성
+      // base64 + 패딩        // 뒤에 붙이기
+      const padded = base64 + '='.repeat((4 - base64.length % 4) % 4);
 
-    // 디코딩
-    // atob() 는 Base64 문자열을 원본 문자열로 디코딩하는 함수
-    // btoa/atob는 ASCII만 지원(만약 한글 같은게 있다면 따로 추가 처리가 필요함)
-    // atob: ASCII to Binary
-    // btoa: Binary to ASCII (반대 방향)
-    return JSON.parse(atob(padded));
+      // 디코딩
+      // atob() 는 Base64 문자열을 원본 문자열로 디코딩하는 함수
+      // btoa/atob는 ASCII만 지원(만약 한글 같은게 있다면 따로 추가 처리가 필요함)
+      // atob: ASCII to Binary
+      // btoa: Binary to ASCII (반대 방향)
+      return JSON.parse(atob(padded));
+    } catch (error) {
+      log.debug('JWT 디코딩 실패', error);
+      return null;
+    }
   }
 
   return (
