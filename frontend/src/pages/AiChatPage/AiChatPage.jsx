@@ -82,8 +82,12 @@ const refreshAccessToken = async () => {
 function ContinuePopup({ info, onContinue, onNewStart }) {
   return (
     <div className={styles.popupOverlay}>
-      <div className={styles.popupBox}>
-        <h2 className={styles.popupTitle}>진행 중인 대화가 있어요</h2>
+      <div 
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="continue-title"
+      className={styles.popupBox}>
+        <h2 id="continue-title" className={styles.popupTitle}>진행 중인 대화가 있어요</h2>
 
         <div className={styles.popupInfo}>
           <p>단어: <strong>{info.word}</strong></p>
@@ -120,9 +124,13 @@ function ConsentPopup({ handleAudioConsent, handleAudioReject }) {
       {/* 어두워지기 */}
       <div className={styles['exit-overlay']}></div>
 
-      <div className={styles.exit}>
+      <div 
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="consent-title"
+      className={styles.exit}>
         <div className={styles.exit2}>
-          <p className={styles.exit3}>AI 음성 자동 재생을 허용하시겠어요?</p>
+          <p id="consent-title" className={styles.exit3}>AI 음성 자동 재생을 허용하시겠어요?</p>
           <div className={styles.exit4}>
             <p className={styles.exit5}>AI가 대답할 때마다 음성으로 들려드려요. 한 번 동의 하면 앞으로 자동으로 적용돼요!</p>
           </div>
@@ -156,9 +164,13 @@ function ExitModal ({onConfirm, onCancel}) {
       {/* 어두워지기 */}
       <div className={styles['exit-overlay']} onClick={onCancel}></div>
 
-      <div className={styles.exit}>
+      <div 
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="exit-title"
+      className={styles.exit}>
         <div className={styles.exit2}>
-          <p className={styles.exit3}>지금 끝내기에는 아쉬워요! <br />조금만 더 가봐요!</p>
+          <p id="exit-title" className={styles.exit3}>지금 끝내기에는 아쉬워요! <br />조금만 더 가봐요!</p>
           <div className={styles.exit4}>
             <p className={styles.exit5}>지금까지의 진행 상황을 저장해두고 <br />나중에 이어서 다시 할 수 있어요</p>
           </div>
@@ -434,6 +446,7 @@ function Reports ({mode, chatData, targetId, onClose, showPopup}) {
           }
           maxLength={250}
           disabled={isReports}
+          aria-label="신고 내용 입력"
           >
           </textarea>
         </div>
@@ -2153,12 +2166,14 @@ const handleError = ({ code, message }) => {
 
       // 토큰 가져오기
       let token = await getAccessToken();
+      if (cancelled) return;
 
       // WebSocket은 처음 연결 시 토큰만 검증하고, 이후 토큰이 만료돼도 연결 자체는 끊기지 않을 수 있음
       // 가져온게 만료된 토큰일 수 있으니 만료 체크 + 갱신
       if (isTokenExpired(token)) {
         log.debug('WebSocket 연결 전 토큰 만료, 갱신 시도');
         token = await refreshAccessToken();
+        if (cancelled) return;
       }
 
       // 자동 토큰 갱신이 실패한 경우
@@ -2172,27 +2187,42 @@ const handleError = ({ code, message }) => {
       }
 
 
-
+      // new WebSocket: WebSocket (기본), 브라우저와 서버 실시간 양방향 통신 표준 프로토콜
+      // SockJS: WebSocket이 안 될 때 대체 방법을 제공하는 라이브러리, 회사 방화벽, 프록시 때문에 WebSocket 차단되는 경우 있음, 자동으로 HTTP 롱폴링 등으로 폴백(fallback)
+      // STOMP: 메시지 형식/규칙을 정한 프로토콜 (Simple Text Oriented Messaging Protocol), WebSocket은 그냥 데이터 주고받는 통로만 제공, STOMP는 그 위에 어떻게 메시지를 구조화할지 규칙을 얹음
+      // 왜 이 조합인가: 백엔드가 Spring이라서(Spring Boot는 기본적으로 STOMP over WebSocket을 지원함)
+      // new Client: STOMP 라이브러리의 새 버전 방식
       // STOMP 연결 (실시간)
       client = new Client({
 
         // 서버가 SockJS 사용함
         // SockJS는 HTTP(S) 사용함
+        // 연결 방식: SockJS (WebSocket 폴백 지원)
         webSocketFactory: () => new SockJS(`${import.meta.env.VITE_WS_URL}/ws-chat`),
+        // 인증 헤더
         connectHeaders: { Authorization: `Bearer ${token}` },
 
-        // 실패하면 5초마다 재시도(자동 재연결)
+        // 실패하면 5초마다 재시도(자동 재연결), 죽은 연결 감지를 못해서 필요시 하트비트 추가 필요(대부분의 경우 서버가 명시적으로 close 신호를 보내주니 하트비트 필요없음)
         reconnectDelay: 5000,
 
-          // 재연결 시마다 토큰 갱신
+        // 재연결 시마다 토큰 갱신
         beforeConnect: async () => {
           let currentToken = await getAccessToken();
+          if (cancelled) return;
+
           if (isTokenExpired(currentToken)) {
             log.debug('STOMP 재연결 전 토큰 갱신');
             currentToken = await refreshAccessToken();
+            if (cancelled) return;
+
             if (!currentToken) {
               log.debug('갱신 실패 - 연결 중단');
-              client.deactivate();
+              try {
+                await client.deactivate();
+                if (cancelled) return;
+              } catch (error) {
+                log.debug('연결 종료 실패', error);
+              }
               navigate('/login', {
                 state: { from: '/ai' },
                 replace: true
@@ -2222,6 +2252,8 @@ const handleError = ({ code, message }) => {
       });
       
       client.activate();
+      // React에서 client 인스턴스를 다른 함수에서 쓰기 위해 저장
+      // useEffect 안에서 만든 client는 그 안에서만 접근 가능. 다른 함수에서 못 쓰기에 이렇게 해야 함
       clientRef.current = client;
     };
 
@@ -2230,8 +2262,14 @@ const handleError = ({ code, message }) => {
     return () => {
       cancelled = true;
       // ref로 항상 최신 ws 값 참조
-      clientRef.current?.deactivate();
-      clientRef.current = null;
+      // STOMP.js의 deactivate()는 비동기 함수라서 프로미스 패턴 필요함
+      // React의 useEffect cleanup은 동기 함수만 지원하니(async 못 씀) then/catch로 처리
+      // deactivate(): STOMP.js 클라이언트의 연결 종료 메서드
+      clientRef.current?.deactivate()?.then(() => {
+        clientRef.current = null;
+      }).catch(() => {
+        clientRef.current = null;
+      });
     };
     // useRef는 의존성 배열에 안 넣어도 됨
     // navigate는 useNavigate()가 반환하는 함수인데, React Router 내부에서 stable reference로 만들어짐
@@ -2443,8 +2481,15 @@ useEffect(() => {
     }
 
     if (message.type === 'RECORDING_COMPLETE') {
+      // fetch는 HTTP 요청뿐 아니라 다양한 URL 스킴을 지원
+      // Blob = Binary Large Object (이진 대용량 데이터), 파일 같은 이진 데이터를 다루는 JS 객체
+      // .blob() 메서드: 응답을 Blob 객체로 변환
+      // fetch(message.audioData): blob URL 꺼내기, 메시지로 큰 데이터 전송 불가능해서 URL로 변환해서 참조만 전달해야 함
+      // 대기없이 진행을 위해 .then 방식 사용(어차피 chrome.runtime.onMessage에서 async 쓰면 값 처리가 어려움)
       fetch(message.audioData)
+        // 실제 Blob 데이터 추출
         .then(res => res.blob())
+        // 서버 전송
         .then(blob => uploadAndSend(blob));
       setIsRecording(false);
     }
@@ -2687,16 +2732,19 @@ function ChatInput({ sendTextMessage, showToast, startRecording, stopRecording, 
     
     const tick = () => {
       const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      // 1초 단위로 업데이트
       if (elapsed !== lastSecond) {
         lastSecond = elapsed;
         setRecordingTime(elapsed);
       }
+      // requestAnimationFrame: 다음 프레임마다 실행(예약)
       rafId = requestAnimationFrame(tick);
     };
-    
+    // 최초 시작
     rafId = requestAnimationFrame(tick);
     
     return () => {
+      // cancelAnimationFrame: 예약된 것 취소
       if (rafId) cancelAnimationFrame(rafId);
       // 녹음 끝나면 초기화
       setRecordingTime(0);

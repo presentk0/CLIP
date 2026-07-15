@@ -6,7 +6,6 @@ import { sendMessage } from './utils/messageHelper';
 import { Toast } from './contexts/Toast';
 
 function Recorder() {
-  // const [isRecording, setIsRecording] = useState(false);
   const [error, setError] = useState(null);
 
 
@@ -34,9 +33,14 @@ function Recorder() {
   const init = async () => {
     try {
       // 마이크 권한 요청
+      // await: 사용자 허용 대기
+      // navigator.mediaDevices: 미디어 장치 API 접근
+      // .getUserMedia(...): 미디어 요청 (마이크, 카메라)
+      // { audio: true }: 오디오만 요청
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       
       if (cancelled) {
+        // 스트림 트랙 정지, 마이크 해제 (탭 상단 빨간 점 사라짐)
         stream.getTracks().forEach(t => t.stop());
         return;
       }
@@ -44,9 +48,10 @@ function Recorder() {
       // 권한 받은 후 창 위치를 화면 밖으로
       // 오류 이거 실패해서 나중에 지우기
       try {
+          // 현재 창 정보 조회
           const currentWindow = await chrome.windows.getCurrent();
 
-
+          // 현재 창 상태 변경
           await chrome.windows.update(currentWindow.id, {
             state: 'minimized',
             focused: false,
@@ -71,20 +76,13 @@ const mimeType = supportedTypes.find(t => MediaRecorder.isTypeSupported(t))
 
 
       streamRef.current = stream;
+      // 스트림을 받아서 녹음 준비, 데이터 조각(chunk)이 나올 때마다 배열에 저장
       mediaRecorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
 
       // 녹음 데이터 수집
       mediaRecorder.ondataavailable = (e) => chunksRef.current.push(e.data);
-
-      // mediaRecorder.onstart = () => {
-      //   if (!cancelled) setIsRecording(true);
-      // };
-
-
-
-
 
       // 녹음 정지 시 처리
       mediaRecorder.onstop = async () => {
@@ -106,6 +104,7 @@ const mimeType = supportedTypes.find(t => MediaRecorder.isTypeSupported(t))
 
         const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
         // base64 변환 + 전송 + 창 닫기
+        // 파일/Blob을 다양한 형식으로 읽는 도구
         const reader = new FileReader();
 
 
@@ -115,7 +114,6 @@ reader.onloadend = () => {
     audioData: reader.result,
   });
   
-  // stream.getTracks().forEach(t => t.stop());
   window.close();
 };
 reader.readAsDataURL(audioBlob);
@@ -189,12 +187,7 @@ const handleMessage = (message) => {
   };
 }, []);
 
-// // stopRecording은 그대로
-// const stopRecording = () => {
-//   if (mediaRecorderRef.current?.state === 'recording') {
-//     mediaRecorderRef.current.stop();
-//   }
-// };
+
 const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText('chrome://settings/content/microphone');
