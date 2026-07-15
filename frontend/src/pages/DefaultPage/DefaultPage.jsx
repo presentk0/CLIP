@@ -152,13 +152,16 @@ function formatDuration (duration) {
     // "863" 같은 문자열 숫자
     totalSeconds = parseInt(duration, 10);
   }
-
+  // isNaN(): 값이 숫자가 아닌지(Not a Number) 확인하는 함수
   if (isNaN(totalSeconds)) return '00:00';
 
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
 
+  // 숫자를 2자리 문자열로 만들되, 부족하면 앞에 0 채우기
+  // String(): 어떤 값이든 문자열로 변환
+  // padStart(): 문자열 앞에 특정 문자를 채워서 길이 맞추기
   const pad = (n) => String(n).padStart(2, '0');
 
   return hours > 0
@@ -326,9 +329,13 @@ function TutorialPopup({setShowTutorial, setIsAiBlocked, isAiBlocked}) {
       {/* 어두워지기 */}
       <div className={style['exit-overlay']}></div>
 
-      <div className={style.exit}>
+      <div className={style.exit}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="tutorial-title"
+      >
         <div className={style.exit2}>
-          <p className={style.exit3}>시작하기 전에 간단한 안내 도와드릴까요?</p>
+          <p id="tutorial-title" className={style.exit3}>시작하기 전에 간단한 안내 도와드릴까요?</p>
           <div className={style.exit4}>
             <p className={style.exit5}>클립지의 기본적인 사용법을 적어두었어요! </p>
           </div>
