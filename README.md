@@ -344,6 +344,66 @@ CLIPZY는 **채팅에서 발견된 약점을 자동으로 퀴즈에 반영**합�
 - **Fallback**: 로컬 하드코딩 퀴즈로 서비스 연속성 보장
 
 ---
+## 📊 성과
+
+<div align="center">
+
+| 지표 | 값 |
+|:---:|:---:|
+| 🛒 Chrome 웹스토어 등록 | ✅ 정식 배포 |
+| 👥 실사용자 수 | **48명** |
+| 📈 유의미 사용자 (5문제 이상) | **22명** |
+| 🎯 지원 퀴즈 유형 | 3종 (OX / 빈칸 / 매칭) |
+| 🛡️ AI 응답 안정성 | 100% (Fallback 포함) |
+
+</div>
+
+---
+
+## 🔧 개발 환경 설정
+
+> 💡 일반 사용자는 위의 [빠른 시작 가이드](#-빠른-시작-가이드)를 참고하세요.
+> 이 섹션은 로컬에서 프로젝트를 실행하려는 **개발자용** 가이드입니다.
+
+### 사전 준비
+
+- JDK 17+
+- Node.js 18+
+- MySQL 8.0+
+- Redis 7.0+
+
+### 1. Backend 실행
+
+```bash
+cd backend
+cp src/main/resources/application-example.yml src/main/resources/application.yml
+# application.yml에 DB, OpenAI, Azure, DeepL 키 설정
+
+./gradlew bootRun
+```
+
+### 2. Frontend (Chrome Extension) 빌드
+
+```bash
+cd frontend
+npm install
+npm run build
+```
+
+### 3. Chrome에 확장 프로그램 로드
+
+1. Chrome 주소창에 `chrome://extensions` 입력
+2. 우측 상단 **"개발자 모드"** 활성화
+3. **"압축해제된 확장 프로그램을 로드합니다"** 클릭
+4. `frontend/dist` 폴더 선택
+
+---
+
+## 📘 API 문서
+- 📄 [API 명세서 ](https://www.hancomdocs.com/open?fileId=wZbOrQDSuKvTEZrMh8c1jQfQjNqFnOx5)
+
+---
+
 
 ## 📁 프로젝트 구조
 

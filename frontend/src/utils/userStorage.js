@@ -1,5 +1,6 @@
 /* global chrome */
 import { log } from "./logger";
+// 데이터는 .local 써도 되는데 토큰같은 중요 정보는 반드시 .session으로 관리하기
 
 // 현재 로그인 유저 ID 가져오기
 // 보안때문에 토큰을 content에서 읽는 대신 백그라운드로 메시지 보내기
