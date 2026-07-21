@@ -1577,8 +1577,11 @@ function QuizPage({ videoId, videoTitle }) {
             {/* 뒤로가기 */}
             <button
             onClick={handleBack}
+            aria-label="뒤로 가기"
             className={styles['header3-l']}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="10" height="17" viewBox="0 0 10 17" fill="none">
+              <svg 
+              aria-hidden="true"
+              xmlns="http://www.w3.org/2000/svg" width="10" height="17" viewBox="0 0 10 17" fill="none">
                 <path d="M9.35862 0.35565C9.83282 0.82987 9.83282 1.59871 9.35862 2.07292L2.93152 8.5L9.35862 14.9271C9.83282 15.4013 9.83282 16.1702 9.35862 16.6444C8.88442 17.1185 8.11562 17.1185 7.64142 16.6444L0.355657 9.3586C-0.118553 8.8845 -0.118553 8.1156 0.355657 7.6414L7.64142 0.35565C8.11562 -0.11855 8.88442 -0.11855 9.35862 0.35565Z" fill="#454440"/>
               </svg>
             </button>
@@ -1586,9 +1589,12 @@ function QuizPage({ videoId, videoTitle }) {
             {/* 마이페이지 */}
             <button
             onClick={handleMyPage}
+            aria-label="마이페이지로 이동"
             className={styles['header3-r']}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <svg 
+              aria-hidden="true"
+              xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
                 <path d="M13.0293 13.1426C16.5637 13.1428 19.4287 16.0085 19.4287 19.543C19.4287 19.7954 19.2241 20 18.9717 20H5.0293C4.77685 20 4.57134 19.7954 4.57129 19.543C4.57129 16.0084 7.4371 13.1426 10.9717 13.1426H13.0293ZM12 4C14.2091 4 16 5.79086 16 8C16 10.2091 14.2091 12 12 12C9.79101 11.9998 8 10.209 8 8C8 5.79096 9.79101 4.00016 12 4Z" fill="#454440"/>
               </svg>
             </button>
@@ -1708,9 +1714,12 @@ function QuizPage({ videoId, videoTitle }) {
                   {/* 전 스크립트 보기 */}
                   <button
                   onClick= {() => goPrev()}
+                  aria-label="이전 스크립트"
                   className={styles.subtitles8}
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none">
+                    <svg 
+                    aria-hidden="true"
+                    xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none">
                       <path d="M23.4961 5.75748C24.8252 4.87141 26.6055 5.82415 26.6055 7.42154V24.5788C26.6055 26.1762 24.8252 27.1289 23.4961 26.2428L10.6279 17.6647C9.44056 16.8731 9.44076 15.1283 10.6279 14.3366L23.4961 5.75748ZM6.89551 7.78971C7.7237 7.78997 8.39452 8.46146 8.39453 9.28971V22.7106C8.39453 23.539 7.72296 24.2106 6.89453 24.2106C6.06633 24.2103 5.39453 23.5389 5.39453 22.7106V9.28971C5.39455 8.46129 6.06709 7.78971 6.89551 7.78971Z" fill="#454440"/>
                     </svg>
                   </button>
@@ -1718,9 +1727,12 @@ function QuizPage({ videoId, videoTitle }) {
                   {/* 현재 스크립트 구간 반복 */}
                   <button 
                   onClick={() => toggleLoop()}
+                  aria-label="구간 반복"
                   className={styles.subtitles8}
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none">
+                    <svg 
+                    aria-hidden="true"
+                    xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none">
                       <path d="M5 16V10.6667C5 8.45753 6.79086 6.66667 9 6.66667H27M22.875 2L27 6.66667L22.875 11.3333" stroke="#454440" stroke-width="3" stroke-linecap="round"/>
                       <path d="M27 16V21.3333C27 23.5425 25.2091 25.3333 23 25.3333H5M9.125 30L5 25.3333L9.125 20.6667" stroke="#454440" stroke-width="3" stroke-linecap="round"/>
                     </svg>
@@ -1729,9 +1741,12 @@ function QuizPage({ videoId, videoTitle }) {
                   {/* 다음 스크립트 보기 */}
                   <button
                   onClick={() => goNext()}
+                  aria-label="다음 스크립트"
                   className={styles.subtitles8}
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none">
+                    <svg 
+                    aria-hidden="true"
+                    xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none">
                       <path d="M8.44385 5.68708C7.1148 4.80117 5.3346 5.7539 5.33447 7.35114V24.649C5.33468 26.2461 7.11483 27.1989 8.44385 26.3131L21.4175 17.6636C22.6044 16.8718 22.6038 15.127 21.4165 14.3355L8.44385 5.68708ZM25.1655 7.74274C24.3371 7.74274 23.6656 8.41436 23.6655 9.24274V22.7574C23.6657 23.5857 24.3372 24.2574 25.1655 24.2574C25.9938 24.2574 26.6653 23.5857 26.6655 22.7574V9.24274C26.6655 8.41436 25.9939 7.74274 25.1655 7.74274Z" fill="#454440"/>
                     </svg>
                   </button>
@@ -2170,19 +2185,24 @@ function QuizPage({ videoId, videoTitle }) {
               <div className={styles.popup8}>
                 <button 
                 onClick={() => collectWord()}
+                aria-pressed={buttonState === 'collected'}
                 className={styles.popup9}>
                   <div className={styles.popup10}>
                     <div className={styles.popup11}>
                       <div className={styles.popup12}>
                         {buttonState === 'collected' ? (
                           // 선택함
-                          <svg className={styles.popup13} xmlns="http://www.w3.org/2000/svg" width="9" height="12" viewBox="0 0 9 12" fill="none">
+                          <svg 
+                          aria-hidden="true"
+                          className={styles.popup13} xmlns="http://www.w3.org/2000/svg" width="9" height="12" viewBox="0 0 9 12" fill="none">
                             <path d="M7.3 0.5H1.7C1.03726 0.5 0.5 1.03726 0.5 1.7V10.5686C0.5 11.2814 1.36171 11.6383 1.86568 11.1343L3.93431 9.06569C4.24673 8.75327 4.75327 8.75327 5.06569 9.06569L7.13431 11.1343C7.63829 11.6383 8.5 11.2814 8.5 10.5686V1.7C8.5 1.03726 7.96274 0.5 7.3 0.5Z" stroke="#BDB4AB"
                             fill="#7C3AED"/>
                           </svg>
                         ) : (
                           // 미선택함
-                          <svg className={styles.popup13} xmlns="http://www.w3.org/2000/svg" width="9" height="12" viewBox="0 0 9 12" fill="none">
+                          <svg 
+                          aria-hidden="true"
+                          className={styles.popup13} xmlns="http://www.w3.org/2000/svg" width="9" height="12" viewBox="0 0 9 12" fill="none">
                             <path d="M7.3 0.5H1.7C1.03726 0.5 0.5 1.03726 0.5 1.7V10.5686C0.5 11.2814 1.36171 11.6383 1.86568 11.1343L3.93431 9.06569C4.24673 8.75327 4.75327 8.75327 5.06569 9.06569L7.13431 11.1343C7.63829 11.6383 8.5 11.2814 8.5 10.5686V1.7C8.5 1.03726 7.96274 0.5 7.3 0.5Z" stroke="#BDB4AB"
                             fill="black"/>
                           </svg>
@@ -2198,9 +2218,13 @@ function QuizPage({ videoId, videoTitle }) {
 
                 <button 
                 onClick= {(e) => closePopup(e)}
-                className={styles.popup16}>
+                className={styles.popup16}
+                aria-label="닫기"
+                >
                   <div className={styles.popup17}>
-                    <svg className={styles.popup18} xmlns="http://www.w3.org/2000/svg" width="9" height="9" viewBox="0 0 9 9" fill="none">
+                    <svg 
+                    aria-hidden="true"
+                    className={styles.popup18} xmlns="http://www.w3.org/2000/svg" width="9" height="9" viewBox="0 0 9 9" fill="none">
                       <path fill-rule="evenodd" clip-rule="evenodd" d="M6.62682 0.234233C6.93926 -0.0780235 7.44629 -0.078132 7.75866 0.234233C8.0708 0.546675 8.07001 1.05374 7.75768 1.36607L5.17565 3.94712L7.88561 6.65708C8.1979 6.96951 8.19799 7.47654 7.88561 7.78892C7.57316 8.10098 7.06608 8.10024 6.75378 7.78794L4.04479 5.07896L1.3651 7.75865C1.05277 8.07084 0.546641 8.07074 0.234245 7.75865C-0.0781279 7.44627 -0.0780358 6.94022 0.234245 6.62779L2.91296 3.94712L0.361199 1.39537C0.0490364 1.08305 0.0491826 0.576909 0.361199 0.264507C0.673572 -0.0478668 1.17963 -0.0477746 1.49206 0.264507L4.04382 2.81626L6.62682 0.234233Z" fill="#454440"/>
                     </svg>
                   </div>
@@ -2236,7 +2260,7 @@ function QuizPage({ videoId, videoTitle }) {
 
                         <div className={styles.popup35}>
                           <div className={styles.popup36}>
-                            <svg className={styles.popup37} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <svg aria-hidden="true" className={styles.popup37} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
                               <path d="M7.3335 4.18521C7.3335 3.54151 6.61195 3.1614 6.08107 3.52543L4.1024 4.88223C4.03581 4.9279 3.95694 4.95234 3.87619 4.95234H2.1335C1.69167 4.95234 1.3335 5.31051 1.3335 5.75234V10.2476C1.3335 10.6894 1.69167 11.0476 2.1335 11.0476H3.87619C3.95694 11.0476 4.03581 11.072 4.1024 11.1177L6.08107 12.4745C6.61195 12.8385 7.3335 12.4584 7.3335 11.8147V4.18521Z" fill="#CCC3B4"/>
                               <path d="M9.69336 5.64001C10.3183 6.26511 10.6693 7.1128 10.6693 7.99668C10.6693 8.88056 10.3183 9.72826 9.69336 10.3533" stroke="#CCC3B4" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
                               <path d="M11.4878 3.9967C12.7684 5.05768 13.4878 6.49648 13.4878 7.9967C13.4878 9.49693 12.7684 10.9357 11.4878 11.9967" stroke="#CCC3B4" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>

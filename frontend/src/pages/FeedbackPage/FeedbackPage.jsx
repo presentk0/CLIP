@@ -99,7 +99,9 @@ const FeedbackPage = () => {
         />
       }
 
-      <button className={styles.closeBtn} onClick={handleClose}>x</button>
+      <button className={styles.closeBtn} onClick={handleClose} aria-label="닫기">
+        x
+      </button>
 
       <div className={styles.frog1}>
         <div 
@@ -121,28 +123,35 @@ const FeedbackPage = () => {
           const isActive = score === num;
           return (
             <button
-              key={num}
-              type="button"
-              className={styles.scoreItem}
-              onClick={() => setScore(num)}
+            key={num}
+            type="button"
+            className={styles.scoreItem}
+            aria-label={`${num}점, 5점 중`}
+            aria-pressed={isActive}
+            onClick={() => setScore(num)}
             >
               <svg
-                className={styles.scoreSvg}
-                xmlns="http://www.w3.org/2000/svg"
-                width="46" height="46" viewBox="0 0 46 46" fill="none"
+              aria-hidden="true"
+              className={styles.scoreSvg}
+              xmlns="http://www.w3.org/2000/svg"
+              width="46" height="46" viewBox="0 0 46 46" fill="none"
               >
                 <circle 
-                  cx="23" cy="23" r="22.5" 
-                  fill={isActive ? "#DBF3E7" : "white"} 
-                  stroke={isActive ? "#01CF8A" : "#D4CDB8"}
+                cx="23" cy="23" r="22.5" 
+                fill={isActive ? "#DBF3E7" : "white"} 
+                stroke={isActive ? "#01CF8A" : "#D4CDB8"}
                 />
               </svg>
 
-              <span className={`${styles.card7} ${isActive ? styles.active : ''}`}>
+              <span 
+              aria-hidden="true"
+              className={`${styles.card7} ${isActive ? styles.active : ''}`}>
                 {num}
               </span>
 
-              <span className={styles.scoreLabel}>
+              <span 
+              aria-hidden="true"
+              className={styles.scoreLabel}>
                 {num === 1 ? '어색했다' : num === 5 ? '자연스러웠다' : '\u00A0'}
               </span>
             </button>
@@ -163,6 +172,7 @@ const FeedbackPage = () => {
           placeholder="퀴즈, 채팅에 상관 없이 작성해주세요"
           value={goodPoint}
           onChange={(e) => setGoodPoint(e.target.value)}
+          aria-label="가장 좋았던 점"
         />
       </div>
 
@@ -173,6 +183,7 @@ const FeedbackPage = () => {
           className={styles.card17}
           placeholder="퀴즈, 채팅에 상관 없이 작성해주세요"
           value={improvePoint}
+          aria-label="가장 불편했던 점"
           onChange={(e) => setImprovePoint(e.target.value)}
         />
       </div>

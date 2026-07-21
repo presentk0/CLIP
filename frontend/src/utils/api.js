@@ -74,6 +74,8 @@ export async function getAccessToken() {
   // 백그라운드(서비스워커) 컨텍스트인지 확인
   // chrome.runtime.sendMessage는 자기 자신(같은 컨텍스트)에겐 메시지 못 보냄
   // 백그라운드는 저장소에서 조회하게 변경
+  // typeof window: 지금 이 코드가 브라우저에서 실행 중인지 아닌지 확인하는 방법(window는 브라우저에서만 존재하고, 서버(Node.js)에는 없음)
+  // Service Worker는 창(UI)이 없어서 window 자체가 존재하지 않음(Service Worker는 HTML 없이 실행됨)
   const isServiceWorker = typeof window === 'undefined';
   
   try {
@@ -96,27 +98,20 @@ export async function getAccessToken() {
 
 // 토큰 저장 헬퍼
 async function saveAccessToken(accessToken) {
-
   const isServiceWorker = typeof window === 'undefined';
 
-  
   if (isServiceWorker) {
     await chrome.storage.session.set({ accessToken });
-
   } else {
-
     // user 정보 가져오기
     const auth = await chrome.runtime.sendMessage({ type: 'GET_AUTH' });
-
 
     await chrome.runtime.sendMessage({
       type: 'SET_AUTH',
       accessToken,
       user: auth?.user,
     });
-
   }
-
 }
 
 
@@ -142,7 +137,10 @@ export const apiFetch = async (endpoint, options = {}) => {
   const accessToken = await getAccessToken();
 
   // headers에 토큰 자동 추가 (Mock/실제 공통)
+  // API 요청에 필요한 헤더를 상황에 맞게 자동으로 만들어주는 코드
   const headersWithAuth = {
+    // 해당 값이 특정 클래스로 만들어졌는지 불리언으로 확인
+    // instanceof는 좌변이 undefined나 null이어도 안전하게 false 반환하기에 옵셔널 필요없음
     // Content-Type = 내가 지금 보내는 데이터가 어떤 형식인지 알려주는 헤더
     // Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW 는 form 데이터를 의미
     // multi(여러) + part(부분) = 여러 부분으로 나뉜 데이터 (text 부분 + 파일 부분이 한 요청 안에 여러 개 들어있다는 뜻)
@@ -155,6 +153,7 @@ export const apiFetch = async (endpoint, options = {}) => {
     : { 'Content-Type': 'application/json' }),
     ...(accessToken && { 'Authorization': `Bearer ${accessToken}` }),
     // 호출자가 명시적으로 헤더 주면 그걸로 덮어쓰기
+    // 스프레드는 undefined를 안전하게 처리해서 옵셔널 필요없음
     ...options.headers,
   };
 
@@ -182,7 +181,11 @@ export const apiFetch = async (endpoint, options = {}) => {
   try {
     response = await fetch(`${BASE_URL}${endpoint}`, {
       ...options,
-      // include의 경우 일반 웹사이트는 CSRF 공격 위험이 있다?
+      // credentials: 요청할 때 쿠키/인증 정보를 같이 보낼지를 정하는 옵션(브라우저 표준 기능)
+      // credentials: 'omit', 쿠키 절대 안 보냄
+      // credentials: 'same-origin', 같은 도메인일 때만 쿠키 보냄 (기본값)
+      // credentials: 'include', 다른 도메인이어도 쿠키 보냄
+      // include의 경우 일반 웹사이트는 CSRF 공격 위험이 있지만 서버가 CORS 설정으로 특정 도메인만 허용하면 안전함
       // 확장프로그램과 서버 간 도메인이 다르기에 같은 도메인만 보내는 기본값인 'same-origin'는 쿠키를 보낼 수 없음
       // include를 사용해서 도메인이 달라도 항상 브라우저에서 쿠키를 보내게 함
       credentials: 'include',
@@ -209,6 +212,7 @@ export const apiFetch = async (endpoint, options = {}) => {
       });
 
       if (refreshRes.ok) {
+        // 서버가 JSON으로 보내서 .json 필요
         const refreshData = await refreshRes.json();
         const newAccessToken = refreshData.data.accessToken;
 
@@ -216,6 +220,7 @@ export const apiFetch = async (endpoint, options = {}) => {
         await saveAccessToken(newAccessToken);
 
         // 원래 요청 재시도
+        // 재시도 해서 에러나도 여기서 출발이라서 정상적으로 if (!response.ok) { 가 반응해서 무한 루프없이 종료함
         response = await fetch(`${BASE_URL}${endpoint}`, {
           ...options,
           credentials: 'include',
