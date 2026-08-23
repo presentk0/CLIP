@@ -75,3 +75,7 @@ aws:
     bucket: test-bucket
     audio-prefix: chat/
     presigned-url-expiration: 300  # 5분
+
+clipzy:
+  notice:
+    base-url: https://clipzy.test.com

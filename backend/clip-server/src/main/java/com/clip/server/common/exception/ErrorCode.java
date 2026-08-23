@@ -40,6 +40,7 @@ public enum ErrorCode {
     NO_RESUMABLE_CHAT_ROOM(HttpStatus.NOT_FOUND, "NO_RESUMABLE_CHAT_ROOM","이어할 수 있는 채팅방이 없습니다."),
     CHAT_ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "CHAT_ROOM_NOT_FOUND","채팅방을 찾을 수 없습니다."),
     MESSAGE_NOT_FOUND(HttpStatus.NOT_FOUND, "MESSAGE_NOT_FOUND", "채팅 메시지를 찾을 수 없습니다."),
+    NOTICE_NOT_FOUND(HttpStatus.NOT_FOUND, "NOTICE", "공지를 찾을 수 없습니다."),
 
     // 409 Conflict
     WORD_ALREADY_COLLECTED(HttpStatus.CONFLICT, "WORD_ALREADY_COLLECTED", "이미 수집한 단어입니다."),
