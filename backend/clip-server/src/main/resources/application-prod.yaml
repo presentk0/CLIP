@@ -48,6 +48,7 @@ cors:
     - "chrome-extension://ejaaecfpfllochiioaahccleenblfcol"
     - "chrome-extension://hpflpahcmpbakbeblddipadmifhfehfa"
     - "chrome-extension://mgphcoglgpmnmcojmjppoaolehipgbdp"
+    - "chrome-extension://pcccpfnimklphlohjikfacdcpmbacgpa"
     - "https://*.youtube.com"
     - "https://clip-server.com"
     - "https://clip-admin-frontend.vercel.app"
