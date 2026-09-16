@@ -50,8 +50,11 @@ public enum ErrorCode {
 
     // 500 Internal Server Error
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR", "서버 오류가 발생했습니다."),
-    AI_SERVICE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "AI_SERVICE_ERROR", "AI 서비스 오류가 발생했습니다."),
     TRANSLATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "TRANSLATION_FAILED", "번역 서비스 오류가 발생했습니다."),
+    AI_SERVICE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "AI_SERVICE_ERROR", "AI 서비스 오류가 발생했습니다."),
+    AI_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "AI_SERVER_ERROR", "AI 서버 통신 중 오류가 발생했습니다."),
+    AI_SERVER_TIMEOUT(HttpStatus.REQUEST_TIMEOUT, "AI_SERVER_TIMEOUT","AI 서버 응답 시간이 초과되었습니다."),
+    AI_INVALID_RESPONSE(HttpStatus.INTERNAL_SERVER_ERROR, "AI_INVALID_RESPONSE","AI 서버 응답이 유효하지 않습니다."),
 
     // ===========================================
     // 관리자(Admin) 전용 에러 코드

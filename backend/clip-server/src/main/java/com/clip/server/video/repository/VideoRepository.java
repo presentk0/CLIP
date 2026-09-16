@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface VideoRepository extends JpaRepository<Video, String> {
 
@@ -25,4 +26,9 @@ public interface VideoRepository extends JpaRepository<Video, String> {
             @Param("watchedVideoIds") List<String> watchedVideoIds,
             Pageable pageable
     );
+
+    /**
+    * VIDEO ID를 통해 VIDEO 찾기
+     */
+    Optional<Video> findByVideoId(String videoId);
 }
