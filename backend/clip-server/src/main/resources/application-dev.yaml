@@ -49,6 +49,7 @@ cors:
     - "chrome-extension://mgphcoglgpmnmcojmjppoaolehipgbdp"
     - "chrome-extension://iinbeccdhhdppfhmfkihoikolmjpohki"
     - "chrome-extension://ojmhfdibelngkmaefmciolomgconkmli"
+    - "chrome-extension://pcccpfnimklphlohjikfacdcpmbacgpa"
     - "https://*.youtube.com"
     - "https://dev.clip-server.com"
     - "https://*.vercel.app"
@@ -93,3 +94,6 @@ aws:
     presigned-url-expiration: 300
     download-url-expiration: 1800
 
+clipzy:
+  notice:
+    base-url: https://clipzy.com/notices
